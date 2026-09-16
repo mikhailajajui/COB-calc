@@ -16,6 +16,102 @@ drop off, what's the balloon payment, what happens when my ARM resets, is this l
 DSCR-qualified* — without reaching for a separate tool. Those calculations now live in
 the same engine, sharing its amortization core instead of re-deriving it.
 
+## Before → after
+
+```mermaid
+flowchart TD
+    root(["cob-calculator — proposed v2 use cases (gap analysis)"])
+
+    root --> PUC1
+    root --> PUC2
+    root --> PUC3
+    root --> PUC4
+    root --> PUC5
+    root --> PUC6
+
+    PUC1["PUC1: Extra & lump-sum principal payments"]
+    PUC1 --> PUC1a["Recurring extra monthly payment\nmirrors lending.extra_payment_savings()"]
+    PUC1 --> PUC1b["One-time lump sum applied at a renewal"]
+    PUC1 --> PUC1c["Biweekly payment schedule"]
+
+    PUC2["PUC2: Recurring costs & PMI"]
+    PUC2 --> PUC2a["Property tax / home insurance / HOA\nannual % increase support"]
+    PUC2 --> PUC2b["PMI cost + auto-drop at 80% LTV"]
+    PUC2 --> PUC2c["Cost breakdown output"]
+
+    PUC3["PUC3: Qualification & risk ratios"]
+    PUC3 --> PUC3a["Loan-to-Value (LTV)"]
+    PUC3 --> PUC3b["Combined LTV for HELOC / second lien"]
+    PUC3 --> PUC3c["DSCR for investment-property segments"]
+
+    PUC4["PUC4: Alternative payment structures"]
+    PUC4 --> PUC4a["Interest-only segment"]
+    PUC4 --> PUC4b["Balloon payment reporting"]
+    PUC4 --> PUC4c["ARM index+margin reset with rate caps"]
+
+    PUC5["PUC5: Comparison & breakeven tooling"]
+    PUC5 --> PUC5a["Mortgage points breakeven"]
+    PUC5 --> PUC5b["Refinance breakeven & total-cost comparison"]
+    PUC5 --> PUC5c["Side-by-side term comparison"]
+
+    PUC6["PUC6: Statement reconciliation tooling"]
+    PUC6 --> PUC6a["Override reason/audit trail"]
+    PUC6 --> PUC6b["Bulk override import (CSV/JSON)"]
+
+    classDef gap fill:#fff3cd,stroke:#d39e00,color:#664d03,stroke-dasharray: 4 3;
+    class PUC1,PUC2,PUC3,PUC4,PUC5,PUC6,PUC1a,PUC1b,PUC1c,PUC2a,PUC2b,PUC2c,PUC3a,PUC3b,PUC3c,PUC4a,PUC4b,PUC4c,PUC5a,PUC5b,PUC5c,PUC6a,PUC6b gap;
+```
+
+*Full source: [`usecases-proposed.mmd`](./usecases-proposed.mmd) — the original gap
+analysis this PR closes.*
+
+```mermaid
+flowchart TD
+    root(["cob-calculator — after this PR"])
+
+    root --> UC1["UC1-UC5: v1 baseline\n(simple loans, segments, renewals, validation)"]
+    root --> UC6
+    root --> UC7
+    root --> UC8
+    root --> UC9
+    root --> UC10
+    root --> UC11
+
+    UC6["UC6: Extra & lump-sum principal payments"]
+    UC6 --> UC6a["calculateExtraPaymentSavings()"]
+    UC6 --> UC6b["MortgageInput.lumpSumPayments"]
+    UC6 --> UC6c["calculateBiweeklySchedule()"]
+
+    UC7["UC7: Recurring costs & PMI"]
+    UC7 --> UC7a["applyRecurringCosts()"]
+    UC7 --> UC7b["calculatePmiPayment() + 80% LTV auto-drop"]
+    UC7 --> UC7c["LoanSummary.costBreakdown"]
+
+    UC8["UC8: Qualification & risk ratios"]
+    UC8 --> UC8a["loanToValue(), combinedLoanToValue()"]
+    UC8 --> UC8b["debtServiceCoverageRatio()"]
+
+    UC9["UC9: Alternative payment structures"]
+    UC9 --> UC9a["Segment.interestOnly"]
+    UC9 --> UC9b["Segment.balloon + LoanSummary.balloonPaymentDue"]
+    UC9 --> UC9c["calculateArmResetRate()"]
+
+    UC10["UC10: Comparison & breakeven tooling"]
+    UC10 --> UC10a["calculatePointsBreakeven()"]
+    UC10 --> UC10b["calculateRefinanceBreakeven(), compareRefinance()"]
+    UC10 --> UC10c["compareLoanTerms()"]
+
+    UC11["UC11: Statement reconciliation tooling"]
+    UC11 --> UC11a["ManualPaymentOverride.reason"]
+    UC11 --> UC11b["importOverridesFromJson(), importOverridesFromCsv()"]
+
+    classDef done fill:#d4edda,stroke:#28a745,color:#14532d;
+    class UC1,UC6,UC6a,UC6b,UC6c,UC7,UC7a,UC7b,UC7c,UC8,UC8a,UC8b,UC9,UC9a,UC9b,UC9c,UC10,UC10a,UC10b,UC10c,UC11,UC11a,UC11b done;
+```
+
+*Full source: [`usecases.mmd`](./usecases.mmd) — the current-state diagram (85/85
+tests passing).*
+
 ## What's new
 
 | Category | Adds |
@@ -28,8 +124,7 @@ the same engine, sharing its amortization core instead of re-deriving it.
 | **Statement reconciliation** | `ManualPaymentOverride.reason` / `AmortizationEntry.overrideReason`, `importOverridesFromJson()` / `importOverridesFromCsv()` |
 
 Full design rationale, worked examples, and known v1 scope cuts are in
-[`docs/spec.md`](./spec.md). [`docs/usecases.mmd`](./usecases.mmd) and
-[`docs/usecases-proposed.mmd`](./usecases-proposed.mmd) are the before/after diagrams.
+[`docs/spec.md`](./spec.md).
 
 ## Design notes worth a reviewer's attention
 
