@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cost of Borrowing — worksheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #eeeee4;
+    --paper-raised: #f5f5ec;
+    --ink: #1e2621;
+    --ink-muted: #5b6259;
+    --ledger-green: #23573f;
+    --ledger-green-ink: #ffffff;
+    --correction: #9c3b24;
+    --rule: #c7c9ba;
+    --rule-strong: #a9ac98;
+    --font-display: "Zilla Slab", Georgia, "Times New Roman", serif;
+    --font-body: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #161b17;
+      --paper-raised: #1c221d;
+      --ink: #e9e7dc;
+      --ink-muted: #9aa296;
+      --ledger-green: #5fa47f;
+      --ledger-green-ink: #0f1512;
+      --correction: #d97456;
+      --rule: #333a33;
+      --rule-strong: #454d44;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 15px/1.55 var(--font-body);
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  h1 {
+    font: 600 30px/1.15 var(--font-display);
+    margin: 0 0 4px;
+    letter-spacing: 0.01em;
+  }
+  p.sub {
+    color: var(--ink-muted);
+    margin: 0 0 20px;
+    max-width: 52ch;
+  }
+  h2 {
+    font: 600 15px/1.3 var(--font-display);
+    margin: 0 0 10px;
+  }
+  code { font-family: var(--font-data); font-size: 0.92em; }
+
+  .rule {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 22px 0;
+  }
+
+  /* --- presets, rendered as plain text links, not pill buttons --- */
+  .presets { margin: 0 0 22px; color: var(--ink-muted); }
+  .presets .lead { display: block; font-size: 13px; margin-bottom: 6px; }
+  .preset-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-right: 18px;
+    font: 500 14px var(--font-body);
+    color: var(--ledger-green);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    transition: text-decoration-color 120ms ease;
+  }
+  .preset-link:hover,
+  .preset-link:focus-visible { text-decoration-color: currentColor; }
+
+  /* --- segment entries: ledger boxes joined by a plain-language connector --- */
+  #segments { margin-bottom: 14px; }
+  .segment {
+    border: 1px solid var(--rule-strong);
+    padding: 16px 18px 18px;
+    position: relative;
+    background: var(--paper-raised);
+  }
+  .segment + .segment { margin-top: 0; border-top: none; }
+  .segment-legend {
+    font: 600 14px var(--font-display);
+    margin: 0 0 12px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .segment-legend .kind { color: var(--ink-muted); font: 400 12.5px var(--font-body); }
+  .segment-payment {
+    font: 500 13px var(--font-data);
+    color: var(--ledger-green);
+    margin-top: 10px;
+  }
+
+  .connector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0 8px 18px;
+    color: var(--ink-muted);
+    font-size: 13px;
+    border-left: 1px solid var(--rule-strong);
+    margin-left: 0;
+  }
+  .connector::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ledger-green);
+    flex: none;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px 16px;
+  }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-bottom: 3px;
+  }
+  input {
+    width: 100%;
+    padding: 6px 2px;
+    border: none;
+    border-bottom: 1px solid var(--rule-strong);
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: 500 14.5px var(--font-data);
+  }
+  input:focus-visible {
+    outline: none;
+    border-bottom-color: var(--ledger-green);
+    box-shadow: 0 1px 0 0 var(--ledger-green);
+  }
+
+  .row-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+
+  button {
+    font: 500 13px var(--font-body);
+    padding: 6px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--rule-strong);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--ink-muted); }
+  button:focus-visible { outline: 2px solid var(--ledger-green); outline-offset: 2px; }
+  button.remove-segment { color: var(--correction); border-color: transparent; }
+  button.remove-segment:hover { border-color: var(--correction); }
+  button.add-segment { margin-top: 12px; }
+
+  button.primary {
+    background: var(--ledger-green);
+    border-color: var(--ledger-green);
+    color: var(--ledger-green-ink);
+    font-weight: 600;
+    padding: 9px 18px;
+  }
+  button.primary:hover { opacity: 0.92; }
+
+  details { margin: 4px 0 0; }
+  summary {
+    cursor: pointer;
+    font: 500 14px var(--font-body);
+    color: var(--ink);
+  }
+  details p.sub { font-size: 13px; margin: 8px 0; }
+  textarea {
+    width: 100%;
+    min-height: 84px;
+    font: 13px/1.5 var(--font-data);
+    padding: 8px;
+    border: 1px solid var(--rule-strong);
+    background: var(--paper-raised);
+    color: inherit;
+  }
+
+  form > .row-actions.submit { margin: 22px 0 0; justify-content: flex-start; }
+
+  #error {
+    display: none;
+    color: var(--correction);
+    border-left: 3px solid var(--correction);
+    padding: 4px 0 4px 12px;
+    margin: 18px 0;
+    font-size: 14px;
+    white-space: pre-wrap;
+  }
+
+  /* --- totals strip: hairline-divided figures, not identical cards --- */
+  .totals {
+    display: flex;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    margin: 6px 0 26px;
+  }
+  .total {
+    padding: 10px 18px 10px 0;
+    margin-right: 18px;
+    border-right: 1px solid var(--rule);
+  }
+  .total:last-child { border-right: none; }
+  .total .label { display: block; font-size: 12px; color: var(--ink-muted); margin-bottom: 2px; }
+  .total .value { font: 500 16px var(--font-data); }
+
+  /* --- amortization schedule --- */
+  #scheduleWrap { max-height: 480px; overflow: auto; border: 1px solid var(--rule); }
+  table { width: 100%; border-collapse: collapse; font: 13px var(--font-data); }
+  th {
+    font: 500 11px var(--font-body);
+    color: var(--ink-muted);
+    text-align: right;
+    padding: 8px;
+    border-bottom: 1px solid var(--rule-strong);
+    position: sticky;
+    top: 0;
+    background: var(--paper);
+  }
+  td {
+    padding: 5px 8px;
+    text-align: right;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2), th:nth-child(3), td:nth-child(3) {
+    text-align: left;
+  }
+  tr.year-marker td {
+    padding-top: 12px;
+    border-bottom: none;
+    color: var(--ink-muted);
+    font: 500 11px var(--font-body);
+  }
+  tr.override td:first-child { box-shadow: inset 3px 0 0 0 var(--correction); }
+  tr.override td:last-child { color: var(--correction); }
+
+  @media (max-width: 480px) {
+    body { padding: 28px 16px 64px; }
+    h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+  <h1>Cost of borrowing</h1>
+  <p class="sub">A worksheet for testing the segmented mortgage engine — not part of the library itself.</p>
+
+  <div class="presets">
+    <span class="lead">Start from a worksheet:</span>
+    <button type="button" class="preset-link" data-preset="simple">Simple 30yr fixed</button>
+    <button type="button" class="preset-link" data-preset="renewal">Renewal</button>
+    <button type="button" class="preset-link" data-preset="ratechange">Rate change</button>
+  </div>
+
+  <hr class="rule" />
+
+  <form id="form">
+    <h2>Segments</h2>
+    <div id="segments"></div>
+    <button type="button" id="addSegment" class="add-segment">Add another segment</button>
+
+    <hr class="rule" />
+
+    <details>
+      <summary>Correction stub — manual overrides (optional)</summary>
+      <p class="sub">
+        JSON array of
+        <code>{ paymentNumber, paymentAmount?, interestPortion?, principalPortion?, remainingBalance? }</code>
+      </p>
+      <textarea id="overridesJson" placeholder="[]"></textarea>
+    </details>
+
+    <div class="row-actions submit">
+      <button type="submit" class="primary">Calculate</button>
+    </div>
+  </form>
+
+  <div id="error"></div>
+
+  <div id="results" style="display:none">
+    <div class="totals" id="totals"></div>
+
+    <h2>Amortization schedule</h2>
+    <div id="scheduleWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Seg</th><th>Date</th><th>Payment</th>
+            <th>Interest</th><th>Principal</th><th>Balance</th>
+          </tr>
+        </thead>
+        <tbody id="scheduleBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module" src="/ui/main.js"></script>
+</body>
+</html>

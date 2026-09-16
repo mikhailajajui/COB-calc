@@ -1,0 +1,92 @@
+%% cob-calculator — current use cases (implemented, test-covered)
+%% Source of truth: src/*.ts + tests/*.ts (85/85 passing, typecheck clean, build clean)
+%% UC1-UC5 were the v1 baseline; UC6-UC11 are the v2 additions (see docs/spec.md and
+%% docs/usecases-proposed.mmd, whose PUC1-PUC6 gap analysis this closes).
+flowchart TD
+    root(["cob-calculator v0.1.0"])
+
+    root --> UC1
+    root --> UC2
+    root --> UC3
+    root --> UC4
+    root --> UC5
+    root --> UC6
+    root --> UC7
+    root --> UC8
+    root --> UC9
+    root --> UC10
+    root --> UC11
+
+    %% --- UC1 ---
+    UC1["UC1: Simple fixed-rate loan\nsummarizeLoan()"]
+    UC1 --> UC1a["Compute fixed monthly payment\ncalculateMonthlyPayment()"]
+    UC1 --> UC1b["Full amortization schedule\n(e.g. 360 rows for 30yr)"]
+    UC1 --> UC1c["Total interest paid / total of payments"]
+    UC1 --> UC1d["Zero-interest & single-payment (n=1) edge cases"]
+    UC1 --> UC1e["Defaults startDate to today when omitted"]
+
+    %% --- UC2 ---
+    UC2["UC2: Home-price-derived loan\nfromHomePrice()"]
+    UC2 --> UC2a["loanAmount = homePrice − downPayment"]
+    UC2 --> UC2b["Guards: throws if downPayment ≥ homePrice"]
+
+    %% --- UC3 ---
+    UC3["UC3: Single-segment amortization\ncomputeSegmentSchedule()"]
+    UC3 --> UC3a["Open-ended segment (no termMonths)\nruns to exact $0 payoff"]
+    UC3 --> UC3b["Bounded segment (termMonths set)\nstops early, non-zero ending balance"]
+    UC3 --> UC3c["Manual payment (payment-change)\npays down faster than computed default"]
+    UC3 --> UC3d["Negative-amortization guard\nthrows if payment < interest due"]
+
+    %% --- UC4 ---
+    UC4["UC4: Segmented mortgage lifecycle\nsummarizeMortgage()"]
+    UC4 --> UC4a["Renewal: carries ending balance\ninto next segment's starting balance"]
+    UC4 --> UC4b["Continuous global payment numbering\nacross segment boundaries"]
+    UC4 --> UC4c["Payment change mid-stream\n(not tied to term boundary)"]
+    UC4 --> UC4d["Variable rate change mid-term"]
+    UC4 --> UC4e["Manual row override\nreconciles one row to a bank statement,\npropagates balance forward"]
+    UC4 --> UC4f["Payment identity invariant holds:\ntotalOfPayments = totalInterestPaid + principal"]
+
+    %% --- UC5 ---
+    UC5["UC5: Input validation"]
+    UC5 --> UC5a["Non-last segment missing termMonths → throw"]
+    UC5 --> UC5b["Segment missing both paymentAmount\nand amortizationMonthsRemaining → throw"]
+    UC5 --> UC5c["startingBalance set on non-first segment → throw"]
+    UC5 --> UC5d["Override references payment number\nbeyond schedule length → throw"]
+    UC5 --> UC5e["Last segment has termMonths\n(would leave loan unpaid silently) → throw"]
+
+    %% --- UC6 (was PUC1) ---
+    UC6["UC6: Extra & lump-sum principal payments"]
+    UC6 --> UC6a["Recurring extra monthly payment\ncalculateExtraPaymentSavings()"]
+    UC6 --> UC6b["One-time lump sum at a renewal boundary\nMortgageInput.lumpSumPayments"]
+    UC6 --> UC6c["Biweekly schedule (monthly-equivalent)\ncalculateBiweeklySchedule()"]
+
+    %% --- UC7 (was PUC2) ---
+    UC7["UC7: Recurring costs & PMI"]
+    UC7 --> UC7a["Property tax / insurance / HOA\nwith annual escalation, applyRecurringCosts()"]
+    UC7 --> UC7b["PMI + 80% LTV auto-drop\ncalculatePmiPayment()"]
+    UC7 --> UC7c["Cost breakdown summary\nLoanSummary.costBreakdown"]
+
+    %% --- UC8 (was PUC3) ---
+    UC8["UC8: Qualification & risk ratios"]
+    UC8 --> UC8a["LTV / CLTV\nloanToValue(), combinedLoanToValue()"]
+    UC8 --> UC8b["DSCR\ndebtServiceCoverageRatio()"]
+
+    %% --- UC9 (was PUC4) ---
+    UC9["UC9: Alternative payment structures"]
+    UC9 --> UC9a["Interest-only segment\nSegment.interestOnly"]
+    UC9 --> UC9b["Balloon payment reporting\nSegment.balloon, LoanSummary.balloonPaymentDue"]
+    UC9 --> UC9c["ARM index+margin reset with rate caps\ncalculateArmResetRate()"]
+
+    %% --- UC10 (was PUC5) ---
+    UC10["UC10: Comparison & breakeven tooling"]
+    UC10 --> UC10a["Points breakeven\ncalculatePointsBreakeven()"]
+    UC10 --> UC10b["Refinance breakeven & total cost\ncalculateRefinanceBreakeven(), compareRefinance()"]
+    UC10 --> UC10c["Term comparison (e.g. 15yr vs 30yr)\ncompareLoanTerms()"]
+
+    %% --- UC11 (was PUC6) ---
+    UC11["UC11: Statement reconciliation tooling"]
+    UC11 --> UC11a["Override reason/audit trail\nManualPaymentOverride.reason"]
+    UC11 --> UC11b["Bulk import from CSV/JSON\nimportOverridesFromJson(), importOverridesFromCsv()"]
+
+    classDef done fill:#d4edda,stroke:#28a745,color:#14532d;
+    class UC1,UC2,UC3,UC4,UC5,UC1a,UC1b,UC1c,UC1d,UC1e,UC2a,UC2b,UC3a,UC3b,UC3c,UC3d,UC4a,UC4b,UC4c,UC4d,UC4e,UC4f,UC5a,UC5b,UC5c,UC5d,UC5e,UC6,UC6a,UC6b,UC6c,UC7,UC7a,UC7b,UC7c,UC8,UC8a,UC8b,UC9,UC9a,UC9b,UC9c,UC10,UC10a,UC10b,UC10c,UC11,UC11a,UC11b done;

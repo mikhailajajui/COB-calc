@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "lending",
+  "owner": "joellewis",
+  "repo": "finance_skills",
+  "path": "plugins/wealth-management/skills/lending",
+  "branch": "main",
+  "sha": "d57e23953fdcc41c8b7bf68736725373497dc51f",
+  "source": "manual"
+}
