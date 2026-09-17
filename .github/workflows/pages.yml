@@ -1,0 +1,58 @@
+name: Deploy test UI to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      # ui/index.html and ui/main.js reference /ui/main.js and /dist/index.js as
+      # domain-root-absolute paths, which is correct for the local dev server
+      # (ui/serve.mjs serves the whole project root at "/") but breaks on a GitHub
+      # Pages *project* site, served under /<repo>/ rather than the domain root.
+      # Assemble a flat _site/ (index.html + main.js + dist/ as siblings) and rewrite
+      # just those two references to relative paths — the source files under ui/ are
+      # left untouched so local dev keeps working exactly as before.
+      - name: Assemble Pages site
+        run: |
+          mkdir -p _site/dist
+          cp ui/index.html _site/index.html
+          cp ui/main.js _site/main.js
+          cp dist/*.js dist/*.d.ts _site/dist/ 2>/dev/null || cp dist/*.js _site/dist/
+          sed -i 's#/ui/main.js#main.js#' _site/index.html
+          sed -i "s#/dist/index.js#./dist/index.js#" _site/main.js
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
