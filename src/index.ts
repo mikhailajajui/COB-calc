@@ -40,6 +40,7 @@ export type {
   PaymentFrequency,
   PaymentFrequencyScheduleInput,
   PaymentFrequencyScheduleResult,
+  PeriodAmortizationEntry,
   RecurringCost,
   RecurringCosts,
   PmiInput,

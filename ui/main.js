@@ -302,6 +302,9 @@ const freqTermUnitEl = document.getElementById('freqTermUnit');
 const freqFrequencyEl = document.getElementById('freqFrequency');
 const freqErrorEl = document.getElementById('freqError');
 const freqResultsEl = document.getElementById('freqResults');
+const freqScheduleSectionEl = document.getElementById('freqScheduleSection');
+const freqScheduleBodyEl = document.getElementById('freqScheduleBody');
+const freqSchedulePeriodHeaderEl = document.getElementById('freqSchedulePeriodHeader');
 
 // Unit label for "paid every ___" next to the period payment amount.
 const FREQUENCY_PERIOD_LABEL = {
@@ -309,6 +312,14 @@ const FREQUENCY_PERIOD_LABEL = {
   semiMonthly: 'half-month period',
   biweekly: '2-week period',
   weekly: 'week',
+};
+
+// Per-period schedule table column header (short form).
+const FREQUENCY_PERIOD_HEADER = {
+  monthly: 'Payment #',
+  semiMonthly: 'Period #',
+  biweekly: 'Biweek #',
+  weekly: 'Week #',
 };
 
 /** Renders a month count as both units at once ("83 mo (6 yr 11 mo)"), since the raw
@@ -320,10 +331,33 @@ function formatMonthsWithYears(months) {
   return `${sign}${Math.abs(months)} mo (${sign}${years} yr ${remMonths} mo)`;
 }
 
+function renderFreqSchedule(schedule) {
+  let html = '';
+  let lastYear = null;
+  for (const row of schedule) {
+    const year = row.periodDate.getFullYear();
+    if (year !== lastYear) {
+      html += `<tr class="year-marker"><td colspan="6">${year}</td></tr>`;
+      lastYear = year;
+    }
+    html += `
+      <tr>
+        <td>${row.periodNumber}</td>
+        <td>${dateFmt.format(row.periodDate)}</td>
+        <td>${currency.format(row.paymentAmount)}</td>
+        <td>${currency.format(row.interestPortion)}</td>
+        <td>${currency.format(row.principalPortion)}</td>
+        <td>${currency.format(row.remainingBalance)}</td>
+      </tr>`;
+  }
+  freqScheduleBodyEl.innerHTML = html;
+}
+
 freqForm.addEventListener('submit', (event) => {
   event.preventDefault();
   freqErrorEl.style.display = 'none';
   freqResultsEl.style.display = 'none';
+  freqScheduleSectionEl.style.display = 'none';
 
   try {
     const loanAmount = Number(freqLoanAmountEl.value);
@@ -345,6 +379,8 @@ freqForm.addEventListener('submit', (event) => {
       ['Payment per period', `${currency.format(result.periodPaymentAmount)} / ${periodLabel}`],
       ['Payments per year', String(result.paymentsPerYear)],
       ['Baseline monthly payment', `${currency.format(result.monthlyPayment)} / month`],
+      ['Number of periods', String(result.numberOfPeriods)],
+      ['Payoff date', dateFmt.format(result.payoffDate)],
       ['Time saved', formatMonthsWithYears(result.monthsSaved)],
       ['New payoff time', formatMonthsWithYears(result.newMonths)],
       ['Interest saved', currency.format(result.interestSaved)],
@@ -353,6 +389,10 @@ freqForm.addEventListener('submit', (event) => {
       .map(([label, value]) => `<div class="total"><span class="label">${label}</span><span class="value">${value}</span></div>`)
       .join('');
     freqResultsEl.style.display = '';
+
+    freqSchedulePeriodHeaderEl.textContent = FREQUENCY_PERIOD_HEADER[frequency];
+    renderFreqSchedule(result.schedule);
+    freqScheduleSectionEl.style.display = '';
   } catch (err) {
     freqErrorEl.textContent = err instanceof Error ? err.message : String(err);
     freqErrorEl.style.display = 'block';
@@ -360,3 +400,21 @@ freqForm.addEventListener('submit', (event) => {
 });
 
 freqForm.dispatchEvent(new Event('submit', { cancelable: true }));
+
+// --- Print ---
+
+document.querySelectorAll('.print-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.printTarget; // 'main' | 'freq'
+    const printClass = target === 'main' ? 'printing-main' : 'printing-freq';
+    document.body.classList.add(printClass);
+
+    const cleanup = () => document.body.classList.remove(printClass);
+    window.addEventListener('afterprint', cleanup, { once: true });
+    // Fallback for browsers that don't fire afterprint reliably after a print-preview
+    // cancel (e.g. some in-app browser contexts).
+    setTimeout(cleanup, 5000);
+
+    window.print();
+  });
+});

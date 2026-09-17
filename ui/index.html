@@ -254,7 +254,15 @@
   .total .value { font: 500 16px var(--font-data); }
 
   /* --- amortization schedule --- */
-  #scheduleWrap { max-height: 480px; overflow: auto; border: 1px solid var(--rule); }
+  .schedule-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .schedule-header h2 { margin: 0 0 10px; }
+  .print-btn { font-size: 12.5px; padding: 5px 9px; }
+  #scheduleWrap, #freqScheduleWrap { max-height: 480px; overflow: auto; border: 1px solid var(--rule); }
   table { width: 100%; border-collapse: collapse; font: 13px var(--font-data); }
   th {
     font: 500 11px var(--font-body);
@@ -288,12 +296,32 @@
     body { padding: 28px 16px 64px; }
     h1 { font-size: 24px; }
   }
+
+  /* --- print: expand the clipped, scrollable schedule tables to full height, hide
+     inputs/nav chrome, and print only the section being printed (toggled on <body>
+     right before window.print() by the Print schedule buttons in main.js). --- */
+  @media print {
+    .presets, form, .print-btn, #error, #freqError {
+      display: none !important;
+    }
+    body.printing-main .payment-frequency-section { display: none !important; }
+    body.printing-freq .main-worksheet-section { display: none !important; }
+    #scheduleWrap, #freqScheduleWrap {
+      max-height: none;
+      overflow: visible;
+      border: none;
+    }
+    th { position: static; }
+    thead { display: table-header-group; }
+    tr { break-inside: avoid; }
+  }
 </style>
 </head>
 <body>
   <h1>Cost of borrowing</h1>
   <p class="sub">A worksheet for testing the segmented mortgage engine — not part of the library itself.</p>
 
+  <div class="main-worksheet-section">
   <div class="presets">
     <span class="lead">Start from a worksheet:</span>
     <button type="button" class="preset-link" data-preset="simple">Simple 30yr fixed</button>
@@ -329,7 +357,10 @@
   <div id="results" style="display:none">
     <div class="totals" id="totals"></div>
 
-    <h2>Amortization schedule</h2>
+    <div class="schedule-header">
+      <h2>Amortization schedule</h2>
+      <button type="button" class="print-btn" data-print-target="main">Print schedule</button>
+    </div>
     <div id="scheduleWrap">
       <table>
         <thead>
@@ -342,14 +373,17 @@
       </table>
     </div>
   </div>
+  </div><!-- /.main-worksheet-section -->
 
   <hr class="rule" />
 
+  <div class="payment-frequency-section">
   <h2>Payment frequency comparison</h2>
   <p class="sub">
-    How much sooner a loan pays off at a given payment frequency — a monthly-equivalent
-    estimate, not a statement-accurate calendar-day schedule (see
-    <code>docs/spec.md</code> §3.3).
+    A genuine per-period amortization schedule at the chosen frequency — interest
+    accrues each period at the annual rate ÷ payments/year against the real
+    outstanding balance, with real calendar dates (see <code>docs/spec.md</code> §3.3
+    for the semi-monthly date-spacing approximation).
   </p>
 
   <form id="freqForm">
@@ -389,6 +423,25 @@
 
   <div id="freqError" class="error"></div>
   <div id="freqResults" class="totals" style="display:none"></div>
+
+  <div id="freqScheduleSection" style="display:none">
+    <div class="schedule-header">
+      <h2>Per-period schedule</h2>
+      <button type="button" class="print-btn" data-print-target="freq">Print schedule</button>
+    </div>
+    <div id="freqScheduleWrap">
+      <table>
+        <thead>
+          <tr>
+            <th id="freqSchedulePeriodHeader">#</th><th>Date</th><th>Payment</th>
+            <th>Interest</th><th>Principal</th><th>Balance</th>
+          </tr>
+        </thead>
+        <tbody id="freqScheduleBody"></tbody>
+      </table>
+    </div>
+  </div>
+  </div><!-- /.payment-frequency-section -->
 
   <script type="module" src="/ui/main.js"></script>
 </body>

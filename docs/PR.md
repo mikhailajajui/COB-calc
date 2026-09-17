@@ -109,7 +109,7 @@ flowchart TD
     class UC1,UC6,UC6a,UC6b,UC6c,UC7,UC7a,UC7b,UC7c,UC8,UC8a,UC8b,UC9,UC9a,UC9b,UC9c,UC10,UC10a,UC10b,UC10c,UC11,UC11a,UC11b done;
 ```
 
-*Full source: [`usecases.mmd`](./usecases.mmd) — the current-state diagram (87/87
+*Full source: [`usecases.mmd`](./usecases.mmd) — the current-state diagram (90/90
 tests passing).*
 
 ## What's new
@@ -156,17 +156,24 @@ source locations — is catalogued in [`docs/equations.md`](./equations.md).
   ambiguous and not a real mortgage product. The UI exposes this as a dropdown
   (`monthly`/`semiMonthly`/`biweekly`/`weekly`) plus a separate unit dropdown
   (months/years) for the term input, with results labeled by unit throughout.
+- **Update:** `calculatePaymentFrequencySchedule()` was later upgraded from a
+  monthly-equivalent approximation to a genuine per-period amortization schedule
+  (`result.schedule`) — interest now accrues each period at the real period rate
+  against the real outstanding balance, with real calendar dates, and a "Print
+  schedule" button on both the segment worksheet and the frequency tool. See
+  `docs/spec.md` §3.3 for the details and the interesting finding this uncovered
+  (semi-monthly saves a small amount of interest from payment timing even though it
+  saves zero time; biweekly and weekly are no longer required to be exactly equal).
 - **Deliberate v1 scope cuts** (documented, not oversights): lump sums apply only at a
-  segment/renewal boundary, not mid-segment; every payment frequency besides monthly is
-  modeled as a monthly-equivalent acceleration, not true calendar-day accrual; recurring
-  costs only escalate, never decrease; the CSV importer is intentionally naive (no
-  quoted-field support, no new dependency added — the project has zero runtime
-  dependencies).
+  segment/renewal boundary, not mid-segment; semi-monthly period dates are evenly
+  spaced rather than snapped to fixed 1st/15th-of-month dates; recurring costs only
+  escalate, never decrease; the CSV importer is intentionally naive (no quoted-field
+  support, no new dependency added — the project has zero runtime dependencies).
 
 ## Test plan
 
 - `npm run typecheck` — clean (strict mode, `noUncheckedIndexedAccess`)
-- `npm test` — **87/87 passing** (33 original + 54 new), across 15 test files. Every new
+- `npm test` — **90/90 passing** (33 original + 54 new), across 15 test files. Every new
   function has a happy-path test, one edge case, and one invalid-input case; several
   happy-path tests are cross-checked against the lending skill's own verified worked
   examples (PMI $300/mo, DSCR 1.3333, ARM reset 7.75%→6.5% capped, points/refinance/
@@ -174,7 +181,7 @@ source locations — is catalogued in [`docs/equations.md`](./equations.md).
 - `npm run build` — clean; `dist/` regenerates with `.d.ts` for all 17 modules.
 - **UI**: manually verified in a real browser (`npm run ui`) — the payment-frequency
   dropdown and term-unit dropdown both drive live recomputation with no console errors;
-  confirmed semi-monthly shows exactly $0 savings (not accelerated), biweekly and
-  weekly produce identical savings figures (both 13 annual-equivalents/yr), and
   switching the term-unit dropdown between years/months produces identical results for
-  equivalent values (30 years = 360 months).
+  equivalent values (30 years = 360 months); the per-period schedule table renders
+  real per-period dates (e.g. biweekly steps exactly 14 days apart); both "Print
+  schedule" buttons toggle the correct print scope and invoke `window.print()`.

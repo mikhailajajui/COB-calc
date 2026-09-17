@@ -170,7 +170,10 @@ balance. `src/extraPayment.ts:47-55`. **Exact-zero guarantee:** when
 loop, which can otherwise land one payment off from the baseline purely from
 cent-rounding (see the comment at `src/extraPayment.ts:33-42`).
 
-### 4.2 Payment-frequency conversion (monthly/semi-monthly/biweekly/weekly)
+### 4.2 Payment-frequency schedule (monthly/semi-monthly/biweekly/weekly)
+
+**Period payment amount** — the standard "pay a fraction of your monthly bill each
+occurrence" program, not a fresh annuity computed at the period cadence:
 
 $$
 \text{periodPayment} = \text{PMT} \cdot f
@@ -178,24 +181,51 @@ $$
 
 where $f$ is the **payment fraction** paid at each occurrence of the chosen frequency:
 
-| Frequency | Payments/yr ($p$) | Fraction ($f$) | Annual-equivalent ($p \cdot f$) |
+| Frequency | Payments/yr ($p$) | Fraction ($f$) | Payment-count annual-equivalent ($p \cdot f$) |
 |---|---|---|---|
 | monthly | 12 | 1 | 12 (baseline) |
-| semiMonthly | 24 | 1/2 | 12 (**not** accelerated) |
+| semiMonthly | 24 | 1/2 | 12 (not accelerated by payment count) |
 | biweekly | 26 | 1/2 | 13 (accelerated) |
 | weekly | 52 | 1/4 | 13 (accelerated) |
 
-The acceleration is converted into an equivalent extra monthly payment and handed to
-§4.1:
+**Per-period accrual** (the genuine schedule, `generatePeriodSchedule()`,
+`src/paymentFrequency.ts`) — the same row-by-row structure as §2.1/§2.2, but with the
+period rate substituted for the monthly rate:
 
 $$
-\text{extraAnnual} = (p \cdot f) - 12 \qquad
-\text{effectiveExtraMonthlyPayment} = \text{PMT} \cdot \frac{\text{extraAnnual}}{12}
+r_{\text{period}} = \frac{\text{annualInterestRatePercent}}{100 \cdot p}
+\qquad
+\text{interest}_k = \text{balance}_{k-1} \cdot r_{\text{period}}
+\qquad
+\text{principal}_k = \text{periodPayment} - \text{interest}_k
 $$
 
-`src/paymentFrequency.ts:18-40`. See `docs/spec.md` for why there's no separate
-"accelerated" flag — the acceleration is intrinsic to $p \cdot f \ne 12$, not a
-toggle.
+with the same forced-final-row clearing as §2.2 when a period's principal would
+overpay the remaining balance. Real calendar dates per period: $+7$ days (weekly),
+$+14$ days (biweekly), evenly spaced at $\approx 365.25/24$ days (semiMonthly,
+approximating the "1st & 15th" convention), or the engine's `addMonths` (monthly).
+
+**`'monthly'` is an exact identity**, not merely $r_{\text{period}} = r_{\text{month}}$
+producing the same numbers by coincidence: the implementation literally reuses
+`summarizeLoan()`'s own schedule rows for `'monthly'` rather than re-deriving them
+through this second, independently-rounded loop, which would otherwise risk landing
+one payment off from cent rounding alone (see `src/paymentFrequency.ts`'s `schedule`
+assignment).
+
+**Derived summary figures** — no longer a monthly-equivalent shortcut, but read
+directly off the true per-period schedule:
+
+$$
+\text{newTotalInterest} = \sum_k \text{interest}_k
+\qquad
+\text{newMonths} = \text{round}\!\left(\frac{\text{numberOfPeriods}}{p} \cdot 12\right)
+$$
+
+`src/paymentFrequency.ts`. See `docs/spec.md` §3.3 for why there's no separate
+"accelerated" flag (the acceleration is intrinsic to $p \cdot f \ne 12$, not a toggle),
+and for the real finding that true per-period accrual gives semi-monthly a small
+interest saving from payment timing even though it saves zero time, and makes
+biweekly/weekly diverge slightly from each other instead of being exactly equal.
 
 ---
 

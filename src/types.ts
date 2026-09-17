@@ -167,17 +167,22 @@ export interface ExtraPaymentSavingsResult {
 }
 
 /**
- * The engine is monthly-periodic (see src/segment.ts); every non-monthly frequency
- * here is modeled as a monthly-equivalent acceleration, not true calendar-day accrual
- * (7-day/14-day periods with their own interest accrual). That's a documented v1
- * simplification (docs/spec.md) — fine for "how much sooner would I pay off" borrower
- * estimates, not for a statement-accurate day-by-day schedule.
+ * The core segment/mortgage engine (src/segment.ts) is monthly-periodic — that part is
+ * unchanged. calculatePaymentFrequencySchedule(), however, generates a genuine
+ * per-period amortization schedule for the chosen frequency: interest accrues each
+ * period at annualRate / paymentsPerYear against the real outstanding balance, with
+ * real calendar dates per period (every 7 days for weekly, every 14 for biweekly;
+ * semiMonthly dates are evenly spaced, an approximation of the two-fixed-dates/month
+ * convention some lenders use — see docs/spec.md). This is a standalone calculator, not
+ * part of the segment/mortgage stitching engine, so this doesn't change segment.ts.
  *
  * There is no industry-recognized "accelerated" variant distinct from plain biweekly
  * or weekly — the acceleration is inherent to the calendar (26 biweekly / 52 weekly
  * periods per year don't divide evenly into 12 months), so no separate flag is
- * exposed. semiMonthly (24 payments/yr, paid on two fixed dates/month) is NOT
- * accelerated — 24 half-payments/yr equal exactly 12 monthly-equivalents.
+ * exposed. semiMonthly (24 payments/yr) is not accelerated in the sense of extra
+ * annual payment count (24 half-payments/yr = 12 monthly-equivalents by payment count),
+ * though true per-period compounding can still differ from monthly by a small amount —
+ * see docs/spec.md §3.3.
  */
 export type PaymentFrequency = 'monthly' | 'semiMonthly' | 'biweekly' | 'weekly';
 
@@ -189,6 +194,16 @@ export interface PaymentFrequencyScheduleInput {
   startDate?: Date;
 }
 
+export interface PeriodAmortizationEntry {
+  /** 1-based, within this schedule only (not a global payment number). */
+  periodNumber: number;
+  periodDate: Date;
+  paymentAmount: number;
+  interestPortion: number;
+  principalPortion: number;
+  remainingBalance: number;
+}
+
 export interface PaymentFrequencyScheduleResult {
   frequency: PaymentFrequency;
   paymentsPerYear: number;
@@ -196,6 +211,10 @@ export interface PaymentFrequencyScheduleResult {
   /** The amount paid on each occurrence of the chosen frequency (e.g. every 2 weeks
    *  for 'biweekly'); equals monthlyPayment for 'monthly'. */
   periodPaymentAmount: number;
+  /** Full per-period amortization detail at the chosen frequency's real cadence. */
+  schedule: PeriodAmortizationEntry[];
+  numberOfPeriods: number;
+  payoffDate: Date;
   effectiveExtraMonthlyPayment: number;
   originalMonths: number;
   newMonths: number;
