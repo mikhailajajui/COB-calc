@@ -84,6 +84,30 @@ describe('computeSegmentSchedule — bounded segment (termMonths set, e.g. a ter
   });
 });
 
+describe('computeSegmentSchedule — bounded segment overpaid before termMonths (early payoff)', () => {
+  it('stops exactly at $0 instead of continuing into a negative balance with negative interest', () => {
+    // Regression: a bounded (non-final) segment's payment large enough to retire the
+    // balance before termMonths previously had no zero-forcing at all (isForcedFinalRow
+    // was gated behind isFinalSegment), so it kept generating full payments past
+    // payoff — driving the balance, and therefore interest (balance * r), negative.
+    const segment: Segment = {
+      startDate: new Date('2020-01-01'),
+      annualInterestRatePercent: 6,
+      paymentAmount: 2200,
+      startingBalance: 20000,
+      termMonths: 24, // far more months than needed to pay off $20,000 at $2,200/mo
+    };
+    const { rows, endingBalance } = computeSegmentSchedule(segment, 0, 20000, 1, noOverrides());
+
+    expect(rows.length).toBeLessThan(24);
+    expect(endingBalance).toBe(0);
+    expect(rows[rows.length - 1]!.remainingBalance).toBe(0);
+    expect(rows[rows.length - 1]!.principalPortion).toBeLessThanOrEqual(2200);
+    expect(rows.every((row) => row.remainingBalance >= 0)).toBe(true);
+    expect(rows.every((row) => row.interestPortion >= 0)).toBe(true);
+  });
+});
+
 describe('computeSegmentSchedule — interest-only segment', () => {
   const segment: Segment = {
     startDate: new Date('2020-01-01'),

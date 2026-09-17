@@ -117,15 +117,23 @@ export function computeSegmentSchedule(
           );
         }
 
-        const isForcedFinalRow =
-          isFinalSegment &&
-          (knownLength !== undefined
-            ? paymentIndex === knownLength - 1
-            : round2(balance - round2(monthlyPayment - interestPortion)) <= 0);
+        // A payment that would fully retire the balance ends the loan right here —
+        // regardless of whether this is a bounded (non-final, pre-renewal) segment or
+        // the open-ended final one. Without this check, a bounded segment whose fixed
+        // payment overpays the remaining balance before termMonths is reached would
+        // keep generating full payments against an already-paid-off loan, driving the
+        // balance (and therefore interest = balance * r) negative for every remaining
+        // scheduled row.
+        const wouldPayOffThisRow =
+          round2(balance - round2(monthlyPayment - interestPortion)) <= 0;
+        // Also force-clear the scheduled last row of a fully-amortizing final segment,
+        // even when the natural math leaves a sub-cent residual rather than exactly 0.
+        const isScheduledFinalRow =
+          isFinalSegment && knownLength !== undefined && paymentIndex === knownLength - 1;
 
-        if (isForcedFinalRow) {
-          // Final payment of the whole mortgage: force principal to clear the balance
-          // exactly rather than trusting rounding to land on zero.
+        if (wouldPayOffThisRow || isScheduledFinalRow) {
+          // Final payment: force principal to clear the balance exactly rather than
+          // trusting rounding (or an overpayment) to land on zero.
           principalPortion = balance;
           paymentAmount = round2(interestPortion + principalPortion);
           remainingBalance = 0;
@@ -151,6 +159,11 @@ export function computeSegmentSchedule(
 
     balance = remainingBalance;
     paymentIndex += 1;
+
+    // The loan is fully paid off — stop even if a bounded segment's termMonths hasn't
+    // been reached yet (see wouldPayOffThisRow above). Harmless/redundant for the
+    // final segment's own natural termination.
+    if (balance === 0) break;
   }
 
   return { rows, endingBalance: balance, monthlyPayment };

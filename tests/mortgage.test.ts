@@ -347,6 +347,34 @@ describe('summarizeMortgage — PMI auto-drop at 80% LTV', () => {
   });
 });
 
+describe('summarizeMortgage — a bounded segment paid off before its renewal', () => {
+  it('stops the whole mortgage at exact payoff instead of running the renewal against a negative balance', () => {
+    // Regression, composed at the mortgage level: segment 1's overpayment retires the
+    // loan well before its 24-month term; segment 2 (a renewal) must never run.
+    const segment1: Segment = {
+      startDate: new Date('2020-01-01'),
+      annualInterestRatePercent: 6,
+      paymentAmount: 2200,
+      startingBalance: 20000,
+      termMonths: 24,
+    };
+    const segment2: Segment = {
+      startDate: addMonths(segment1.startDate, 24),
+      annualInterestRatePercent: 5,
+      amortizationMonthsRemaining: 120,
+    };
+
+    const summary = summarizeMortgage({ segments: [segment1, segment2] });
+
+    expect(summary.numberOfPayments).toBeLessThan(24);
+    expect(summary.schedule[summary.schedule.length - 1]!.remainingBalance).toBe(0);
+    expect(summary.schedule.every((row) => row.remainingBalance >= 0)).toBe(true);
+    expect(summary.schedule.every((row) => row.interestPortion >= 0)).toBe(true);
+    expect(summary.schedule.every((row) => row.segmentIndex === 0)).toBe(true);
+    expect(summary.segmentSummaries).toHaveLength(1); // segment 2 (the renewal) never ran
+  });
+});
+
 describe('MortgageInput validation', () => {
   it('throws when a non-last segment is missing termMonths', () => {
     const segments: Segment[] = [
