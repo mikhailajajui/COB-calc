@@ -45,19 +45,18 @@ describe('calculateExtraPaymentSavings', () => {
     expect(result.interestSaved).toBeCloseTo(originalInterest - interestPaid, -1);
   });
 
-  it('produces ~zero savings when extraMonthlyPayment is 0', () => {
+  it('produces exactly zero savings when extraMonthlyPayment is 0', () => {
+    // Short-circuited in the implementation specifically to guarantee this — a zero
+    // extra payment is mathematically identical to the baseline, not just "close".
     const result = calculateExtraPaymentSavings({
       loanAmount: 300000,
       annualInterestRatePercent: 6.5,
       termMonths: 360,
       extraMonthlyPayment: 0,
     });
-    // The two paths compute the payoff length differently (a fixed amortization
-    // length vs. a dynamic loop against the same rounded-to-cents payment), so cent
-    // rounding can occasionally push the dynamic path one payment later — allow that
-    // single-payment slack rather than asserting bit-for-bit equality.
-    expect(Math.abs(result.monthsSaved)).toBeLessThanOrEqual(1);
-    expect(result.interestSaved).toBeCloseTo(0, 0);
+    expect(result.monthsSaved).toBe(0);
+    expect(result.newMonths).toBe(result.originalMonths);
+    expect(result.interestSaved).toBe(0);
   });
 
   it('throws when extraMonthlyPayment is negative', () => {

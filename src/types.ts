@@ -166,16 +166,36 @@ export interface ExtraPaymentSavingsResult {
   interestSaved: number;
 }
 
-export interface BiweeklyScheduleInput {
+/**
+ * The engine is monthly-periodic (see src/segment.ts); every non-monthly frequency
+ * here is modeled as a monthly-equivalent acceleration, not true calendar-day accrual
+ * (7-day/14-day periods with their own interest accrual). That's a documented v1
+ * simplification (docs/spec.md) — fine for "how much sooner would I pay off" borrower
+ * estimates, not for a statement-accurate day-by-day schedule.
+ *
+ * There is no industry-recognized "accelerated" variant distinct from plain biweekly
+ * or weekly — the acceleration is inherent to the calendar (26 biweekly / 52 weekly
+ * periods per year don't divide evenly into 12 months), so no separate flag is
+ * exposed. semiMonthly (24 payments/yr, paid on two fixed dates/month) is NOT
+ * accelerated — 24 half-payments/yr equal exactly 12 monthly-equivalents.
+ */
+export type PaymentFrequency = 'monthly' | 'semiMonthly' | 'biweekly' | 'weekly';
+
+export interface PaymentFrequencyScheduleInput {
   loanAmount: number;
   annualInterestRatePercent: number;
   termMonths: number;
+  frequency: PaymentFrequency;
   startDate?: Date;
 }
 
-export interface BiweeklyScheduleResult {
+export interface PaymentFrequencyScheduleResult {
+  frequency: PaymentFrequency;
+  paymentsPerYear: number;
   monthlyPayment: number;
-  biweeklyPaymentAmount: number;
+  /** The amount paid on each occurrence of the chosen frequency (e.g. every 2 weeks
+   *  for 'biweekly'); equals monthlyPayment for 'monthly'. */
+  periodPaymentAmount: number;
   effectiveExtraMonthlyPayment: number;
   originalMonths: number;
   newMonths: number;

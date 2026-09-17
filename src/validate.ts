@@ -1,10 +1,11 @@
 import type {
-  BiweeklyScheduleInput,
   ExtraPaymentSavingsInput,
   LoanInput,
   LumpSumPayment,
   ManualPaymentOverride,
   MortgageInput,
+  PaymentFrequency,
+  PaymentFrequencyScheduleInput,
   PmiInput,
   RecurringCosts,
   Segment,
@@ -175,7 +176,14 @@ export function validateExtraPaymentSavingsInput(input: ExtraPaymentSavingsInput
   }
 }
 
-export function validateBiweeklyScheduleInput(input: BiweeklyScheduleInput): void {
+const VALID_PAYMENT_FREQUENCIES: readonly PaymentFrequency[] = [
+  'monthly',
+  'semiMonthly',
+  'biweekly',
+  'weekly',
+];
+
+export function validatePaymentFrequencyScheduleInput(input: PaymentFrequencyScheduleInput): void {
   if (!(input.loanAmount > 0)) {
     throw new RangeError(`loanAmount must be > 0, got ${input.loanAmount}`);
   }
@@ -186,6 +194,11 @@ export function validateBiweeklyScheduleInput(input: BiweeklyScheduleInput): voi
   }
   if (!(input.termMonths > 0) || !Number.isInteger(input.termMonths)) {
     throw new RangeError(`termMonths must be a positive integer, got ${input.termMonths}`);
+  }
+  if (!VALID_PAYMENT_FREQUENCIES.includes(input.frequency)) {
+    throw new RangeError(
+      `frequency must be one of ${VALID_PAYMENT_FREQUENCIES.join(', ')}, got ${input.frequency}`,
+    );
   }
 }
 

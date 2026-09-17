@@ -1,5 +1,5 @@
 %% cob-calculator — current use cases (implemented, test-covered)
-%% Source of truth: src/*.ts + tests/*.ts (85/85 passing, typecheck clean, build clean)
+%% Source of truth: src/*.ts + tests/*.ts (87/87 passing, typecheck clean, build clean)
 %% UC1-UC5 were the v1 baseline; UC6-UC11 are the v2 additions (see docs/spec.md and
 %% docs/usecases-proposed.mmd, whose PUC1-PUC6 gap analysis this closes).
 flowchart TD
@@ -58,7 +58,7 @@ flowchart TD
     UC6["UC6: Extra & lump-sum principal payments"]
     UC6 --> UC6a["Recurring extra monthly payment\ncalculateExtraPaymentSavings()"]
     UC6 --> UC6b["One-time lump sum at a renewal boundary\nMortgageInput.lumpSumPayments"]
-    UC6 --> UC6c["Biweekly schedule (monthly-equivalent)\ncalculateBiweeklySchedule()"]
+    UC6 --> UC6c["Payment frequency: monthly/semi-monthly/\nbiweekly/weekly, monthly-equivalent\ncalculatePaymentFrequencySchedule()"]
 
     %% --- UC7 (was PUC2) ---
     UC7["UC7: Recurring costs & PMI"]

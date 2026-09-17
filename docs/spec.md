@@ -6,11 +6,13 @@ This spec documents the v2 surface added on top of the original 5 use cases
 (`docs/usecases.mmd`): 6 categories of use cases identified by a gap analysis against
 this project's `.claude/skills/lending` reference implementation
 (`docs/usecases-proposed.mmd`). All 6 categories are now implemented, tested, and
-exported from `src/index.ts`. The test suite is 85/85 passing (up from the original 33)
+exported from `src/index.ts`. The test suite is 87/87 passing (up from the original 33)
 and `npm run typecheck` / `npm run build` are both clean.
 
 One subsection below per PUC category, each naming the implementing file(s), the public
-function/type signatures, and the edge cases the tests cover.
+function/type signatures, and the edge cases the tests cover. Every formula referenced
+below is catalogued in full, with exact source locations, in
+[`docs/equations.md`](./equations.md).
 
 ## 2. Cross-cutting conventions
 
@@ -60,16 +62,30 @@ remain, stitching stops there (no more segments run — avoids a `calculateMonth
 throw). Extension point for v2: apply the same `Map`-keyed pattern used for
 `manualOverrides` to support mid-segment lump sums.
 
-### 3.3 Biweekly schedule
+### 3.3 Payment frequency (monthly / semi-monthly / biweekly / weekly)
 
-`calculateBiweeklySchedule(input: BiweeklyScheduleInput): BiweeklyScheduleResult` —
-`src/biweekly.ts`. **Modeling assumption:** the engine is fundamentally monthly-periodic
-(one row per month, rate = annual/12); true biweekly (14-day accrual, 26 payments/year)
-would need a parallel engine and is out of scope. Instead this models the standard "26
-half-payments = 13 full payments/year" equivalence as one extra full monthly payment per
-year, spread evenly across 12 months (`monthlyPayment / 12` as
-`effectiveExtraMonthlyPayment`), and delegates entirely to §3.1's
-`calculateExtraPaymentSavings`.
+`calculatePaymentFrequencySchedule(input: PaymentFrequencyScheduleInput):
+PaymentFrequencyScheduleResult` — `src/paymentFrequency.ts` (generalizes what started
+as a biweekly-only `calculateBiweeklySchedule`). **Modeling assumption:** the engine is
+fundamentally monthly-periodic (one row per month, rate = annual/12); true per-frequency
+calendar accrual (14-day/7-day periods with their own interest accrual) would need a
+parallel engine and is out of scope. Instead every non-monthly frequency is converted to
+an equivalent extra monthly payment and delegated entirely to §3.1's
+`calculateExtraPaymentSavings` — see `docs/equations.md` §4.2 for the exact conversion.
+
+**Terminology, clarified against real mortgage-industry practice** (there is no
+industry-recognized "accelerated" variant distinct from plain biweekly/weekly — the
+acceleration is intrinsic to the calendar, not a togglable feature):
+
+| `PaymentFrequency` | Payments/yr | Amount per period | Accelerated vs. monthly? |
+|---|---|---|---|
+| `'monthly'` | 12 | full payment | No (baseline) |
+| `'semiMonthly'` | 24 | half payment | **No** — 24 × ½ = 12 monthly-equivalents exactly |
+| `'biweekly'` | 26 | half payment | Yes — 26 × ½ = 13 monthly-equivalents/yr |
+| `'weekly'` | 52 | quarter payment | Yes — 52 × ¼ = 13 monthly-equivalents/yr |
+
+`'bimonthly'` (every-2-months) is deliberately not exposed as a value — it's not a real
+mortgage product, and the word is ambiguous with `semiMonthly` in everyday use.
 
 ## 4. PUC2 — Recurring costs & PMI
 
@@ -200,7 +216,9 @@ last-wins clobbering.
 ## 9. Known limitations / deliberate v1 scope cuts
 
 - **Lump sums** (§3.2): boundary-only, not mid-segment.
-- **Biweekly** (§3.3): monthly-equivalent approximation only, not true 14-day accrual.
+- **Payment frequency** (§3.3): monthly-equivalent approximation only for
+  semi-monthly/biweekly/weekly, not true calendar-day accrual; no `'bimonthly'`
+  (every-2-months) value, since it isn't a real mortgage product.
 - **Recurring costs** (§4.1): escalation-only, no cost decreases.
 - **CSV import** (§8.2): no quoted-field/embedded-comma support.
 - **Lump-sum curtailment** (§3.2): folded into the boundary row's `paymentAmount`
@@ -213,7 +231,7 @@ last-wins clobbering.
 |---|---|---|
 | PUC1a — recurring extra payment | `src/extraPayment.ts` | `calculateExtraPaymentSavings` |
 | PUC1b — lump sum at renewal | `src/types.ts`, `src/mortgage.ts` | `LumpSumPayment`, `MortgageInput.lumpSumPayments` |
-| PUC1c — biweekly schedule | `src/biweekly.ts` | `calculateBiweeklySchedule` |
+| PUC1c — payment frequency (monthly/semi-monthly/biweekly/weekly) | `src/paymentFrequency.ts` | `calculatePaymentFrequencySchedule`, `PaymentFrequency` |
 | PUC2a — recurring costs | `src/types.ts`, `src/costs.ts` | `RecurringCosts`, `applyRecurringCosts` |
 | PUC2b — PMI + auto-drop | `src/pmi.ts`, `src/costs.ts` | `calculatePmiPayment`, `PmiInput` |
 | PUC2c — cost breakdown | `src/types.ts` | `LoanSummary.costBreakdown` |

@@ -24,6 +24,21 @@ export function calculateExtraPaymentSavings(
     ],
   });
 
+  // Zero extra payment is mathematically identical to the baseline — short-circuit
+  // rather than re-deriving it through the open-ended dynamic loop, whose per-payment
+  // cent rounding can land on one payment more or fewer than the amortizationMonthsRemaining
+  // -bounded baseline even when the payment amount is unchanged.
+  if (input.extraMonthlyPayment === 0) {
+    return {
+      originalMonths: baseline.numberOfPayments,
+      newMonths: baseline.numberOfPayments,
+      monthsSaved: 0,
+      originalTotalInterest: baseline.totalInterestPaid,
+      newTotalInterest: baseline.totalInterestPaid,
+      interestSaved: 0,
+    };
+  }
+
   const basePayment = calculateMonthlyPayment(
     input.loanAmount,
     input.annualInterestRatePercent,

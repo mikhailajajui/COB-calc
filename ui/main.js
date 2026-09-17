@@ -1,4 +1,4 @@
-import { summarizeMortgage } from '/dist/index.js';
+import { summarizeMortgage, calculatePaymentFrequencySchedule } from '/dist/index.js';
 
 const segmentsEl = document.getElementById('segments');
 const addSegmentBtn = document.getElementById('addSegment');
@@ -291,3 +291,72 @@ form.addEventListener('submit', (event) => {
 });
 
 loadPreset('simple');
+
+// --- Payment frequency comparison (standalone tool, not tied to the segment worksheet) ---
+
+const freqForm = document.getElementById('freqForm');
+const freqLoanAmountEl = document.getElementById('freqLoanAmount');
+const freqRateEl = document.getElementById('freqRate');
+const freqTermValueEl = document.getElementById('freqTermValue');
+const freqTermUnitEl = document.getElementById('freqTermUnit');
+const freqFrequencyEl = document.getElementById('freqFrequency');
+const freqErrorEl = document.getElementById('freqError');
+const freqResultsEl = document.getElementById('freqResults');
+
+// Unit label for "paid every ___" next to the period payment amount.
+const FREQUENCY_PERIOD_LABEL = {
+  monthly: 'month',
+  semiMonthly: 'half-month period',
+  biweekly: '2-week period',
+  weekly: 'week',
+};
+
+/** Renders a month count as both units at once ("83 mo (6 yr 11 mo)"), since the raw
+ *  number of months is rarely how a borrower thinks about a payoff timeline. */
+function formatMonthsWithYears(months) {
+  const years = Math.floor(Math.abs(months) / 12);
+  const remMonths = Math.abs(months) % 12;
+  const sign = months < 0 ? '-' : '';
+  return `${sign}${Math.abs(months)} mo (${sign}${years} yr ${remMonths} mo)`;
+}
+
+freqForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  freqErrorEl.style.display = 'none';
+  freqResultsEl.style.display = 'none';
+
+  try {
+    const loanAmount = Number(freqLoanAmountEl.value);
+    const annualInterestRatePercent = Number(freqRateEl.value);
+    const termValue = Number(freqTermValueEl.value);
+    const termUnit = freqTermUnitEl.value; // 'years' | 'months'
+    const termMonths = termUnit === 'years' ? Math.round(termValue * 12) : Math.round(termValue);
+    const frequency = freqFrequencyEl.value;
+
+    const result = calculatePaymentFrequencySchedule({
+      loanAmount,
+      annualInterestRatePercent,
+      termMonths,
+      frequency,
+    });
+
+    const periodLabel = FREQUENCY_PERIOD_LABEL[frequency];
+    const items = [
+      ['Payment per period', `${currency.format(result.periodPaymentAmount)} / ${periodLabel}`],
+      ['Payments per year', String(result.paymentsPerYear)],
+      ['Baseline monthly payment', `${currency.format(result.monthlyPayment)} / month`],
+      ['Time saved', formatMonthsWithYears(result.monthsSaved)],
+      ['New payoff time', formatMonthsWithYears(result.newMonths)],
+      ['Interest saved', currency.format(result.interestSaved)],
+    ];
+    freqResultsEl.innerHTML = items
+      .map(([label, value]) => `<div class="total"><span class="label">${label}</span><span class="value">${value}</span></div>`)
+      .join('');
+    freqResultsEl.style.display = '';
+  } catch (err) {
+    freqErrorEl.textContent = err instanceof Error ? err.message : String(err);
+    freqErrorEl.style.display = 'block';
+  }
+});
+
+freqForm.dispatchEvent(new Event('submit', { cancelable: true }));

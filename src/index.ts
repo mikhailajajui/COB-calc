@@ -17,7 +17,7 @@ export type {
 export { compareLoanTerms } from './compare.js';
 export type { TermComparisonEntry, TermComparisonResult } from './compare.js';
 export { calculateExtraPaymentSavings } from './extraPayment.js';
-export { calculateBiweeklySchedule } from './biweekly.js';
+export { calculatePaymentFrequencySchedule } from './paymentFrequency.js';
 export { calculateArmResetRate } from './arm.js';
 export type { ArmResetInput, ArmResetResult } from './arm.js';
 export { calculatePmiPayment } from './pmi.js';
@@ -37,8 +37,9 @@ export type {
   LumpSumPayment,
   ExtraPaymentSavingsInput,
   ExtraPaymentSavingsResult,
-  BiweeklyScheduleInput,
-  BiweeklyScheduleResult,
+  PaymentFrequency,
+  PaymentFrequencyScheduleInput,
+  PaymentFrequencyScheduleResult,
   RecurringCost,
   RecurringCosts,
   PmiInput,

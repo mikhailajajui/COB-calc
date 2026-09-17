@@ -32,7 +32,7 @@ flowchart TD
     PUC1["PUC1: Extra & lump-sum principal payments"]
     PUC1 --> PUC1a["Recurring extra monthly payment\nmirrors lending.extra_payment_savings()"]
     PUC1 --> PUC1b["One-time lump sum applied at a renewal"]
-    PUC1 --> PUC1c["Biweekly payment schedule"]
+    PUC1 --> PUC1c["Biweekly payment schedule\n(generalized to monthly/semiMonthly/weekly too)"]
 
     PUC2["PUC2: Recurring costs & PMI"]
     PUC2 --> PUC2a["Property tax / home insurance / HOA\nannual % increase support"]
@@ -80,7 +80,7 @@ flowchart TD
     UC6["UC6: Extra & lump-sum principal payments"]
     UC6 --> UC6a["calculateExtraPaymentSavings()"]
     UC6 --> UC6b["MortgageInput.lumpSumPayments"]
-    UC6 --> UC6c["calculateBiweeklySchedule()"]
+    UC6 --> UC6c["calculatePaymentFrequencySchedule()\n(monthly/semiMonthly/biweekly/weekly)"]
 
     UC7["UC7: Recurring costs & PMI"]
     UC7 --> UC7a["applyRecurringCosts()"]
@@ -109,14 +109,14 @@ flowchart TD
     class UC1,UC6,UC6a,UC6b,UC6c,UC7,UC7a,UC7b,UC7c,UC8,UC8a,UC8b,UC9,UC9a,UC9b,UC9c,UC10,UC10a,UC10b,UC10c,UC11,UC11a,UC11b done;
 ```
 
-*Full source: [`usecases.mmd`](./usecases.mmd) — the current-state diagram (85/85
+*Full source: [`usecases.mmd`](./usecases.mmd) — the current-state diagram (87/87
 tests passing).*
 
 ## What's new
 
 | Category | Adds |
 |---|---|
-| **Extra & lump-sum payments** | `calculateExtraPaymentSavings()`, `MortgageInput.lumpSumPayments` (applied at a renewal boundary), `calculateBiweeklySchedule()` |
+| **Extra, lump-sum & frequency payments** | `calculateExtraPaymentSavings()`, `MortgageInput.lumpSumPayments` (applied at a renewal boundary), `calculatePaymentFrequencySchedule()` (monthly/semiMonthly/biweekly/weekly, with a dropdown + explicit units in the UI) |
 | **Recurring costs & PMI** | `applyRecurringCosts()` (property tax/insurance/HOA with annual escalation), `calculatePmiPayment()` with 80%-LTV auto-drop, `LoanSummary.costBreakdown` |
 | **Qualification ratios** | `loanToValue()`, `combinedLoanToValue()`, `debtServiceCoverageRatio()` |
 | **Alternative payment structures** | `Segment.interestOnly`, `Segment.balloon` + `LoanSummary.balloonPaymentDue`, `calculateArmResetRate()` (index+margin with initial/periodic/lifetime caps) |
@@ -124,7 +124,8 @@ tests passing).*
 | **Statement reconciliation** | `ManualPaymentOverride.reason` / `AmortizationEntry.overrideReason`, `importOverridesFromJson()` / `importOverridesFromCsv()` |
 
 Full design rationale, worked examples, and known v1 scope cuts are in
-[`docs/spec.md`](./spec.md).
+[`docs/spec.md`](./spec.md). Every formula used across the library — with exact
+source locations — is catalogued in [`docs/equations.md`](./equations.md).
 
 ## Design notes worth a reviewer's attention
 
@@ -146,18 +147,34 @@ Full design rationale, worked examples, and known v1 scope cuts are in
   percent-number convention (`6` = 6%), not the lending skill's decimal convention
   (`0.06`) — called out explicitly in `docs/spec.md` to avoid a unit-conversion bug for
   anyone porting numbers from the skill.
+- **Payment frequency terminology corrected against real mortgage practice** (via a
+  dedicated consultation using the project's `lending` skill): there's no
+  industry-recognized "accelerated biweekly" distinct from plain biweekly — the
+  acceleration (13 vs. 12 monthly-equivalents/yr) is intrinsic to the calendar, not a
+  toggle. The real distinction is biweekly/weekly (accelerated) vs. semi-monthly (not
+  accelerated); `'bimonthly'` is deliberately not an option at all, since it's
+  ambiguous and not a real mortgage product. The UI exposes this as a dropdown
+  (`monthly`/`semiMonthly`/`biweekly`/`weekly`) plus a separate unit dropdown
+  (months/years) for the term input, with results labeled by unit throughout.
 - **Deliberate v1 scope cuts** (documented, not oversights): lump sums apply only at a
-  segment/renewal boundary, not mid-segment; biweekly is modeled as a monthly-equivalent
-  acceleration, not true 14-day accrual; recurring costs only escalate, never decrease;
-  the CSV importer is intentionally naive (no quoted-field support, no new dependency
-  added — the project has zero runtime dependencies).
+  segment/renewal boundary, not mid-segment; every payment frequency besides monthly is
+  modeled as a monthly-equivalent acceleration, not true calendar-day accrual; recurring
+  costs only escalate, never decrease; the CSV importer is intentionally naive (no
+  quoted-field support, no new dependency added — the project has zero runtime
+  dependencies).
 
 ## Test plan
 
 - `npm run typecheck` — clean (strict mode, `noUncheckedIndexedAccess`)
-- `npm test` — **85/85 passing** (33 original + 52 new), across 15 test files. Every new
+- `npm test` — **87/87 passing** (33 original + 54 new), across 15 test files. Every new
   function has a happy-path test, one edge case, and one invalid-input case; several
   happy-path tests are cross-checked against the lending skill's own verified worked
   examples (PMI $300/mo, DSCR 1.3333, ARM reset 7.75%→6.5% capped, points/refinance/
   extra-payment breakevens).
 - `npm run build` — clean; `dist/` regenerates with `.d.ts` for all 17 modules.
+- **UI**: manually verified in a real browser (`npm run ui`) — the payment-frequency
+  dropdown and term-unit dropdown both drive live recomputation with no console errors;
+  confirmed semi-monthly shows exactly $0 savings (not accelerated), biweekly and
+  weekly produce identical savings figures (both 13 annual-equivalents/yr), and
+  switching the term-unit dropdown between years/months produces identical results for
+  equivalent values (30 years = 360 months).
