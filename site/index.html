@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>COB Calculator</title>
+<meta name="description" content="Cost-of-borrowing / segmented mortgage calculator, in three forms: an in-browser web app, a Python/Streamlit app, and a formula-driven Excel workbook.">
+<style>
+  :root { color-scheme: light dark; }
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #FAF6EE;
+    --surface: #FFFFFF;
+    --surface-2: #F3EDE0;
+    --text: #23201A;
+    --text-muted: #6F6858;
+    --border: #E3D9C4;
+    --accent: #1E5F58;
+    --accent-ink: #123833;
+    --accent-soft: #E2EFEC;
+    --amber: #9C6118;
+    --amber-soft: #FCEFD8;
+    --ts-color: #23573F;
+    --py-color: #B23A48;
+    --xl-color: #1E5F58;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16191A;
+      --surface: #1D2123;
+      --surface-2: #23282A;
+      --text: #EAE5DA;
+      --text-muted: #9B9488;
+      --border: #333A3C;
+      --accent: #6FC4B8;
+      --accent-ink: #DCF3EE;
+      --accent-soft: #1E2F2C;
+      --amber: #E5AE5E;
+      --amber-soft: #2E2617;
+      --ts-color: #6FCB9E;
+      --py-color: #E38A93;
+      --xl-color: #6FC4B8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16191A; --surface: #1D2123; --surface-2: #23282A;
+    --text: #EAE5DA; --text-muted: #9B9488; --border: #333A3C;
+    --accent: #6FC4B8; --accent-ink: #DCF3EE; --accent-soft: #1E2F2C;
+    --amber: #E5AE5E; --amber-soft: #2E2617;
+    --ts-color: #6FCB9E; --py-color: #E38A93; --xl-color: #6FC4B8;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  img { max-width: 100%; }
+  h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; text-wrap: balance; font-weight: 600; color: var(--text); margin: 0 0 0.4em; }
+  h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; }
+  h2 { font-size: 1.3rem; }
+  p { margin: 0 0 0.9em; }
+  a { color: var(--accent); }
+  code { font-family: 'JetBrains Mono', ui-monospace, monospace; background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 0.05em 0.4em; font-size: 0.88em; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+  header.hero {
+    padding: 3.4rem 0 1.6rem;
+    padding-inline: 20px;
+  }
+  header.hero .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.7em;
+  }
+  header.hero p.lede { font-size: 1.1rem; color: var(--text-muted); max-width: 62ch; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.4rem;
+    margin: 1.4rem 0 3rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.6rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    position: relative;
+    border-top: 4px solid var(--card-color, var(--accent));
+  }
+  .card .stack {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--card-color, var(--accent));
+    font-weight: 700;
+  }
+  .card h2 { margin-bottom: 0.15em; }
+  .card p.desc { color: var(--text-muted); font-size: 0.95rem; flex: 1 0 auto; margin-bottom: 0.3em; }
+  .card .features { list-style: none; margin: 0 0 0.4em; padding: 0; font-size: 0.86rem; color: var(--text-muted); }
+  .card .features li { padding: 0.15em 0; padding-left: 1.1em; position: relative; }
+  .card .features li::before { content: '·'; position: absolute; left: 0.2em; color: var(--card-color, var(--accent)); font-weight: 700; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0.6em 1em;
+    border-radius: 8px;
+    text-decoration: none;
+    background: var(--card-color, var(--accent));
+    color: #FCFBF7;
+    border: none;
+    transition: filter .12s, transform .12s;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:active { transform: translateY(1px); }
+  .btn.secondary {
+    background: transparent;
+    color: var(--card-color, var(--accent));
+    border: 1.5px solid var(--card-color, var(--accent));
+  }
+  .btn[aria-disabled="true"] {
+    background: var(--surface-2);
+    color: var(--text-muted);
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .pending-note {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    background: var(--amber-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55em 0.8em;
+  }
+  .pending-note code { background: transparent; border: none; padding: 0; }
+
+  section.about {
+    border-top: 1px solid var(--border);
+    padding: 2rem 0 3rem;
+  }
+  .about-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.6rem;
+  }
+  .about-grid h3 { font-size: 1rem; margin-bottom: 0.3em; }
+  .about-grid p { font-size: 0.92rem; color: var(--text-muted); margin: 0; }
+
+  footer.page-footer {
+    border-top: 1px solid var(--border);
+    padding: 1.2rem 0 3rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  footer.page-footer a { color: var(--text-muted); }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">COB Calculator &middot; pick your platform</div>
+    <h1>Cost of borrowing, three ways</h1>
+    <p class="lede">The same segmented-mortgage engine — renewals, lump sums, PMI, points, refinance, affordability — built independently in TypeScript, Python, and plain Excel formulas, and cross-checked against each other row for row. Pick whichever fits how you work.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="cards">
+
+    <article class="card" style="--card-color: var(--ts-color);">
+      <span class="stack">TypeScript &middot; runs in your browser</span>
+      <h2>Web Calculator</h2>
+      <p class="desc">The original engine, with a live worksheet UI. No install, no account — everything computes client-side.</p>
+      <ul class="features">
+        <li>Full amortization schedule with print support</li>
+        <li>Monthly / semi-monthly / biweekly / weekly views</li>
+        <li>Same math, verified against the Python engine</li>
+      </ul>
+      <a class="btn" href="./ts/" style="--card-color: var(--ts-color);">Open the calculator →</a>
+    </article>
+
+    <article class="card" style="--card-color: var(--py-color);">
+      <span class="stack">Python &middot; Streamlit Cloud</span>
+      <h2>Streamlit App</h2>
+      <p class="desc">The full feature set across 14 pages: segmented mortgages, PMI, DTI &amp; affordability, fees &amp; APR, bank-statement reconciliation.</p>
+      <ul class="features">
+        <li>Every calculator the engine supports</li>
+        <li>Yearly report window ("first 5 years")</li>
+        <li>Upload &amp; reconcile a real bank statement</li>
+      </ul>
+      <a class="btn" id="streamlitLink" href="#" aria-disabled="true" style="--card-color: var(--py-color);">Open the app →</a>
+      <p class="pending-note" id="streamlitNote">Not deployed yet. Once it's live on <a href="https://share.streamlit.io" target="_blank" rel="noopener">Streamlit Cloud</a>, set <code>STREAMLIT_URL</code> at the bottom of this page's source.</p>
+    </article>
+
+    <article class="card" style="--card-color: var(--xl-color);">
+      <span class="stack">Excel &middot; no macros, no install</span>
+      <h2>Excel Workbook</h2>
+      <p class="desc">A formula-driven workbook for anyone who'd rather stay in a spreadsheet — Google Sheets and LibreOffice Calc open it too.</p>
+      <ul class="features">
+        <li>17 sheets: the full engine + 9 standalone tools</li>
+        <li>Blue-cell inputs, everything else recalculates live</li>
+        <li>Manual with cell-level reference &amp; worked examples</li>
+      </ul>
+      <a class="btn" href="./excel/" style="--card-color: var(--xl-color);">Read the manual →</a>
+      <a class="btn secondary" href="./excel/COB_Calculator.xlsx" style="--card-color: var(--xl-color);">Download .xlsx</a>
+    </article>
+
+  </div>
+
+  <section class="about">
+    <div class="about-grid">
+      <div>
+        <h3>Same engine, three implementations</h3>
+        <p>Not one engine with three front ends — three independent implementations of the same segmented-mortgage math, cross-validated row-for-row against each other during development, including against an independent lending-domain reference model.</p>
+      </div>
+      <div>
+        <h3>Pick based on how you work</h3>
+        <p>Want to poke at it without installing anything? Use the web calculator. Need the full feature set — DTI, APR, bank reconciliation? Use the Streamlit app. Prefer to own the math yourself in a spreadsheet you can edit and hand to someone else? Take the Excel workbook.</p>
+      </div>
+      <div>
+        <h3>Source</h3>
+        <p>Every engine, the Excel build script, and the full domain-QA writeups (including two real bugs a cross-check caught) live in this repository under <code>COB-ts/</code>, <code>COB-py/</code>, <code>COB-xlsx/</code>, and <code>docs/new-req/</code>.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer class="page-footer">
+  <div class="wrap">COB Calculator &middot; all figures are estimates for planning purposes only, not financial advice.</div>
+</footer>
+
+<script>
+  // Set this once the Streamlit Cloud deployment is live (share.streamlit.io ->
+  // connect this repo -> app file COB-py/streamlit_app.py -> deploy -> copy the URL here).
+  var STREAMLIT_URL = "";
+
+  (function () {
+    if (STREAMLIT_URL) {
+      var link = document.getElementById('streamlitLink');
+      link.href = STREAMLIT_URL;
+      link.removeAttribute('aria-disabled');
+      document.getElementById('streamlitNote').hidden = true;
+    }
+  })();
+</script>
+</body>
+</html>
