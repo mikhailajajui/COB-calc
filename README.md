@@ -12,7 +12,7 @@ all three variants below.
 | Variant | Where it runs | Source |
 |---|---|---|
 | **Web Calculator** | GitHub Pages, client-side | [`COB-ts/`](COB-ts) |
-| **Streamlit App** | Streamlit Community Cloud ([deploy status](#deploying-the-streamlit-app)) | [`COB-py/`](COB-py) |
+| **Streamlit App** | [cob-calc.streamlit.app](https://cob-calc.streamlit.app/) | [`COB-py/`](COB-py) |
 | **Excel Workbook** | Download, or read the manual on GitHub Pages | [`COB-xlsx/`](COB-xlsx) |
 
 ## Repository layout
@@ -22,15 +22,6 @@ all three variants below.
 - **`COB-xlsx/`** — a formula-driven Excel workbook (no macros), built by `COB-xlsx/build_workbook.py`. See [`COB-xlsx/MANUAL.md`](COB-xlsx/MANUAL.md) for usage.
 - **`docs/new-req/`** — platform-agnostic specs for features found via a banking-domain QA pass, plus write-ups of real bugs caught during development (and how they were caught) for each implementation.
 - **`site/`** — source for the portal page published at the repo root of GitHub Pages.
-
-## Deploying the Streamlit app
-
-Not yet deployed. To deploy:
-
-1. Push this repo to GitHub (if not already).
-2. Go to [share.streamlit.io](https://share.streamlit.io), sign in, and connect this repository.
-3. Set the app file to `COB-py/streamlit_app.py`.
-4. Deploy, then copy the resulting URL into `STREAMLIT_URL` near the bottom of [`site/index.html`](site/index.html) and push — the portal's Streamlit card goes live automatically.
 
 ## Running things locally
 
