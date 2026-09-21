@@ -1,0 +1,7 @@
+streamlit>=1.38
+pandas>=2.2
+pytest>=8.0
+# numpy: pandas pulls this in transitively already; listed explicitly because
+# tests/test_lending_skill_crosscheck.py imports the lending skill's reference
+# script, which declares numpy as a direct dependency.
+numpy>=1.26
