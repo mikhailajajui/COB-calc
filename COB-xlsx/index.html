@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>COB Calculator Manual</title>
+<meta name="description" content="A sheet-by-sheet reference for COB_Calculator.xlsx, with five worked examples using the workbook's own built-in data.">
+<style>
+  :root { color-scheme: light dark; }
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #FAF6EE;
+    --surface: #FFFFFF;
+    --surface-2: #F3EDE0;
+    --text: #23201A;
+    --text-muted: #6F6858;
+    --border: #E3D9C4;
+    --accent: #1E5F58;
+    --accent-ink: #123833;
+    --accent-soft: #E2EFEC;
+    --amber: #9C6118;
+    --amber-soft: #FCEFD8;
+    --blue-input: #17479E;
+    --blue-input-soft: #E9F0FC;
+    --danger: #A13A2A;
+    --danger-soft: #FBEAE4;
+    --code-bg: #F1EADA;
+    --shadow: 0 1px 2px rgba(35,32,26,0.06), 0 8px 24px rgba(35,32,26,0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16191A;
+      --surface: #1D2123;
+      --surface-2: #23282A;
+      --text: #EAE5DA;
+      --text-muted: #9B9488;
+      --border: #333A3C;
+      --accent: #6FC4B8;
+      --accent-ink: #DCF3EE;
+      --accent-soft: #1E2F2C;
+      --amber: #E5AE5E;
+      --amber-soft: #2E2617;
+      --blue-input: #7EA8F2;
+      --blue-input-soft: #1C2740;
+      --danger: #E38A76;
+      --danger-soft: #34211D;
+      --code-bg: #262B26;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16191A;
+    --surface: #1D2123;
+    --surface-2: #23282A;
+    --text: #EAE5DA;
+    --text-muted: #9B9488;
+    --border: #333A3C;
+    --accent: #6FC4B8;
+    --accent-ink: #DCF3EE;
+    --accent-soft: #1E2F2C;
+    --amber: #E5AE5E;
+    --amber-soft: #2E2617;
+    --blue-input: #7EA8F2;
+    --blue-input-soft: #1C2740;
+    --danger: #E38A76;
+    --danger-soft: #34211D;
+    --code-bg: #262B26;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+  h1, h2, h3, h4 { font-family: 'Fraunces', Georgia, serif; text-wrap: balance; font-weight: 600; color: var(--text); margin: 0 0 0.4em; }
+  h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 700; }
+  h2 { font-size: 1.5rem; padding-top: 0.1em; }
+  h3 { font-size: 1.15rem; }
+  p { margin: 0 0 0.9em; max-width: 66ch; }
+  a { color: var(--accent); }
+  code, .cell, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .cell {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.05em 0.45em;
+    font-size: 0.86em;
+    white-space: nowrap;
+  }
+
+  .layout {
+    display: flex;
+    align-items: flex-start;
+    max-width: 1180px;
+    margin: 0 auto;
+    gap: 2.2rem;
+    padding: 0 20px 4rem;
+  }
+
+  /* --- Sheet-tab style navigator --- */
+  nav.toc {
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 20px);
+    flex: 0 0 232px;
+    align-self: flex-start;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    padding-bottom: 1rem;
+  }
+  nav.toc .group-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 1.1em 0 0.4em;
+    padding-left: 0.6rem;
+  }
+  nav.toc .group-label:first-child { margin-top: 0; }
+  nav.toc a.tab {
+    display: block;
+    font-size: 0.88rem;
+    padding: 0.4em 0.65em;
+    border-radius: 6px 6px 0 0;
+    border: 1px solid transparent;
+    border-bottom: 3px solid var(--border);
+    color: var(--text-muted);
+    text-decoration: none;
+    margin-bottom: 2px;
+    transition: color .12s, border-color .12s, background .12s;
+  }
+  nav.toc a.tab:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc a.tab.active { color: var(--accent-ink); background: var(--accent-soft); border-bottom-color: var(--accent); font-weight: 600; }
+
+  main { flex: 1 1 auto; min-width: 0; padding-top: 20px; }
+
+  header.hero {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 2.6rem 20px 1.4rem;
+  }
+  header.hero .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.6em;
+  }
+  header.hero .kicker a { color: var(--accent); text-decoration: none; }
+  header.hero .kicker a:hover { text-decoration: underline; }
+  header.hero p.lede { font-size: 1.08rem; color: var(--text-muted); max-width: 62ch; }
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0.6em 1.1em;
+    border-radius: 8px;
+    text-decoration: none;
+    background: var(--accent);
+    color: #FCFBF7;
+    margin-top: 0.4em;
+  }
+  .btn-download:hover { filter: brightness(1.08); }
+
+  section { margin-bottom: 3rem; scroll-margin-top: 20px; }
+  section.sheet { border-top: 1px solid var(--border); padding-top: 1.6rem; }
+
+  .sheet-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.3em;
+  }
+  .sheet-head .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.1em 0.7em;
+  }
+
+  table.ref {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    margin: 0.8em 0 1.3em;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  table.ref th {
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    padding: 0.55em 0.8em;
+    border-bottom: 1px solid var(--border);
+  }
+  table.ref td { padding: 0.55em 0.8em; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.ref tr:last-child td { border-bottom: none; }
+  table.ref td.num { font-variant-numeric: tabular-nums; }
+  .table-wrap { overflow-x: auto; }
+
+  .pill {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.12em 0.55em;
+    border-radius: 5px;
+    font-weight: 600;
+  }
+  .pill.input { color: var(--blue-input); background: var(--blue-input-soft); }
+  .pill.formula { color: var(--text); background: var(--surface-2); border: 1px solid var(--border); }
+
+  .callout {
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 8px 8px 0;
+    padding: 0.85em 1.1em;
+    margin: 1.1em 0;
+    font-size: 0.94rem;
+  }
+  .callout.warn { border-left-color: var(--amber); background: var(--amber-soft); }
+  .callout.danger { border-left-color: var(--danger); background: var(--danger-soft); }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.35em;
+    color: var(--text-muted);
+  }
+
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.9rem;
+    margin: 1em 0 1.6em;
+  }
+  .legend-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9em 1em;
+    background: var(--surface);
+  }
+  .legend-swatch {
+    display: inline-block;
+    width: 1.6em; height: 1.1em;
+    border-radius: 3px;
+    vertical-align: -0.22em;
+    margin-right: 0.5em;
+    border: 1px solid var(--border);
+  }
+
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 1.1em 2.4em;
+    margin-bottom: 0.2em;
+  }
+  .steps li:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 0.85em; top: 1.9em; bottom: -0.1em;
+    width: 1px;
+    background: var(--border);
+  }
+  .steps li::marker { content: none; }
+  .steps li .num {
+    position: absolute; left: 0; top: 0.05em;
+    width: 1.7em; height: 1.7em;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 0.82rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .steps li .num::before { content: counter(step); }
+
+  .example-figures {
+    display: flex; flex-wrap: wrap; gap: 0.7rem;
+    margin: 0.7em 0 1.2em;
+  }
+  .fig {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6em 0.9em;
+    min-width: 140px;
+  }
+  .fig .k { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .fig .v { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.05rem; }
+
+  details.faq { border-bottom: 1px solid var(--border); padding: 0.9em 0; }
+  details.faq summary { cursor: pointer; font-weight: 600; font-size: 1rem; }
+  details.faq[open] summary { color: var(--accent-ink); }
+  details.faq p { margin-top: 0.6em; }
+
+  .top-tabs { display: none; }
+
+  footer.page-footer {
+    max-width: 1180px; margin: 0 auto; padding: 1rem 20px 3rem;
+    color: var(--text-muted); font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 880px) {
+    .layout { flex-direction: column; gap: 1rem; }
+    nav.toc {
+      display: none;
+    }
+    .top-tabs {
+      display: flex;
+      gap: 0.4rem;
+      overflow-x: auto;
+      position: sticky;
+      top: env(safe-area-inset-top, 0px);
+      background: var(--bg);
+      padding: 0.6rem 20px;
+      margin: 0 0 0.6rem;
+      border-bottom: 1px solid var(--border);
+      z-index: 5;
+    }
+    .top-tabs a {
+      flex: 0 0 auto;
+      font-size: 0.82rem;
+      padding: 0.35em 0.75em;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .top-tabs a.active { color: var(--accent-ink); background: var(--accent-soft); border-color: var(--accent); }
+    main { padding-top: 0; }
+  }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="kicker"><a href="../">&larr; COB Calculator</a> &middot; Excel &middot; reference manual</div>
+  <h1>Using the COB Calculator workbook</h1>
+  <p class="lede">A plain-formula, no-macro Excel workbook for mortgage and cost-of-borrowing calculations — segmented renewals, lump sums, PMI, and nine standalone tools. This manual walks through every sheet: what to type in, what comes back out, and five worked examples using the numbers already sitting in the file.</p>
+  <a class="btn-download" href="./COB_Calculator.xlsx">Download COB_Calculator.xlsx &darr;</a>
+</header>
+
+<div class="top-tabs" id="topTabs">
+  <a href="#start" data-target="start">Start here</a>
+  <a href="#segments" data-target="segments">Segments</a>
+  <a href="#lumpsums" data-target="lumpsums">Lump Sums</a>
+  <a href="#overrides" data-target="overrides">Overrides</a>
+  <a href="#pmicosts" data-target="pmicosts">PMI &amp; Costs</a>
+  <a href="#schedule" data-target="schedule">Schedule</a>
+  <a href="#summary" data-target="summary">Summary</a>
+  <a href="#yearly" data-target="yearly">Yearly Summary</a>
+  <a href="#paymentfrequency" data-target="paymentfrequency">Payment Frequency</a>
+  <a href="#extrapayment" data-target="extrapayment">Extra Payment</a>
+  <a href="#points" data-target="points">Points</a>
+  <a href="#refinance" data-target="refinance">Refinance</a>
+  <a href="#compareterms" data-target="compareterms">Compare Terms</a>
+  <a href="#ltvdscr" data-target="ltvdscr">LTV &amp; DSCR</a>
+  <a href="#armreset" data-target="armreset">ARM Reset</a>
+  <a href="#feesapr" data-target="feesapr">Fees &amp; APR</a>
+  <a href="#dti" data-target="dti">DTI &amp; Affordability</a>
+  <a href="#examples" data-target="examples">Worked examples</a>
+  <a href="#limits" data-target="limits">Limits</a>
+  <a href="#faq" data-target="faq">FAQ</a>
+</div>
+
+<div class="layout">
+  <nav class="toc" id="sideTabs" aria-label="Sheet navigator">
+    <div class="group-label">Start here</div>
+    <a class="tab" href="#start" data-target="start">Quick start &amp; legend</a>
+
+    <div class="group-label">The engine</div>
+    <a class="tab" href="#segments" data-target="segments">Segments</a>
+    <a class="tab" href="#lumpsums" data-target="lumpsums">LumpSums</a>
+    <a class="tab" href="#overrides" data-target="overrides">Overrides</a>
+    <a class="tab" href="#pmicosts" data-target="pmicosts">PMI_Costs</a>
+    <a class="tab" href="#schedule" data-target="schedule">Schedule</a>
+    <a class="tab" href="#summary" data-target="summary">Summary</a>
+    <a class="tab" href="#yearly" data-target="yearly">YearlySummary</a>
+
+    <div class="group-label">Standalone tools</div>
+    <a class="tab" href="#paymentfrequency" data-target="paymentfrequency">PaymentFrequency</a>
+    <a class="tab" href="#extrapayment" data-target="extrapayment">ExtraPayment</a>
+    <a class="tab" href="#points" data-target="points">Points</a>
+    <a class="tab" href="#refinance" data-target="refinance">Refinance</a>
+    <a class="tab" href="#compareterms" data-target="compareterms">CompareTerms</a>
+    <a class="tab" href="#ltvdscr" data-target="ltvdscr">LTV_DSCR</a>
+    <a class="tab" href="#armreset" data-target="armreset">ARM_Reset</a>
+    <a class="tab" href="#feesapr" data-target="feesapr">Fees_APR</a>
+    <a class="tab" href="#dti" data-target="dti">DTI_Affordability</a>
+
+    <div class="group-label">Reference</div>
+    <a class="tab" href="#examples" data-target="examples">Worked examples</a>
+    <a class="tab" href="#limits" data-target="limits">Limits &amp; troubleshooting</a>
+    <a class="tab" href="#faq" data-target="faq">FAQ</a>
+  </nav>
+
+  <main>
+
+    <section id="start">
+      <h2>Quick start</h2>
+      <ol class="steps">
+        <li><span class="num"></span><strong>Open <span class="cell">COB_Calculator.xlsx</span> in Excel, Google Sheets, or LibreOffice Calc.</strong> Every calculation is a plain formula — no macros, no add-ins, nothing to enable.</li>
+        <li><span class="num"></span><strong>Read the in-workbook <span class="cell">README</span> tab once.</strong> It's the same legend as below, kept inside the file so it travels with it.</li>
+        <li><span class="num"></span><strong>Pick a tab.</strong> For a plain 30-year fixed loan, start at <span class="cell">Segments</span> — one row is enough. For everything else (points, refinance, affordability…), each has its own self-contained tab.</li>
+        <li><span class="num"></span><strong>Edit only the blue, yellow-tinted cells.</strong> Everything in black recalculates on its own the moment you change an input — there's no "Calculate" button to press.</li>
+      </ol>
+
+      <h3>Color legend</h3>
+      <p>Every sheet in the workbook follows the same two-color convention:</p>
+      <div class="legend-grid">
+        <div class="legend-card">
+          <span class="legend-swatch" style="background:var(--blue-input-soft); border-color:var(--blue-input);"></span>
+          <strong style="color:var(--blue-input);">Blue text, tinted fill</strong>
+          <p style="margin-top:0.4em; margin-bottom:0;">An input. Type over it with your own numbers, dates, or Y/N.</p>
+        </div>
+        <div class="legend-card">
+          <span class="legend-swatch" style="background:var(--surface-2);"></span>
+          <strong>Black text</strong>
+          <p style="margin-top:0.4em; margin-bottom:0;">A computed formula. Don't type into these — they read from the blue cells and update automatically.</p>
+        </div>
+      </div>
+      <div class="callout">
+        <span class="label">Why nothing seems to happen at first</span>
+        <p>Each tab already ships with a realistic example filled in — you're never looking at a blank grid. Change any blue cell to see your own numbers replace the example instantly.</p>
+      </div>
+    </section>
+
+    <section id="segments" class="sheet">
+      <div class="sheet-head"><h2>Segments</h2><span class="badge">input</span></div>
+      <p>The mortgage itself: one row per <em>segment</em> — a stretch of the loan at one rate and one payment. A plain 30-year fixed loan is a single row. A loan that renews at a new rate in year 5, or converts from interest-only to amortizing, is two or more rows, entered chronologically.</p>
+
+      <div class="callout">
+        <span class="label">The one rule that matters</span>
+        <p>Every row except the <strong>last</strong> needs a <span class="cell">Term Months</span> — that's the row's renewal boundary. The last row's <span class="cell">Term Months</span> stays blank, so it's the one that runs the loan all the way to a $0 balance. If you want the last row to stop early with money still owed instead (a balloon), give it a Term Months <em>and</em> mark <span class="cell">Balloon? = Y</span>.</p>
+      </div>
+
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Column</th><th>Cell (row 1)</th><th>What it means</th></tr>
+        <tr><td>Start Date</td><td class="cell">B5</td><td>Date of this segment's <em>first</em> payment.</td></tr>
+        <tr><td>Annual Rate %</td><td class="cell">C5</td><td>e.g. <span class="mono">6.5</span>, not 0.065. Accepts up to 8 decimal places.</td></tr>
+        <tr><td>Payment Amount</td><td class="cell">D5</td><td>Leave blank to have the payment computed for you; fill it in for a manual/fixed payment (e.g. after an extra-payment plan).</td></tr>
+        <tr><td>Amortization Months Remaining</td><td class="cell">E5</td><td>Required if Payment Amount is blank — the span the payment is sized to pay off over (360 for a fresh 30-year loan).</td></tr>
+        <tr><td>Term Months</td><td class="cell">F5</td><td>How many payments before the <em>next</em> row takes over. Blank only on the last row (see callout above).</td></tr>
+        <tr><td>Starting Balance</td><td class="cell">G5</td><td><strong>Row 1 only.</strong> The original loan amount. Later rows inherit theirs automatically from the row above's ending balance — leave it blank.</td></tr>
+        <tr><td>Balloon? (Y/N)</td><td class="cell">H5</td><td>Last row only. Y means the remaining balance is due in full at Term Months, instead of the loan running to $0.</td></tr>
+        <tr><td>Interest Only? (Y/N)</td><td class="cell">I5</td><td>Payment = interest only; the balance never moves on its own. Needs a Term Months even on the last row.</td></tr>
+      </table></div>
+      <p>Columns J–N (Start/End Payment #, Monthly Payment, Segment Starting/Ending Balance) are computed — read them, don't edit them.</p>
+    </section>
+
+    <section id="lumpsums" class="sheet">
+      <div class="sheet-head"><h2>LumpSums</h2><span class="badge">input</span></div>
+      <p>One-time extra principal payments. <strong>Only at a renewal boundary</strong> — the After Payment # must match one of <span class="cell">Segments!K</span>'s End Payment # values for a non-final row. The sheet's caption shows you the valid numbers for your current Segments setup.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Column</th><th>Meaning</th></tr>
+        <tr><td>After Payment #</td><td>The global payment number this lump sum lands right after.</td></tr>
+        <tr><td>Amount</td><td>Dollars applied straight to principal at that point.</td></tr>
+      </table></div>
+      <div class="callout warn"><span class="label">Not what this is for</span><p>A lump sum any month you like, mid-segment, isn't supported — the engine only checks segment boundaries. To model that, split the segment into two rows in <span class="cell">Segments</span> at the month you want, then put the lump sum on that new boundary.</p></div>
+    </section>
+
+    <section id="overrides" class="sheet">
+      <div class="sheet-head"><h2>Overrides</h2><span class="badge">input</span></div>
+      <p>Bank-statement reconciliation. If your real statement's payment #14 doesn't match what the model computed — a fee, a rate quirk, a bank's own rounding — put payment #14 here and fill in only the fields your statement actually shows. Everything you leave blank falls back to the computed value.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Column</th><th>Required?</th><th>Notes</th></tr>
+        <tr><td>Payment #</td><td>Always</td><td>The global payment number to correct.</td></tr>
+        <tr><td>Payment Amount</td><td>Optional</td><td></td></tr>
+        <tr><td>Interest Portion</td><td>Optional</td><td></td></tr>
+        <tr><td>Principal Portion</td><td>Optional</td><td>Ignored if Remaining Balance is given instead.</td></tr>
+        <tr><td>Remaining Balance</td><td>Optional</td><td>If given, principal is derived as balance − this value.</td></tr>
+        <tr><td>Reason</td><td>Optional</td><td>Free text, for your own audit trail — shown back in the Schedule sheet.</td></tr>
+      </table></div>
+    </section>
+
+    <section id="pmicosts" class="sheet">
+      <div class="sheet-head"><h2>PMI_Costs</h2><span class="badge">input</span></div>
+      <p>Everything layered on top of principal &amp; interest: PMI (with auto-drop at a loan-to-value threshold you choose) and escalating property tax, home insurance, and HOA.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Cell</th><th>Field</th><th>Notes</th></tr>
+        <tr><td class="cell">B4</td><td>PMI annual rate (%)</td><td>Set to 0 to turn PMI off entirely.</td></tr>
+        <tr><td class="cell">B5</td><td>Property value ($)</td><td>Used to compute current loan-to-value each month.</td></tr>
+        <tr><td class="cell">B6</td><td>PMI drop-at LTV (%)</td><td>PMI stops the first month balance ÷ property value falls at or below this.</td></tr>
+        <tr><td class="cell">B8 / B9</td><td>Property tax annual amount / annual increase %</td><td>Increase compounds once per 12-payment anniversary.</td></tr>
+        <tr><td class="cell">B10 / B11</td><td>Home insurance annual amount / increase %</td><td></td></tr>
+        <tr><td class="cell">B12 / B13</td><td>HOA annual amount / increase %</td><td></td></tr>
+      </table></div>
+    </section>
+
+    <section id="schedule" class="sheet">
+      <div class="sheet-head"><h2>Schedule</h2><span class="badge">computed &middot; don't edit</span></div>
+      <p>The full payment-by-payment result, one row per global payment number, 1 through 360 (30 years). This is what everything else on the Summary and YearlySummary tabs is built from.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Column</th><th>Meaning</th></tr>
+        <tr><td>Payment Date, Beginning/Ending Balance</td><td>Self-explanatory.</td></tr>
+        <tr><td>Interest, Principal, Payment</td><td>The P&amp;I split for that row — already reflects any lump sum or override applied to it.</td></tr>
+        <tr><td>Tax, Insurance, HOA, PMI</td><td>Blank/zero unless you've filled in <span class="cell">PMI_Costs</span>.</td></tr>
+        <tr><td>Active Row?</td><td>FALSE once the loan is fully paid off — rows past payoff just read $0, they aren't hidden.</td></tr>
+      </table></div>
+      <div class="callout"><span class="label">Reading a real bank statement against this</span><p>A real statement rounds interest to the cent every period, same as this sheet — so a mismatch of a few dollars late in a long loan is expected rounding drift, not an error. A mismatch of tens of dollars or more is a real signal: check <span class="cell">Overrides</span>.</p></div>
+    </section>
+
+    <section id="summary" class="sheet">
+      <div class="sheet-head"><h2>Summary</h2><span class="badge">computed</span></div>
+      <p>The headline numbers for the whole loan, in one place.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Cell</th><th>Reports</th></tr>
+        <tr><td class="cell">B4</td><td>Number of payments to payoff</td></tr>
+        <tr><td class="cell">B5</td><td>Total interest paid</td></tr>
+        <tr><td class="cell">B6 / B7</td><td>Total principal / total of payments (P&amp;I)</td></tr>
+        <tr><td class="cell">B8</td><td>Payoff date</td></tr>
+        <tr><td class="cell">B10–B13</td><td>Total tax / insurance / HOA / PMI paid</td></tr>
+        <tr><td class="cell">B14</td><td>Total cost of ownership (P&amp;I + all of the above)</td></tr>
+        <tr><td class="cell">B15</td><td>Payment # PMI dropped off (or "never"/"active through payoff")</td></tr>
+        <tr><td class="cell">B18–B20</td><td>Balloon due? / amount / date — only meaningful if your last segment has Balloon = Y</td></tr>
+      </table></div>
+    </section>
+
+    <section id="yearly" class="sheet">
+      <div class="sheet-head"><h2>YearlySummary</h2><span class="badge">computed + 1 input</span></div>
+      <p>Answers "how much will I pay in the first N years?" without scrolling a 360-row schedule. Type a number of years into <span class="cell">B4</span> and the totals below update to match.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Cell</th><th>Field</th></tr>
+        <tr><td class="cell">B4</td><td><strong>Input.</strong> "Show through year" — try 5, or your own horizon.</td></tr>
+        <tr><td>Rows 7–36</td><td>One row per year (1–30): payments that year, starting/ending balance, interest and principal paid.</td></tr>
+        <tr><td>"Totals through year" row</td><td>Interest, principal, and ending balance for exactly the window you picked in B4.</td></tr>
+      </table></div>
+    </section>
+
+    <section id="paymentfrequency" class="sheet">
+      <div class="sheet-head"><h2>PaymentFrequency</h2><span class="badge">standalone tool</span></div>
+      <p>Monthly vs. biweekly vs. weekly vs. semi-monthly, for a single plain loan (not the segmented engine). Type the frequency name — <span class="mono">monthly</span>, <span class="mono">semiMonthly</span>, <span class="mono">biweekly</span>, or <span class="mono">weekly</span> — into <span class="cell">B8</span>.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Cell</th><th>Field</th></tr>
+        <tr><td class="cell">B4–B8</td><td>Inputs: loan amount, rate, term (months), start date, frequency.</td></tr>
+        <tr><td class="cell">B13</td><td>What you actually pay each period at the chosen cadence.</td></tr>
+        <tr><td class="cell">B14 / B15</td><td>Periods to payoff / total interest at that cadence.</td></tr>
+      </table></div>
+      <div class="callout warn"><span class="label">One honest approximation</span><p>Semi-monthly dates are evenly spaced across the month, not locked to the "1st &amp; 15th" some lenders use — a documented approximation, not a bug.</p></div>
+    </section>
+
+    <section id="extrapayment" class="sheet">
+      <div class="sheet-head"><h2>ExtraPayment</h2><span class="badge">standalone tool</span></div>
+      <p>What a flat extra amount on top of your regular payment, every month, actually buys you.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Cell</th><th>Field</th></tr>
+        <tr><td class="cell">B4–B8</td><td>Inputs: loan amount, rate, term, <strong>extra monthly payment</strong>, start date.</td></tr>
+        <tr><td>Bottom summary block</td><td>Original vs. new months to payoff, months saved, original vs. new total interest, interest saved.</td></tr>
+      </table></div>
+    </section>
+
+    <section id="points" class="sheet">
+      <div class="sheet-head"><h2>Points</h2><span class="badge">standalone tool</span></div>
+      <p>Is buying discount points worth it before you expect to move or refinance?</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Cell</th><th>Field</th></tr>
+        <tr><td class="cell">B4–B8</td><td>Loan amount, points purchased, rate reduction they buy, original rate, term.</td></tr>
+        <tr><td class="cell">B14</td><td>Breakeven, in months — "never" if the points produce no monthly savings at all.</td></tr>
+      </table></div>
+    </section>
+
+    <section id="refinance" class="sheet">
+      <div class="sheet-head"><h2>Refinance</h2><span class="badge">standalone tool</span></div>
+      <p>Old loan vs. new loan, closing costs included.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Cell</th><th>Field</th></tr>
+        <tr><td class="cell">B4–B10</td><td>Old balance/rate/remaining term, new amount/rate/term, closing costs.</td></tr>
+        <tr><td class="cell">B14 / B15</td><td>Old vs. new total cost over the respective terms.</td></tr>
+        <tr><td class="cell">B16 / B17</td><td>Net savings / breakeven in months.</td></tr>
+      </table></div>
+      <div class="callout warn"><span class="label">Simplification</span><p>Totals here use payment&nbsp;&times;&nbsp;months, a quick-comparison shortcut — expect the same few-dollar difference from a full cent-rounded schedule described on the Schedule tab, on long terms.</p></div>
+    </section>
+
+    <section id="compareterms" class="sheet">
+      <div class="sheet-head"><h2>CompareTerms</h2><span class="badge">standalone tool</span></div>
+      <p>Up to four offers, side by side — different rates, different terms, same layout.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Row</th><th>Field</th></tr>
+        <tr><td>5–7</td><td>Loan amount / rate / term (years), one column per offer.</td></tr>
+        <tr><td>8–10</td><td>Computed: monthly payment, total interest, total of payments.</td></tr>
+        <tr><td>12 / 13</td><td>Which offer has the lowest payment / lowest total interest — named directly, not just highlighted.</td></tr>
+      </table></div>
+    </section>
+
+    <section id="ltvdscr" class="sheet">
+      <div class="sheet-head"><h2>LTV_DSCR</h2><span class="badge">standalone tool</span></div>
+      <p>Three independent mini-calculators stacked on one tab: loan-to-value, combined LTV (first lien + HELOC), and debt-service coverage ratio for a rental/investment property.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Section</th><th>Result cell</th></tr>
+        <tr><td>LTV (row 4)</td><td class="cell">B7</td></tr>
+        <tr><td>CLTV (row 10)</td><td class="cell">B14</td></tr>
+        <tr><td>DSCR (row 17)</td><td class="cell">B20</td></tr>
+      </table></div>
+    </section>
+
+    <section id="armreset" class="sheet">
+      <div class="sheet-head"><h2>ARM_Reset</h2><span class="badge">standalone tool</span></div>
+      <p>A pure rate-cap calculator for an adjustable-rate mortgage's reset — fully-indexed rate, then whatever your initial/periodic/lifetime caps actually allow.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Cell</th><th>Field</th></tr>
+        <tr><td class="cell">B4–B13</td><td>Is-first-reset flag, previous/initial rate, index rate, margin, the three caps, remaining balance and amortization.</td></tr>
+        <tr><td class="cell">B15 / B16</td><td>Fully-indexed rate / capped (actual) rate.</td></tr>
+        <tr><td class="cell">B17</td><td>Resulting new monthly payment.</td></tr>
+      </table></div>
+      <p>To actually schedule the reset loan, copy the capped rate (B16) into a new row's <span class="cell">Annual Rate %</span> on the <a href="#segments">Segments</a> tab.</p>
+    </section>
+
+    <section id="feesapr" class="sheet">
+      <div class="sheet-head"><h2>Fees_APR</h2><span class="badge">standalone tool</span></div>
+      <p>The note rate isn't the real cost when a loan carries fees — this converts fees into an APR you can actually compare across offers.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Cell / range</th><th>Field</th></tr>
+        <tr><td class="cell">B4–B6</td><td>Loan amount, note rate, term.</td></tr>
+        <tr><td>Fee table (rows 10–16)</td><td>Name, amount, and whether it's financed into the loan (Y) or paid in cash (N).</td></tr>
+        <tr><td class="cell">B24</td><td>APR — always ≥ the note rate whenever any cash fee is present.</td></tr>
+        <tr><td class="cell">B25</td><td>APR minus note rate, in points — the size of the gap.</td></tr>
+      </table></div>
+      <div class="callout danger"><span class="label">Scope</span><p>A simplified actuarial-method APR — useful for comparing offers consistently, but not a substitute for a lender's official Loan Estimate.</p></div>
+    </section>
+
+    <section id="dti" class="sheet">
+      <div class="sheet-head"><h2>DTI_Affordability</h2><span class="badge">standalone tool</span></div>
+      <p>Two calculators on one tab: check whether a specific housing payment fits your income, or work backward to find the loan you'd actually qualify for.</p>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>Section</th><th>Key cells</th></tr>
+        <tr><td><strong>Check my DTI</strong> (row 4)</td><td>Inputs B5–B9; results B11 (front-end DTI), B12 (back-end DTI), B15 (qualifies?).</td></tr>
+        <tr><td><strong>How much can I afford</strong> (row 18)</td><td>Inputs B19–B26; B32 max loan amount, B33 max home price, B31 which limit (front- or back-end) is binding.</td></tr>
+      </table></div>
+    </section>
+
+    <section id="examples">
+      <h2>Worked examples</h2>
+      <p>All five use the numbers already sitting in the shipped file — open the corresponding tab and follow along with your own copy.</p>
+
+      <h3>1. A plain 30-year fixed loan</h3>
+      <p>The simplest case: one <span class="cell">Segments</span> row, no term months, no renewal.</p>
+      <div class="example-figures">
+        <div class="fig"><div class="k">Loan</div><div class="v">$300,000</div></div>
+        <div class="fig"><div class="k">Rate</div><div class="v">6.5%</div></div>
+        <div class="fig"><div class="k">Amortization</div><div class="v">360 mo</div></div>
+      </div>
+      <ol class="steps">
+        <li><span class="num"></span>On <a href="#segments">Segments</a>, row 5: set Amortization Months Remaining to <span class="mono">360</span>, Starting Balance to <span class="mono">300000</span>, rate to <span class="mono">6.5</span>. Leave Term Months blank — it's the only row, so it must run to payoff.</li>
+        <li><span class="num"></span>Leave rows 6–12 completely blank.</li>
+        <li><span class="num"></span>Read the monthly payment straight off <a href="#segments">Segments</a><span class="cell">L5</span>, or the full breakdown on <a href="#summary">Summary</a>.</li>
+      </ol>
+
+      <h3>2. Renewal + a $20,000 lump sum (the file's default example)</h3>
+      <p>The pre-loaded scenario: a 5-year term at 5%, then a 25-year renewal at 6%, with a $20,000 lump sum the day it renews.</p>
+      <div class="example-figures">
+        <div class="fig"><div class="k">Segment 1</div><div class="v">5% · 60 mo term</div></div>
+        <div class="fig"><div class="k">Segment 2</div><div class="v">6% · runs to payoff</div></div>
+        <div class="fig"><div class="k">Lump sum</div><div class="v">$20,000 @ #60</div></div>
+      </div>
+      <ol class="steps">
+        <li><span class="num"></span><a href="#segments">Segments</a> rows 5–6 are already filled in this way. Segment 1's <span class="cell">Term Months</span> (60) is what makes it a boundary, not the final row.</li>
+        <li><span class="num"></span>On <a href="#lumpsums">LumpSums</a>, row 5 already reads <span class="mono">After Payment # = 60, Amount = 20000</span> — 60 is segment 1's End Payment #, a valid boundary.</li>
+        <li><span class="num"></span>Check <a href="#segments">Segments</a><span class="cell">M6</span> (segment 2's starting balance): it's segment 1's payoff balance <em>minus</em> the $20,000, automatically.</li>
+      </ol>
+
+      <h3>3. Reconciling a real bank statement</h3>
+      <p>Say your real statement's payment #10 shows more interest than the model computed — a one-off adjustment.</p>
+      <ol class="steps">
+        <li><span class="num"></span>On <a href="#overrides">Overrides</a>, row 5 already shows this: <span class="mono">Payment # = 10, Interest Portion = 700</span>, with a reason noted.</li>
+        <li><span class="num"></span>Principal, payment total, and remaining balance for that row are still computed automatically from the $700 you supplied — you only had to give the one number your statement disagreed on.</li>
+        <li><span class="num"></span>Every row after #10 carries the corrected balance forward, same as if it had always been $700.</li>
+      </ol>
+
+      <h3>4. PMI that drops off automatically</h3>
+      <p>A loan that starts above 80% LTV, so PMI applies until the balance earns its way below the threshold.</p>
+      <div class="example-figures">
+        <div class="fig"><div class="k">Property value</div><div class="v">$220,000</div></div>
+        <div class="fig"><div class="k">PMI rate</div><div class="v">0.6%</div></div>
+        <div class="fig"><div class="k">Drops at</div><div class="v">80% LTV</div></div>
+      </div>
+      <ol class="steps">
+        <li><span class="num"></span>These are the file's default <a href="#pmicosts">PMI_Costs</a> values already.</li>
+        <li><span class="num"></span>Property tax ($4,800/yr) and home insurance ($1,200/yr) are layered on top too — see the same tab.</li>
+        <li><span class="num"></span><a href="#summary">Summary</a><span class="cell">B15</span> reports the exact payment number PMI stopped.</li>
+      </ol>
+
+      <h3>5. How much house can I afford</h3>
+      <ol class="steps">
+        <li><span class="num"></span>Go to <a href="#dti">DTI_Affordability</a>, "How much can I afford" section.</li>
+        <li><span class="num"></span>Set your gross monthly income (B19), other monthly debts (B20), the rate/term you'd actually get quoted (B21–B22), an estimate of tax+insurance+HOA+PMI (B23), and your down payment (B26).</li>
+        <li><span class="num"></span>Read <span class="cell">B32</span> for the maximum loan you'd qualify for, <span class="cell">B33</span> for the home price that implies, and <span class="cell">B31</span> for which limit — front-end housing ratio, or back-end including other debts — is actually the one holding you back.</li>
+      </ol>
+    </section>
+
+    <section id="limits">
+      <h2>Limits &amp; troubleshooting</h2>
+      <div class="table-wrap"><table class="ref">
+        <tr><th>What you might see</th><th>What it means</th></tr>
+        <tr><td>A row reads all zeros near the bottom of a table</td><td>Normal — the loan already paid off before that row. Rows aren't hidden, just quietly inactive.</td></tr>
+        <tr><td>"exceeds 360-row table" (or 1560, on PaymentFrequency)</td><td>Your term is longer than the sheet was built to hold. Select the last row's formulas and copy them down to extend it.</td></tr>
+        <tr><td>A lump sum "disappears"</td><td>Its After Payment # doesn't match a real boundary — check the caption above the LumpSums table for the valid numbers given your current Segments.</td></tr>
+        <tr><td>A number is a few dollars off a quick online calculator</td><td>Expected — this workbook rounds every period to the cent like a real statement does; a calculator that doesn't will drift by a few dollars on a long loan. See the Schedule tab's note.</td></tr>
+      </table></div>
+      <p style="margin-top:1.2em;">Other known scope limits: lump sums only land on segment boundaries, not mid-segment; Fees_APR is a simplified APR, not a certified lender disclosure; Refinance/CompareTerms use payment&nbsp;&times;&nbsp;months for totals rather than a full schedule.</p>
+    </section>
+
+    <section id="faq">
+      <h2>FAQ</h2>
+      <details class="faq" open>
+        <summary>Do I need Excel specifically?</summary>
+        <p>No — it's plain formulas, no macros or add-ins. Google Sheets and LibreOffice Calc both open and calculate it correctly.</p>
+      </details>
+      <details class="faq">
+        <summary>Can I add more segments than the file ships with?</summary>
+        <p>Yes — <a href="#segments">Segments</a> has room for 8 rows by default. Fill in row 7 the same way as the rows before it; leave Starting Balance blank (only row 1 gets one) and it'll inherit automatically.</p>
+      </details>
+      <details class="faq">
+        <summary>Why does the last payment sometimes look like an odd amount?</summary>
+        <p>It's deliberate: the final payment of a fully-amortizing segment absorbs whatever fraction of a cent accumulated from rounding every prior period — exactly what a real bank does on your very last payment.</p>
+      </details>
+      <details class="faq">
+        <summary>Is this the same as the Python/Streamlit or TypeScript version?</summary>
+        <p>Same underlying math, cross-checked row-for-row against the Python engine during development. This workbook is the plain-formula version for anyone who'd rather stay inside a spreadsheet.</p>
+      </details>
+    </section>
+
+  </main>
+</div>
+
+<footer class="page-footer">
+  COB Calculator &middot; formula-driven, no macros &middot; matches the Python (COB-py) and TypeScript (COB-ts) engines
+</footer>
+
+<script>
+(function () {
+  try {
+    var sections = Array.prototype.map.call(document.querySelectorAll('main section[id]'), function (s) { return s; });
+    var sideLinks = document.querySelectorAll('#sideTabs a.tab');
+    var topLinks = document.querySelectorAll('#topTabs a');
+
+    function setActive(id) {
+      sideLinks.forEach(function (a) { a.classList.toggle('active', a.dataset.target === id); });
+      topLinks.forEach(function (a) { a.classList.toggle('active', a.dataset.target === id); });
+    }
+
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) setActive(e.target.id);
+        });
+      }, { rootMargin: '-15% 0px -70% 0px' });
+      sections.forEach(function (s) { io.observe(s); });
+    }
+    setActive('start');
+  } catch (e) { /* non-fatal: nav highlighting is a convenience only */ }
+})();
+</script>
+</body>
+</html>
