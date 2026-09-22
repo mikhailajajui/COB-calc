@@ -16,6 +16,7 @@ is not yet ported.
 | 003 | [DTI & affordability](003-dti-and-affordability.md) | Implemented in COB-py |
 | 004 | [Rounding-drift accuracy disclosure](004-rounding-drift-accuracy-disclosure.md) | Documented; in-app warnings added |
 | 005 | [Excel workbook (full segmented engine)](005-excel-workbook.md) | Implemented in COB-xlsx |
+| 006 | [Cost of Borrowing (COB) disclosure: mortgage & loan workflows](006-cost-of-borrowing-disclosure.md) | Implemented in COB-xlsx (`COB_Calculator_CA.xlsx`, sibling workbook), COB-py (`cob_calculator/cob_canada.py`), and COB-ts (`src/ca/`) — full parity across all three engines |
 
 ## Background: gaps identified
 

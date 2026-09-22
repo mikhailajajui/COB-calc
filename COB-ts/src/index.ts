@@ -1,4 +1,4 @@
-export { calculateMonthlyPayment } from './payment.js';
+export { annuityPaymentFromPeriodicRate, calculateMonthlyPayment } from './payment.js';
 export { computeSegmentSchedule, addMonths } from './segment.js';
 export type { SegmentResult } from './segment.js';
 export { computeMortgageSchedule, summarizeMortgage } from './mortgage.js';
@@ -24,6 +24,36 @@ export { calculatePmiPayment } from './pmi.js';
 export { applyRecurringCosts } from './costs.js';
 export { importOverridesFromJson, importOverridesFromCsv } from './importOverrides.js';
 export type { BankStatementRow } from './importOverrides.js';
+
+// Canadian Cost of Borrowing (COB) disclosure engine -- a sibling module to the above
+// US-style engine, per docs/new-req/006-cost-of-borrowing-disclosure.md.
+export { calculateCobCanada } from './ca/cobCanada.js';
+export type {
+  CobCanadaInput,
+  CobCanadaResult,
+  CobFlow,
+  CobScheduleRow,
+  ProductType,
+  RateType,
+} from './ca/types.js';
+export {
+  totalCashFees,
+  totalFees,
+  totalFeesIncludedInCob,
+  totalFinancedFees,
+  validateFee,
+  validateFeeSchedule,
+} from './ca/fees.js';
+export type { Fee, FeeSchedule } from './ca/fees.js';
+export {
+  calculateTermDaysDisplay,
+  cobAmount,
+  cobRatePercent,
+  periodicRateFromNominalPerPeriod,
+  periodicRateFromSemiAnnualNominal,
+  totalPeriodsFromYearsMonths,
+  triggerRatePercent,
+} from './ca/equations.js';
 
 export type {
   Segment,

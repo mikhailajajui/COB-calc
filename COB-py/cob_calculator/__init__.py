@@ -1,5 +1,20 @@
 from .apr import AprInput, AprResult, calculate_apr
 from .arm import ArmResetInput, ArmResetResult, calculate_arm_reset_rate
+from .cob_canada import (
+    CobCanadaInput,
+    CobCanadaResult,
+    ScheduleRow,
+    calculate_cob_canada,
+    compute_amortized_principal,
+    compute_average_outstanding_balance,
+    compute_cob_amount,
+    compute_cob_rate_percent,
+    compute_disbursal_amount,
+    compute_payment_amount as compute_cob_canada_payment_amount,
+    compute_periodic_rate,
+    compute_term_days,
+    compute_trigger_rate_percent,
+)
 from .compare import TermComparisonEntry, TermComparisonResult, compare_loan_terms
 from .costs import apply_recurring_costs
 from .dscr import debt_service_coverage_ratio
@@ -79,6 +94,19 @@ __all__ = [
     "ArmResetInput",
     "ArmResetResult",
     "calculate_arm_reset_rate",
+    "CobCanadaInput",
+    "CobCanadaResult",
+    "ScheduleRow",
+    "calculate_cob_canada",
+    "compute_amortized_principal",
+    "compute_average_outstanding_balance",
+    "compute_cob_amount",
+    "compute_cob_rate_percent",
+    "compute_disbursal_amount",
+    "compute_cob_canada_payment_amount",
+    "compute_periodic_rate",
+    "compute_term_days",
+    "compute_trigger_rate_percent",
     "TermComparisonEntry",
     "TermComparisonResult",
     "compare_loan_terms",

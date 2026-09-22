@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cost of Borrowing — Canada worksheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #eeeee4;
+    --paper-raised: #f5f5ec;
+    --ink: #1e2621;
+    --ink-muted: #5b6259;
+    --ledger-green: #23573f;
+    --ledger-green-ink: #ffffff;
+    --correction: #9c3b24;
+    --rule: #c7c9ba;
+    --rule-strong: #a9ac98;
+    --font-display: "Zilla Slab", Georgia, "Times New Roman", serif;
+    --font-body: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #161b17;
+      --paper-raised: #1c221d;
+      --ink: #e9e7dc;
+      --ink-muted: #9aa296;
+      --ledger-green: #5fa47f;
+      --ledger-green-ink: #0f1512;
+      --correction: #d97456;
+      --rule: #333a33;
+      --rule-strong: #454d44;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 15px/1.55 var(--font-body);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  h1 {
+    font: 600 30px/1.15 var(--font-display);
+    margin: 0 0 4px;
+    letter-spacing: 0.01em;
+  }
+  p.sub {
+    color: var(--ink-muted);
+    margin: 0 0 20px;
+    max-width: 68ch;
+  }
+  p.sub a { color: var(--ledger-green); }
+  h2 {
+    font: 600 15px/1.3 var(--font-display);
+    margin: 22px 0 10px;
+  }
+  h2:first-of-type { margin-top: 0; }
+  code { font-family: var(--font-data); font-size: 0.92em; }
+
+  .rule {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 22px 0;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px 16px;
+  }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-bottom: 3px;
+  }
+  .field .hint { display: block; font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
+  input, select {
+    width: 100%;
+    padding: 6px 2px;
+    border: none;
+    border-bottom: 1px solid var(--rule-strong);
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: 500 14.5px var(--font-data);
+  }
+  select { font: 500 14.5px var(--font-body); }
+  input:focus-visible, select:focus-visible {
+    outline: none;
+    border-bottom-color: var(--ledger-green);
+    box-shadow: 0 1px 0 0 var(--ledger-green);
+  }
+  input:disabled, select:disabled { color: var(--ink-muted); border-bottom-style: dashed; }
+
+  .field .unit-pair { display: flex; gap: 8px; align-items: stretch; }
+  .field .unit-pair input { flex: 1; }
+
+  fieldset.conditional {
+    border: 1px solid var(--rule-strong);
+    padding: 14px 16px 16px;
+    margin: 14px 0 0;
+    background: var(--paper-raised);
+  }
+  fieldset.conditional legend {
+    font: 600 12.5px var(--font-body);
+    color: var(--ink-muted);
+    padding: 0 6px;
+  }
+
+  button {
+    font: 500 13px var(--font-body);
+    padding: 6px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--rule-strong);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--ink-muted); }
+  button:focus-visible { outline: 2px solid var(--ledger-green); outline-offset: 2px; }
+  button.remove-fee { color: var(--correction); border-color: transparent; padding: 2px 6px; }
+  button.remove-fee:hover { border-color: var(--correction); }
+  button.add-fee { margin-top: 10px; }
+
+  #error {
+    display: none;
+    color: var(--correction);
+    border-left: 3px solid var(--correction);
+    padding: 4px 0 4px 12px;
+    margin: 18px 0;
+    font-size: 14px;
+    white-space: pre-wrap;
+  }
+
+  .totals {
+    display: flex;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    margin: 6px 0 26px;
+  }
+  .total {
+    padding: 10px 18px 10px 0;
+    margin-right: 18px;
+    border-right: 1px solid var(--rule);
+  }
+  .total:last-child { border-right: none; }
+  .total .label { display: block; font-size: 12px; color: var(--ink-muted); margin-bottom: 2px; }
+  .total .value { font: 500 16px var(--font-data); }
+  .total.na .value { color: var(--ink-muted); }
+
+  #feesWrap table, #scheduleWrap table { width: 100%; border-collapse: collapse; font: 13px var(--font-data); }
+  #feesWrap th, #scheduleWrap th {
+    font: 500 11px var(--font-body);
+    color: var(--ink-muted);
+    text-align: right;
+    padding: 8px;
+    border-bottom: 1px solid var(--rule-strong);
+    position: sticky;
+    top: 0;
+    background: var(--paper);
+  }
+  #feesWrap td, #scheduleWrap td {
+    padding: 5px 8px;
+    text-align: right;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  #feesWrap th:first-child, #feesWrap td:first-child,
+  #scheduleWrap th:first-child, #scheduleWrap td:first-child,
+  #scheduleWrap th:nth-child(2), #scheduleWrap td:nth-child(2) { text-align: left; }
+  #feesWrap td input[type="text"], #feesWrap td input[type="number"] { text-align: right; }
+  #feesWrap td:first-child input[type="text"] { text-align: left; }
+  #feesWrap input[type="checkbox"] { width: auto; }
+  #scheduleWrap { max-height: 480px; overflow: auto; border: 1px solid var(--rule); }
+
+  @media (max-width: 480px) {
+    body { padding: 28px 16px 64px; }
+    h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+  <h1>Cost of borrowing — Canada</h1>
+  <p class="sub">
+    Canadian dropdown-driven COB disclosure worksheet, per
+    <code>docs/new-req/006-cost-of-borrowing-disclosure.md</code> — semi-annual
+    compounding for fixed-rate mortgages, a trigger rate for variable-rate mortgages,
+    and the regulatory average-balance COB rate/amount, all scoped to the current
+    contract term. A borrower-facing estimate, not a certified regulatory disclosure.
+    See also the <a href="/ui/index.html">US-style worksheet</a>.
+  </p>
+
+  <form id="form">
+    <h2>Flow</h2>
+    <div class="grid">
+      <div class="field">
+        <label>Flow</label>
+        <select id="flow">
+          <option value="newMortgage">New mortgage</option>
+          <option value="newLoan">New loan</option>
+          <option value="existingMortgage">Existing mortgage (renewal)</option>
+          <option value="existingLoan">Existing loan (renewal)</option>
+          <option value="paymentChange">Payment change</option>
+          <option value="variableRatePaymentChange">Variable rate payment change</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Product type</label>
+        <select id="productType">
+          <option value="mortgage">Mortgage</option>
+          <option value="personalLoan">Personal loan</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Rate type</label>
+        <select id="rateType">
+          <option value="variable">Variable</option>
+          <option value="fixed">Fixed</option>
+        </select>
+      </div>
+    </div>
+
+    <h2>Loan / mortgage details</h2>
+    <div class="grid">
+      <div class="field">
+        <label>Loan amount ($)</label>
+        <input type="number" step="0.01" id="loanAmount" value="500000" />
+        <span class="hint">Face amount, or current outstanding balance for existing/renewal flows.</span>
+      </div>
+      <div class="field">
+        <label>Contract rate (%)</label>
+        <input type="number" step="0.001" id="contractRatePercent" value="5.95" />
+      </div>
+      <div class="field">
+        <label>Payment frequency</label>
+        <select id="paymentFrequency">
+          <option value="monthly" selected>Monthly (12/yr)</option>
+          <option value="semiMonthly">Semi-monthly (24/yr)</option>
+          <option value="biweekly">Biweekly (26/yr)</option>
+          <option value="weekly">Weekly (52/yr)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Contract term</label>
+        <div class="unit-pair">
+          <input type="number" step="1" id="termYears" value="5" />
+          <input type="number" step="1" id="termMonths" value="0" />
+        </div>
+        <span class="hint">Years / months. The renewable term, not the amortization.</span>
+      </div>
+      <div class="field">
+        <label>Remaining amortization</label>
+        <div class="unit-pair">
+          <input type="number" step="1" id="remainingAmortizationYears" value="25" />
+          <input type="number" step="1" id="remainingAmortizationMonths" value="0" />
+        </div>
+        <span class="hint">Years / months left on the full payoff horizon.</span>
+      </div>
+      <div class="field">
+        <label>First payment date</label>
+        <input type="date" id="firstPaymentDate" value="2026-01-01" />
+      </div>
+      <div class="field">
+        <label>End date (term maturity)</label>
+        <input type="date" id="endDate" value="2031-01-01" />
+        <span class="hint">Maturity/renewal date of this contract term.</span>
+      </div>
+    </div>
+
+    <fieldset class="conditional" id="newFlowFields">
+      <legend>New mortgage / new loan fields</legend>
+      <div class="grid">
+        <div class="field">
+          <label>Disbursal date</label>
+          <input type="date" id="disbursalDate" value="2025-12-15" />
+        </div>
+        <div class="field">
+          <label>Pre-approval date (optional)</label>
+          <input type="date" id="preApprovalDate" value="2025-11-01" />
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="conditional" id="existingFlowFields">
+      <legend>Existing / renewal / payment-change fields</legend>
+      <div class="grid">
+        <div class="field">
+          <label>Renewal date</label>
+          <input type="date" id="renewalDate" value="2026-01-01" />
+        </div>
+        <div class="field">
+          <label>Accrued interest ($)</label>
+          <input type="number" step="0.01" id="accruedInterest" value="0" />
+          <span class="hint">Interest accrued since the last payment, carried into this term.</span>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="conditional" id="semiAnnualField">
+      <legend>Fixed-rate mortgage only</legend>
+      <div class="grid">
+        <div class="field">
+          <label>Semi-annual compounding reference date</label>
+          <input type="date" id="semiAnnualCompoundingDate" value="2025-12-15" />
+          <span class="hint">Display/reference anchor only — does not change the periodic-rate conversion.</span>
+        </div>
+      </div>
+    </fieldset>
+
+    <h2>Fees</h2>
+    <div id="feesWrap">
+      <table>
+        <thead>
+          <tr><th style="text-align:left">Name</th><th>Amount ($)</th><th>Financed?</th><th>Included in COB?</th><th></th></tr>
+        </thead>
+        <tbody id="feesBody"></tbody>
+      </table>
+    </div>
+    <button type="button" id="addFee" class="add-fee">Add fee</button>
+  </form>
+
+  <div id="error"></div>
+
+  <div id="results" style="display:none">
+    <hr class="rule" />
+    <h2>Results (current contract term)</h2>
+    <div class="totals" id="totals"></div>
+
+    <h2>Amortization schedule (this term)</h2>
+    <div id="scheduleWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Date</th><th>Payment</th>
+            <th>Interest</th><th>Principal</th><th>Balance</th>
+          </tr>
+        </thead>
+        <tbody id="scheduleBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module" src="/ui/ca.js"></script>
+</body>
+</html>

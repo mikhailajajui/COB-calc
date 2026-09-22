@@ -31,6 +31,30 @@ export function validatePaymentInputs(
   }
 }
 
+/**
+ * Validates the shared annuity primitive's own inputs (a pre-derived periodic rate,
+ * rather than an annual percent) -- used by annuityPaymentFromPeriodicRate directly,
+ * so it's a valid guard regardless of caller (calculateMonthlyPayment, which validates
+ * its own annual-rate-flavored inputs first via validatePaymentInputs above, or the
+ * Canadian COB module, which derives periodicRate via equation 1/2 with no annual-rate
+ * concept of its own).
+ */
+export function validateAnnuityInputs(
+  principal: number,
+  periodicRate: number,
+  numberOfPayments: number,
+): void {
+  if (!(principal > 0)) {
+    throw new RangeError(`principal must be > 0, got ${principal}`);
+  }
+  if (!(periodicRate >= 0)) {
+    throw new RangeError(`periodicRate must be >= 0, got ${periodicRate}`);
+  }
+  if (!(numberOfPayments > 0) || !Number.isInteger(numberOfPayments)) {
+    throw new RangeError(`numberOfPayments must be a positive integer, got ${numberOfPayments}`);
+  }
+}
+
 export function validateLoanInput(input: LoanInput): void {
   if (!(input.loanAmount > 0)) {
     throw new RangeError(`loanAmount must be > 0, got ${input.loanAmount}`);

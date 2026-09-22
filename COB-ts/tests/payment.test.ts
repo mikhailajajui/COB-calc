@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateMonthlyPayment } from '../src/payment.js';
+import { annuityPaymentFromPeriodicRate, calculateMonthlyPayment } from '../src/payment.js';
 
 describe('calculateMonthlyPayment', () => {
   it('matches a known example: $200,000 at 6% for 30 years', () => {
@@ -36,5 +36,26 @@ describe('calculateMonthlyPayment', () => {
 
   it('throws on negative interest rate', () => {
     expect(() => calculateMonthlyPayment(100000, -1, 360)).toThrow(RangeError);
+  });
+});
+
+// annuityPaymentFromPeriodicRate is the shared primitive extracted so that
+// calculateMonthlyPayment (monthly-only) and the Canadian COB module (src/ca/, which
+// derives a periodic rate via equation 1 or 2 instead of annualRate/12) both call one
+// annuity implementation rather than each re-deriving PMT = P*[r(1+r)^n]/[(1+r)^n-1].
+describe('annuityPaymentFromPeriodicRate', () => {
+  it('matches calculateMonthlyPayment when fed the same monthly periodic rate', () => {
+    // r = 0.06/12 = 0.005, n = 360 -- same example as calculateMonthlyPayment's own
+    // happy-path test above, confirming the extraction didn't change monthly behavior.
+    expect(annuityPaymentFromPeriodicRate(200000, 0.06 / 12, 360)).toBeCloseTo(1199.1, 1);
+  });
+
+  it('handles the zero-rate edge case as principal / n', () => {
+    expect(annuityPaymentFromPeriodicRate(120000, 0, 120)).toBe(1000);
+  });
+
+  it('throws on non-positive principal', () => {
+    expect(() => annuityPaymentFromPeriodicRate(0, 0.004, 60)).toThrow(RangeError);
+    expect(() => annuityPaymentFromPeriodicRate(-100, 0.004, 60)).toThrow(RangeError);
   });
 });
