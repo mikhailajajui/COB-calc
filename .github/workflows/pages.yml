@@ -2,8 +2,10 @@ name: Deploy COB Calculator site to GitHub Pages
 
 # Publishes a single site with three sections:
 #   /        - site/index.html: the portal linking to all three variants
-#   /ts/     - the COB-ts web calculator (built from source)
-#   /excel/  - the COB-xlsx manual (index.html) + a COB_Calculator.xlsx download
+#   /ts/     - the COB-ts Canadian COB calculator (ui/ca.html, built from source)
+#   /ts/us/  - the legacy US-style worksheet (ui/index.html)
+#   /excel/  - the COB-xlsx manual (index.html) + COB_Calculator_CA.xlsx and the
+#              legacy COB_Calculator.xlsx downloads
 #
 # The Python/Streamlit app (COB-py/) is NOT built here -- it's deployed
 # separately via Streamlit Community Cloud (share.streamlit.io), which watches
@@ -43,26 +45,32 @@ jobs:
 
       - name: Assemble the site
         run: |
-          mkdir -p _site/ts/dist _site/excel
+          mkdir -p _site/ts/dist _site/ts/us _site/excel
 
           # --- root: the portal page ---
           cp site/index.html _site/index.html
 
-          # --- /ts/: the web calculator ---
-          # ui/index.html and ui/main.js reference /ui/main.js and /dist/index.js as
-          # domain-root-absolute paths, which is correct for the local dev server
-          # (ui/serve.mjs serves the whole project root at "/") but breaks under a
-          # GitHub Pages *project* site's /ts/ subpath. Rewrite just those two
-          # references to relative paths -- the source files under COB-ts/ui/ are
+          # --- /ts/: the Canadian COB calculator; /ts/us/: the legacy US worksheet ---
+          # The ui/ pages reference /ui/*.js and /dist/index.js as domain-root-absolute
+          # paths, which is correct for the local dev server (ui/serve.mjs serves the
+          # whole project root at "/") but breaks under a GitHub Pages *project*
+          # site's /ts/ subpath. Rewrite those references (and the cross-links between
+          # the two pages) to relative paths -- the source files under COB-ts/ui/ are
           # left untouched so local dev keeps working exactly as before.
-          cp COB-ts/ui/index.html _site/ts/index.html
-          cp COB-ts/ui/main.js _site/ts/main.js
-          cp COB-ts/dist/*.js COB-ts/dist/*.d.ts _site/ts/dist/ 2>/dev/null || cp COB-ts/dist/*.js _site/ts/dist/
-          sed -i 's#/ui/main.js#main.js#' _site/ts/index.html
-          sed -i "s#/dist/index.js#./dist/index.js#" _site/ts/main.js
+          cp COB-ts/ui/ca.html _site/ts/index.html
+          cp COB-ts/ui/ca.js _site/ts/ca.js
+          cp COB-ts/ui/index.html _site/ts/us/index.html
+          cp COB-ts/ui/main.js _site/ts/us/main.js
+          # Recursive: the Canadian engine is built into dist/ca/, which dist/index.js imports.
+          cp -R COB-ts/dist/. _site/ts/dist/
+          sed -i 's#/ui/ca.js#ca.js#' _site/ts/index.html
+          sed -i "s#/dist/index.js#./dist/index.js#" _site/ts/ca.js
+          sed -i 's#/ui/main.js#main.js#; s#/ui/ca.html#../#' _site/ts/us/index.html
+          sed -i "s#/dist/index.js#../dist/index.js#" _site/ts/us/main.js
 
-          # --- /excel/: the manual + the downloadable workbook ---
+          # --- /excel/: the manual + the downloadable workbooks ---
           cp COB-xlsx/index.html _site/excel/index.html
+          cp COB-xlsx/COB_Calculator_CA.xlsx _site/excel/COB_Calculator_CA.xlsx
           cp COB-xlsx/COB_Calculator.xlsx _site/excel/COB_Calculator.xlsx
 
       - uses: actions/upload-pages-artifact@v3

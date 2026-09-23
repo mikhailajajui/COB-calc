@@ -2,181 +2,164 @@ from datetime import date
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
-from app_common import download_schedule_button, money, period_schedule_to_dataframe
+from app_common import money
 from cob_calculator.cob_canada import CobCanadaInput, calculate_cob_canada
 from cob_calculator.fees import Fee, FeeSchedule
 
-st.set_page_config(page_title="Cost of Borrowing (Canada)", page_icon="🍁", layout="wide")
-st.title("Cost of Borrowing Disclosure (Canada)")
+st.set_page_config(page_title="Cost of Borrowing Calculator | Alterna Savings", page_icon="🍁", layout="wide")
+st.title("Cost of Borrowing Calculator")
+st.markdown(
+    "Calculate the cost of borrowing for a mortgage or personal loan over its current "
+    "term: the COB amount and rate, total interest, and a full payment schedule. For "
+    "variable-rate mortgages it also shows the trigger rate. Fixed-rate mortgage rates "
+    "are compounded semi-annually."
+)
 st.caption(
-    "A borrower-facing cost-of-borrowing estimate for Canadian mortgages and personal "
-    "loans, covering the 6 dropdown-driven flows from docs/new-req/006 -- **not** a "
-    "certified regulatory disclosure. Every output here is scoped to the current "
-    "contract term, not the full amortization."
+    "**Note:** results are estimates. They don't replace the cost of borrowing "
+    "disclosure in the loan documents."
 )
 
 FLOW_LABELS = {
-    "newMortgage": "New mortgage",
-    "newLoan": "New loan",
-    "existingMortgage": "Existing mortgage",
-    "existingLoan": "Existing loan",
+    "newMortgageOrLoan": "New mortgage / loan",
+    "renewal": "Renewal",
     "paymentChange": "Payment change",
     "variableRatePaymentChange": "Variable rate payment change",
 }
-# None means the flow leaves that choice open; a value means the flow pins it
-# (mirrors validate_cob_canada_input's flow/product/rate-type rules exactly).
-FLOW_FIXED_PRODUCT_TYPE = {
-    "newMortgage": "mortgage",
-    "newLoan": "personalLoan",
-    "existingMortgage": "mortgage",
-    "existingLoan": "personalLoan",
-    "paymentChange": None,
-    "variableRatePaymentChange": "mortgage",
-}
-FLOW_FIXED_RATE_TYPE = {
-    "variableRatePaymentChange": "variable",
-}
+# variableRatePaymentChange is scoped to mortgage+variable "by construction" (the flow
+# exists specifically to recompute the trigger rate for that combination) -- every
+# other flow leaves product type / rate type as free, orthogonal dropdowns (IN-03/IN-04).
+FLOW_FIXED_PRODUCT_TYPE = {"variableRatePaymentChange": "mortgage"}
+FLOW_FIXED_RATE_TYPE = {"variableRatePaymentChange": "variable"}
 PRODUCT_TYPE_LABELS = {"mortgage": "Mortgage", "personalLoan": "Personal loan"}
 RATE_TYPE_LABELS = {"variable": "Variable", "fixed": "Fixed"}
-NEW_FLOWS = ("newMortgage", "newLoan")
+NEW_FLOWS = ("newMortgageOrLoan",)
 FREQUENCY_LABELS = {
     "monthly": "Monthly (12/yr)",
     "semiMonthly": "Semi-monthly (24/yr)",
     "biweekly": "Biweekly (26/yr)",
-    "weekly": "Weekly (52/yr)",
+    "weekly": "Weekly (52/yr, incl. Accelerated Weekly)",
 }
 
-flow = st.selectbox("Flow", list(FLOW_LABELS), format_func=lambda f: FLOW_LABELS[f])
+# Initial values match the TS page (COB-ts/ui/ca.html) so both UIs open on the same example.
+DEFAULT_FEES = [
+    {"name": "CMHC mortgage default insurance", "amount": 9500.0, "financed": True},
+    {"name": "Appraisal fee", "amount": 400.0, "financed": False},
+]
 
-col1, col2 = st.columns(2)
+
+def locked_selectbox(label, options, labels, forced, index=0):
+    """A selectbox that the flow can pin to one value (shown disabled)."""
+    if forced is not None:
+        st.selectbox(label, [forced], format_func=lambda v: labels[v], disabled=True, help="Set by the selected flow.")
+        return forced
+    return st.selectbox(label, options, index=index, format_func=lambda v: labels[v])
+
+
+st.subheader("Flow")
+col1, col2, col3 = st.columns(3)
 with col1:
-    fixed_product_type = FLOW_FIXED_PRODUCT_TYPE[flow]
-    if fixed_product_type is not None:
-        product_type = fixed_product_type
-        st.selectbox(
-            "Product type",
-            [fixed_product_type],
-            format_func=lambda p: PRODUCT_TYPE_LABELS[p],
-            disabled=True,
-            help=f"Fixed to {PRODUCT_TYPE_LABELS[fixed_product_type]!r} by the {FLOW_LABELS[flow]!r} flow.",
-        )
-    else:
-        product_type = st.selectbox(
-            "Product type", ["mortgage", "personalLoan"], format_func=lambda p: PRODUCT_TYPE_LABELS[p]
-        )
+    flow = st.selectbox("Flow", list(FLOW_LABELS), format_func=lambda f: FLOW_LABELS[f])
 with col2:
-    fixed_rate_type = FLOW_FIXED_RATE_TYPE.get(flow)
-    if fixed_rate_type is not None:
-        rate_type = fixed_rate_type
-        st.selectbox(
-            "Rate type",
-            [fixed_rate_type],
-            format_func=lambda r: RATE_TYPE_LABELS[r],
-            disabled=True,
-            help=f"Fixed to {RATE_TYPE_LABELS[fixed_rate_type]!r} by the {FLOW_LABELS[flow]!r} flow.",
-        )
-    else:
-        rate_type = st.selectbox("Rate type", ["variable", "fixed"], format_func=lambda r: RATE_TYPE_LABELS[r])
+    product_type = locked_selectbox(
+        "Product type", ["mortgage", "personalLoan"], PRODUCT_TYPE_LABELS, FLOW_FIXED_PRODUCT_TYPE.get(flow)
+    )
+with col3:
+    rate_type = locked_selectbox(
+        "Rate type", ["variable", "fixed"], RATE_TYPE_LABELS, FLOW_FIXED_RATE_TYPE.get(flow), index=1
+    )
 
-st.subheader("Loan details")
+st.subheader("Loan / mortgage details")
 col1, col2, col3 = st.columns(3)
 with col1:
     loan_amount_label = "Loan amount ($)" if flow in NEW_FLOWS else "Current outstanding balance ($)"
-    loan_amount = st.number_input(loan_amount_label, min_value=0.01, value=400000.0, step=1000.0)
+    loan_amount = st.number_input(
+        loan_amount_label,
+        min_value=0.01,
+        value=227829.65,
+        step=1000.0,
+        help="Face amount, or current outstanding balance for existing/renewal flows.",
+    )
+with col2:
     contract_rate_percent = st.number_input(
-        "Contract rate (%)", min_value=0.0, value=5.0, step=0.00000001, format="%.8f"
+        "Contract rate (%)", min_value=0.0, value=3.74, step=0.00000001, format="%.8f"
     )
-with col2:
-    payment_frequency = st.selectbox(
-        "Payment frequency", list(FREQUENCY_LABELS), format_func=lambda f: FREQUENCY_LABELS[f]
-    )
-    first_payment_date = st.date_input("First payment date", value=date.today())
 with col3:
-    end_date = st.date_input("Term end date (maturity/renewal)", value=date.today())
-
-st.subheader("Term & amortization")
-st.caption(
-    "Contract term is how long this rate is locked (commonly 3-5 years); remaining "
-    "amortization is what's left of the full payoff horizon -- they are different "
-    "lengths, and only the term's payments are counted in the outputs below."
-)
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown("**Contract term**")
-    tcol1, tcol2 = st.columns(2)
-    term_years = tcol1.number_input("Term years", min_value=0, value=5, step=1)
-    term_months = tcol2.number_input("Term months", min_value=0, max_value=11, value=0, step=1)
-with col2:
-    st.markdown("**Remaining amortization**")
-    acol1, acol2 = st.columns(2)
-    remaining_amortization_years = acol1.number_input("Amortization years", min_value=0, value=25, step=1)
-    remaining_amortization_months = acol2.number_input(
-        "Amortization months", min_value=0, max_value=11, value=0, step=1
+    payment_amount = st.number_input(
+        "Payment amount ($)",
+        min_value=0.01,
+        value=465.46,
+        step=10.0,
+        help="The scheduled payment. It isn't calculated here.",
     )
 
-st.subheader("Flow-specific dates")
+col1, col2, col3 = st.columns(3)
+with col1:
+    payment_frequency = st.selectbox(
+        "Payment frequency",
+        list(FREQUENCY_LABELS),
+        index=list(FREQUENCY_LABELS).index("weekly"),
+        format_func=lambda f: FREQUENCY_LABELS[f],
+    )
+with col2:
+    tcol1, tcol2 = st.columns(2)
+    term_help = "For reference only: the schedule runs to the end date."
+    term_years = tcol1.number_input("Contract term (years)", min_value=0, value=3, step=1, help=term_help)
+    term_months = tcol2.number_input("Months", min_value=0, max_value=11, value=0, step=1, help=term_help)
+with col3:
+    first_payment_date = st.date_input("First payment date", value=date(2026, 3, 23))
+
+col1, _, _ = st.columns(3)
+with col1:
+    end_date = st.date_input(
+        "End date",
+        value=date(2029, 3, 17),
+        help="Payments are scheduled up to and including this date, or until the loan is paid off.",
+    )
+
 disbursal_date = None
-pre_approval_date = None
 renewal_date = None
 accrued_interest = 0.0
 if flow in NEW_FLOWS:
-    col1, col2 = st.columns(2)
-    with col1:
-        disbursal_date = st.date_input("Disbursal date", value=date.today())
-    with col2:
-        pre_approval_date = st.date_input("Pre-approval date", value=date.today())
+    with st.container(border=True):
+        st.markdown("**New mortgage or loan**")
+        col1, _ = st.columns(2)
+        disbursal_date = col1.date_input("Disbursal date", value=date(2026, 3, 17))
 else:
-    col1, col2 = st.columns(2)
-    with col1:
-        renewal_date = st.date_input("Renewal date", value=date.today())
-    with col2:
-        accrued_interest = st.number_input(
-            "Accrued interest carried forward ($)",
+    with st.container(border=True):
+        st.markdown("**Renewal and payment change**")
+        col1, col2 = st.columns(2)
+        renewal_date = col1.date_input("Renewal date", value=date(2026, 1, 1))
+        accrued_interest = col2.number_input(
+            "Accrued interest ($)",
             min_value=0.0,
             value=0.0,
             step=10.0,
-            help="Interest accrued since the last payment, capitalized into this term's opening balance.",
+            help="Interest accrued since the last payment date.",
         )
 
 semi_annual_compounding_date = None
 if product_type == "mortgage" and rate_type == "fixed":
-    semi_annual_compounding_date = st.date_input(
-        "Semi-annual compounding anchor date (display only)",
-        value=disbursal_date or renewal_date or date.today(),
-        help=(
-            "Reference date the semi-annual compounding periods are anchored to. "
-            "Display/reference only -- it does not change the periodic-rate conversion "
-            "(equation 1) or any monetary output."
-        ),
-    )
-else:
-    st.caption("Semi-annual compounding date: N/A -- only applies to fixed-rate mortgages.")
+    with st.container(border=True):
+        st.markdown("**Fixed-rate mortgage**")
+        col1, _ = st.columns(2)
+        semi_annual_compounding_date = col1.date_input(
+            "Semi-annual compounding reference date",
+            value=date(2025, 12, 15),
+            help="For reference only. It doesn't change the calculation.",
+        )
 
 st.subheader("Fees")
-st.caption(
-    "Financed fees add to the amortized principal without reducing what's disbursed; "
-    "cash fees do the opposite. 'Included in COB?' is an independent flag driven by "
-    "Financial Consumer Protection Framework Regulations s. 48 -- e.g. mortgage default "
-    "insurance is often financed but excluded from the COB dollar amount, while an "
-    "appraisal fee can be cash-paid but still included."
-)
-default_fees = pd.DataFrame(
-    [
-        {"name": "Mortgage default insurance", "amount": 10000.0, "financed": True, "included_in_cob": False},
-        {"name": "Appraisal fee", "amount": 400.0, "financed": False, "included_in_cob": True},
-    ]
-)
 fees_df = st.data_editor(
-    default_fees,
+    pd.DataFrame(DEFAULT_FEES),
     num_rows="dynamic",
     width="stretch",
     key="cob_ca_fees_editor",
     column_config={
-        "name": st.column_config.TextColumn("Fee name"),
+        "name": st.column_config.TextColumn("Name"),
         "amount": st.column_config.NumberColumn("Amount ($)", min_value=0.0),
         "financed": st.column_config.CheckboxColumn("Financed?"),
-        "included_in_cob": st.column_config.CheckboxColumn("Included in COB?"),
     },
 )
 
@@ -185,7 +168,6 @@ fees = [
         name=str(row["name"]),
         amount=float(row["amount"]),
         financed=bool(row.get("financed", False)),
-        included_in_cob=bool(row.get("included_in_cob", False)),
     )
     for _, row in fees_df.dropna(subset=["name", "amount"]).iterrows()
 ]
@@ -198,15 +180,13 @@ cob_input = CobCanadaInput(
     loan_amount=loan_amount,
     fees=fee_schedule,
     contract_rate_percent=contract_rate_percent,
+    payment_amount=payment_amount,
     payment_frequency=payment_frequency,
     term_years=int(term_years),
     term_months=int(term_months),
-    remaining_amortization_years=int(remaining_amortization_years),
-    remaining_amortization_months=int(remaining_amortization_months),
     first_payment_date=first_payment_date,
     end_date=end_date,
     disbursal_date=disbursal_date,
-    pre_approval_date=pre_approval_date,
     renewal_date=renewal_date,
     accrued_interest=accrued_interest,
     semi_annual_compounding_date=semi_annual_compounding_date,
@@ -219,38 +199,98 @@ except ValueError as e:
     st.stop()
 
 st.divider()
-st.subheader("Results (this contract term)")
+st.subheader("Results")
 
-freq_short = FREQUENCY_LABELS[payment_frequency].split(" (")[0]
-m1, m2, m3, m4 = st.columns(4)
-m1.metric(f"Payment ({freq_short})", money(result.payment_amount))
-m2.metric("COB amount", money(result.cob_amount))
-m3.metric("COB rate (APR)", f"{result.cob_rate_percent:.3f}%")
-m4.metric("Number of payments", result.number_of_payments)
 
-m5, m6, m7, m8 = st.columns(4)
-m5.metric("Total payment", money(result.total_payment))
-m6.metric("Total interest", money(result.total_interest))
-m7.metric("Principal payment", money(result.principal_payment))
-trigger_display = f"{result.trigger_rate_percent:.3f}%" if result.trigger_rate_percent is not None else "N/A"
-m8.metric(
-    "Trigger rate",
-    trigger_display,
-    help="Only computed for variable-rate mortgages -- N/A for fixed-rate mortgages and personal loans.",
+def percent(value, places=4):
+    return "N/A" if value is None else f"{value:.{places}f}%"
+
+
+# KPI cards: four equal columns, one related group per row (same order as the TS page).
+KPI_ROWS = [
+    [
+        ("COB amount", money(result.cob_amount)),
+        ("COB rate", percent(result.cob_rate_percent)),
+        ("Calculated rate", percent(result.calculated_rate_percent, 10)),
+        ("Trigger rate", percent(result.trigger_rate_percent)),
+    ],
+    [
+        ("Payment amount", money(payment_amount)),
+        ("Number of payments", str(result.number_of_payments)),
+        ("Total payment", money(result.total_payment)),
+        ("Total interest", money(result.total_interest)),
+    ],
+    [
+        ("Principal payment", money(result.principal_payment)),
+        ("Fees recovered", money(result.fees_recovered)),
+        ("Disbursal amount", money(result.disbursal_amount)),
+        ("Amortized principal", money(result.amortized_principal)),
+    ],
+    [
+        ("Ending balance", money(result.ending_balance)),
+    ],
+]
+# st.metric's default value size (2.25rem) truncates currency values in a quarter-width card.
+st.html(
+    "<style>"
+    '[data-testid="stMetricValue"] { font-size: 1.5rem; font-weight: 700; }'
+    '[data-testid="stMetricLabel"] p { font-weight: 600; }'
+    "</style>"
+)
+for kpi_row in KPI_ROWS:
+    for col, (label, value) in zip(st.columns(4), kpi_row):
+        col.container(border=True).metric(label, value)
+
+rows = result.amortization_schedule
+# Column names match the TS page's CSV export; amounts are unrounded (rounding is display-only).
+schedule_df = pd.DataFrame(
+    {
+        "#": [r.period_number for r in rows],
+        "Date": [r.period_date for r in rows],
+        "Days": [r.days_in_period for r in rows],
+        "Opening balance": [r.opening_balance for r in rows],
+        "Period interest": [r.period_interest for r in rows],
+        "Accrued interest (open)": [r.carried_accrued_interest_opening for r in rows],
+        "Fees (open)": [r.fees_opening for r in rows],
+        "Payment": [r.payment_amount for r in rows],
+        "Interest paid": [r.interest_paid for r in rows],
+        "Fees paid": [r.fees_paid for r in rows],
+        "Principal": [r.principal_portion for r in rows],
+        "Accrued interest (close)": [r.carried_accrued_interest_closing for r in rows],
+        "Fees (close)": [r.fees_closing for r in rows],
+        "Balance": [r.remaining_balance for r in rows],
+    }
 )
 
-m9, m10, m11, m12 = st.columns(4)
-m9.metric("Disbursal amount", money(result.disbursal_amount))
-m10.metric("Amortized principal", money(result.amortized_principal))
-m11.metric("Ending balance (this term)", money(result.ending_balance))
-m12.metric("Term length (days, display only)", result.term_days)
-
-st.caption(
-    "Ending balance is exactly what a follow-on renewal / payment-change calculation "
-    "would enter as its own loan amount / current outstanding balance."
+head_col, csv_col, print_col = st.columns([5, 1.5, 1], vertical_alignment="bottom")
+head_col.subheader("Amortization schedule")
+csv_col.download_button(
+    "Download CSV",
+    data=schedule_df.to_csv(index=False).encode("utf-8"),
+    file_name=f"cost-of-borrowing-schedule-{first_payment_date.isoformat()}.csv",
+    mime="text/csv",
+    key="cob_ca_schedule_download",
+    width="stretch",
 )
+if print_col.button("Print", key="cob_ca_print", width="stretch"):
+    # The component iframe is same-origin, so it can open the app page's print dialog.
+    st.session_state["cob_ca_print_count"] = st.session_state.get("cob_ca_print_count", 0) + 1
+    components.html(
+        f"<script>window.parent.print()</script><!-- {st.session_state['cob_ca_print_count']} -->",
+        height=0,
+    )
 
-st.subheader("Amortization schedule (this contract term only)")
-schedule_df = period_schedule_to_dataframe(result.amortization_schedule)
-st.dataframe(schedule_df, width="stretch", hide_index=True)
-download_schedule_button(schedule_df, "cob_canada_schedule.csv", key="cob_ca_schedule_download")
+money_column = st.column_config.NumberColumn(format="dollar")
+st.dataframe(
+    schedule_df,
+    width="stretch",
+    hide_index=True,
+    column_config={
+        "Date": st.column_config.DateColumn(format="MMM DD, YYYY"),
+        **{
+            name: money_column
+            for name in schedule_df.columns
+            if name not in ("#", "Date", "Days")
+        },
+    },
+)

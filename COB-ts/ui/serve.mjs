@@ -1,6 +1,7 @@
 // Zero-dependency static file server for the test UI. Serves the project root so the
-// page (ui/index.html) can import the built engine from ../dist/*.js via a relative
-// ES module import — a plain file:// page can't do that, it needs to come over http.
+// pages (ui/ca.html, the default, and the legacy ui/index.html) can import the built
+// engine from ../dist/*.js via an ES module import — a plain file:// page can't do
+// that, it needs to come over http.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
@@ -20,7 +21,7 @@ const contentTypes = {
 
 const server = createServer(async (req, res) => {
   let urlPath = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
-  if (urlPath === '/') urlPath = '/ui/index.html';
+  if (urlPath === '/') urlPath = '/ui/ca.html';
 
   const filePath = normalize(join(projectRoot, urlPath));
   if (!filePath.startsWith(projectRoot)) {
@@ -38,5 +39,5 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`cob-calculator test UI: http://localhost:${port}`);
+  console.log(`cob-calculator test UI (Canada): http://localhost:${port}  ·  legacy US worksheet: /ui/index.html`);
 });

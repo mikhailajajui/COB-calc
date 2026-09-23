@@ -1,0 +1,30 @@
+# Alterna theme (docs/visual_design/README.md, "Proposed theme").
+# [theme.light]/[theme.dark] and redColor need streamlit>=1.51.
+
+[theme]
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+headingFontWeights = [700, 700, 600]
+baseRadius = "5px"
+buttonRadius = "full"
+showWidgetBorder = true
+
+[theme.light]
+primaryColor = "#bd5a00"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f9f9f9"
+textColor = "#3f3f3f"
+linkColor = "#bd5a00"
+borderColor = "#d1d4d7"
+redColor = "#d64033"
+
+[theme.dark]
+# Streamlit primary buttons put white text on primaryColor, so keep the darker
+# orange here (4.54:1) and use the bright accent only for links.
+primaryColor = "#bd5a00"
+backgroundColor = "#17191c"
+secondaryBackgroundColor = "#202328"
+textColor = "#e8e6e3"
+linkColor = "#f7931e"
+borderColor = "#3a4047"
+redColor = "#ff8a7a"

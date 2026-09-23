@@ -3,41 +3,68 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cost of Borrowing — Canada worksheet</title>
+<title>Cost of Borrowing Calculator | Alterna Savings</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link
-  href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
   rel="stylesheet"
 />
 <style>
   :root {
     color-scheme: light dark;
-    --paper: #eeeee4;
-    --paper-raised: #f5f5ec;
-    --ink: #1e2621;
-    --ink-muted: #5b6259;
-    --ledger-green: #23573f;
-    --ledger-green-ink: #ffffff;
-    --correction: #9c3b24;
-    --rule: #c7c9ba;
-    --rule-strong: #a9ac98;
-    --font-display: "Zilla Slab", Georgia, "Times New Roman", serif;
-    --font-body: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --font-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --paper: #ffffff;
+    --paper-raised: #f9f9f9;
+    --ink: #3f3f3f;
+    --ink-muted: #68737a;
+    --accent: #bd5a00;
+    --accent-ink: #ffffff;
+    --accent-hover: #974800;
+    --accent-soft: #f2decc;
+    --heading: #2a2a3e;
+    --focus: #000000;
+    --correction: #d64033;
+    --rule: #d1d4d7;
+    --rule-strong: #898989;
+    --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-data: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --radius-control: 5px;
+    --radius-pill: 25px;
+    --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.2);
+    --control-bg: #ffffff;
+    --control-border: #898989;
+    --control-height: 44px;
+    --control-pad-x: 12px;
+    --label-size: 14px;
+    --label-weight: 700;
+    --placeholder: #68737a;
+    --invalid: #d64033;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --paper: #161b17;
-      --paper-raised: #1c221d;
-      --ink: #e9e7dc;
-      --ink-muted: #9aa296;
-      --ledger-green: #5fa47f;
-      --ledger-green-ink: #0f1512;
-      --correction: #d97456;
-      --rule: #333a33;
-      --rule-strong: #454d44;
+      --paper: #17191c;
+      --paper-raised: #202328;
+      --ink: #e8e6e3;
+      --ink-muted: #a3adb3;
+      --accent: #f7931e;
+      --accent-ink: #17191c;
+      --accent-hover: #ffb866;
+      --accent-soft: #3d2a1a;
+      --heading: #f4f2ef;
+      --focus: #ffffff;
+      --correction: #ff8a7a;
+      --rule: #3a4047;
+      --rule-strong: #737c85;
+      --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.5);
+      --control-bg: #202328;
+      --control-border: #737c85;
+      --placeholder: #a3adb3;
+      --invalid: #ff8a7a;
     }
+    :root:not([data-theme="light"]) .brand-logo { background: #ffffff; padding: 8px 12px; }
+    :root:not([data-theme="light"]) input:disabled,
+    :root:not([data-theme="light"]) select:disabled { background-color: var(--paper); }
   }
 
   * { box-sizing: border-box; }
@@ -52,22 +79,26 @@
   }
 
   h1 {
-    font: 600 30px/1.15 var(--font-display);
+    font: 700 32px/1.2 var(--font-display);
+    color: var(--heading);
     margin: 0 0 4px;
-    letter-spacing: 0.01em;
   }
   p.sub {
     color: var(--ink-muted);
     margin: 0 0 20px;
     max-width: 68ch;
   }
-  p.sub a { color: var(--ledger-green); }
+  p.sub strong { color: var(--ink); }
+  p.sub a { color: var(--accent); font-weight: 700; text-decoration: underline; }
+  p.sub a:hover { color: var(--accent-hover); }
   h2 {
-    font: 600 15px/1.3 var(--font-display);
-    margin: 22px 0 10px;
+    font: 700 16px/1.3 var(--font-display);
+    color: var(--heading);
+    margin: 32px 0 12px;
+    padding-left: 10px;
+    border-left: 4px solid var(--accent);
   }
   h2:first-of-type { margin-top: 0; }
-  code { font-family: var(--font-data); font-size: 0.92em; }
 
   .rule {
     border: none;
@@ -77,98 +108,157 @@
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-    gap: 12px 16px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px 24px;
   }
   .field label {
     display: block;
-    font-size: 12px;
-    color: var(--ink-muted);
-    margin-bottom: 3px;
+    font: var(--label-weight) var(--label-size)/1.3 var(--font-body);
+    color: var(--ink);
+    margin-bottom: 6px;
   }
-  .field .hint { display: block; font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
-  input, select {
+  .field .hint { display: block; font-size: 13px; line-height: 1.4; color: var(--ink-muted); margin-top: 6px; }
+  .field .hint.locked { display: none; }
+  .field select:disabled ~ .hint.locked { display: block; }
+  :where(input:not([type="checkbox"]), select) {
     width: 100%;
-    padding: 6px 2px;
-    border: none;
-    border-bottom: 1px solid var(--rule-strong);
-    border-radius: 0;
-    background: transparent;
-    color: inherit;
-    font: 500 14.5px var(--font-data);
+    height: var(--control-height);
+    padding: 0 var(--control-pad-x);
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-control);
+    background-color: var(--control-bg);
+    color: var(--ink);
+    font: 500 15px var(--font-data);
+    font-variant-numeric: tabular-nums;
   }
-  select { font: 500 14.5px var(--font-body); }
+  select {
+    appearance: none;
+    padding-right: 36px;
+    font: 500 15px var(--font-body);
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--accent) 50%),
+      linear-gradient(135deg, var(--accent) 50%, transparent 50%);
+    background-position: calc(100% - 20px) 50%, calc(100% - 13px) 50%;
+    background-size: 7px 7px, 7px 7px;
+    background-repeat: no-repeat;
+  }
+  ::placeholder { color: var(--placeholder); opacity: 1; }
+  :where(input:not([type="checkbox"]), select):hover { border-color: var(--ink-muted); }
   input:focus-visible, select:focus-visible {
-    outline: none;
-    border-bottom-color: var(--ledger-green);
-    box-shadow: 0 1px 0 0 var(--ledger-green);
+    outline: 3px solid var(--focus);
+    outline-offset: 1px;
+    border-color: var(--accent);
   }
-  input:disabled, select:disabled { color: var(--ink-muted); border-bottom-style: dashed; }
+  input:disabled, select:disabled {
+    background-color: var(--paper-raised);
+    color: var(--ink-muted);
+    border-style: dashed;
+    cursor: not-allowed;
+  }
+  input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--invalid); }
+  .field .field-error {
+    display: block;
+    font: 500 13px/1.4 var(--font-body);
+    color: var(--invalid);
+    margin-top: 6px;
+  }
 
   .field .unit-pair { display: flex; gap: 8px; align-items: stretch; }
   .field .unit-pair input { flex: 1; }
 
   fieldset.conditional {
-    border: 1px solid var(--rule-strong);
-    padding: 14px 16px 16px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-control);
+    padding: 16px 20px 20px;
     margin: 14px 0 0;
     background: var(--paper-raised);
   }
   fieldset.conditional legend {
-    font: 600 12.5px var(--font-body);
-    color: var(--ink-muted);
+    font: 700 13px var(--font-body);
+    color: var(--ink);
     padding: 0 6px;
   }
 
   button {
-    font: 500 13px var(--font-body);
-    padding: 6px 10px;
-    border-radius: 3px;
-    border: 1px solid var(--rule-strong);
+    font: 700 15px/1.2 var(--font-body);
+    padding: 8px 18px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--accent);
     background: transparent;
-    color: var(--ink);
+    color: var(--accent);
     cursor: pointer;
   }
-  button:hover { border-color: var(--ink-muted); }
-  button:focus-visible { outline: 2px solid var(--ledger-green); outline-offset: 2px; }
-  button.remove-fee { color: var(--correction); border-color: transparent; padding: 2px 6px; }
-  button.remove-fee:hover { border-color: var(--correction); }
-  button.add-fee { margin-top: 10px; }
+  button:hover { border-color: var(--accent-hover); color: var(--accent-hover); }
+  button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  button:disabled { background: var(--accent-soft); border-color: var(--accent-soft); pointer-events: none; }
+  button.remove-fee {
+    color: var(--correction);
+    border-color: transparent;
+    padding: 2px 6px;
+  }
+  button.remove-fee:hover { color: var(--correction); border-color: transparent; text-decoration: underline; }
+  button.add-fee { margin-top: 12px; }
 
   #error {
     display: none;
     color: var(--correction);
-    border-left: 3px solid var(--correction);
+    border-left: 4px solid var(--correction);
+    background: var(--paper);
     padding: 4px 0 4px 12px;
     margin: 18px 0;
     font-size: 14px;
     white-space: pre-wrap;
   }
 
+  /* KPI cards: four equal columns, one related group per row. */
   .totals {
-    display: flex;
-    flex-wrap: wrap;
-    border-top: 1px solid var(--rule);
-    border-bottom: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
     margin: 6px 0 26px;
   }
   .total {
-    padding: 10px 18px 10px 0;
-    margin-right: 18px;
-    border-right: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 6px;
+    min-height: 84px;
+    padding: 14px 16px;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--accent);
+    border-radius: var(--radius-control);
   }
-  .total:last-child { border-right: none; }
-  .total .label { display: block; font-size: 12px; color: var(--ink-muted); margin-bottom: 2px; }
-  .total .value { font: 500 16px var(--font-data); }
+  .total .label { font: 600 12px/1.3 var(--font-body); color: var(--ink-muted); }
+  .total .value {
+    font: 700 20px/1.2 var(--font-data);
+    font-variant-numeric: tabular-nums;
+    color: var(--heading);
+    overflow-wrap: anywhere;
+  }
   .total.na .value { color: var(--ink-muted); }
+  @media (max-width: 720px) {
+    .totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .total .value { font-size: 18px; }
+  }
+  @media (max-width: 480px) {
+    .totals { gap: 8px; }
+    .total { padding: 12px; }
+    .total .value { font-size: 16px; }
+  }
 
-  #feesWrap table, #scheduleWrap table { width: 100%; border-collapse: collapse; font: 13px var(--font-data); }
+  #feesWrap table, #scheduleWrap table {
+    width: 100%;
+    border-collapse: collapse;
+    font: 13px var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
   #feesWrap th, #scheduleWrap th {
-    font: 500 11px var(--font-body);
+    font: 600 12px var(--font-body);
     color: var(--ink-muted);
     text-align: right;
     padding: 8px;
-    border-bottom: 1px solid var(--rule-strong);
+    border-bottom: 2px solid var(--accent);
     position: sticky;
     top: 0;
     background: var(--paper);
@@ -182,10 +272,59 @@
   #feesWrap th:first-child, #feesWrap td:first-child,
   #scheduleWrap th:first-child, #scheduleWrap td:first-child,
   #scheduleWrap th:nth-child(2), #scheduleWrap td:nth-child(2) { text-align: left; }
-  #feesWrap td input[type="text"], #feesWrap td input[type="number"] { text-align: right; }
+  #feesWrap td input[type="text"], #feesWrap td input[type="number"] { height: 36px; text-align: right; }
   #feesWrap td:first-child input[type="text"] { text-align: left; }
-  #feesWrap input[type="checkbox"] { width: auto; }
+  #feesWrap input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
   #scheduleWrap { max-height: 480px; overflow: auto; border: 1px solid var(--rule); }
+  /* Keep the last column clear of the vertical scrollbar (overlay scrollbars on macOS
+     draw on top of the content). */
+  #scheduleWrap th:last-child, #scheduleWrap td:last-child { padding-right: 18px; }
+
+  .brand { margin: 0 0 28px; }
+  .brand-logo { display: inline-block; line-height: 0; border-radius: var(--radius-control); text-decoration: none; }
+  .brand-logo img { display: block; height: 37px; width: auto; }
+  .brand-logo img[hidden] { display: none; }
+  .brand-fallback { font: 700 22px/37px var(--font-display); color: var(--accent); }
+  .brand-logo:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
+  p.sub.disclaimer { margin-top: -8px; font-size: 14px; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  .section-head {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 8px 16px; margin: 32px 0 12px;
+  }
+  .section-head h2 { margin: 0; }
+  .section-head .actions { display: flex; gap: 8px; }
+  .section-head .actions button { font-size: 14px; padding: 6px 16px; }
+
+  /* The schedule table alone breaks out of the 900px column to 85% of the viewport,
+     centred on the page; on narrow screens it stays at the column width. */
+  #scheduleWrap {
+    width: max(100%, 85vw);
+    margin-left: calc(50% - max(50%, 42.5vw));
+  }
+
+  @media print {
+    @page { margin: 12mm; }
+    body { max-width: none; padding: 0; font-size: 11px; background: #fff; color: #000; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .actions, #addFee, .remove-fee, #feesWrap th:last-child, #feesWrap td:last-child, #error { display: none !important; }
+    .field .hint { display: none; }
+    p.sub, p.sub.disclaimer { font-size: 11px; }
+    h2, .section-head { break-after: avoid; }
+    fieldset.conditional { break-inside: avoid; }
+    #scheduleWrap { width: 100%; margin-left: 0; max-height: none; overflow: visible; border: none; }
+    #scheduleWrap th { position: static; }
+    .totals { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+    .total { min-height: 0; padding: 8px 10px; break-inside: avoid; }
+    .total .value { font-size: 14px; }
+    #scheduleWrap thead { display: table-header-group; }
+    #scheduleWrap tr { break-inside: avoid; }
+    .brand-logo { background: none !important; padding: 0 !important; }
+  }
 
   @media (max-width: 480px) {
     body { padding: 28px 16px 64px; }
@@ -194,129 +333,131 @@
 </style>
 </head>
 <body>
-  <h1>Cost of borrowing — Canada</h1>
+  <header class="brand">
+    <a class="brand-logo" href="https://www.alterna.ca/" rel="noopener">
+      <img id="brandLogo" src="https://www.alterna.ca/media/t0onoi0m/alterna-savings.svg" alt="Alterna Savings" width="236" height="37" />
+      <span class="brand-fallback" hidden>Alterna Savings</span>
+    </a>
+  </header>
+
+  <h1>Cost of Borrowing Calculator</h1>
   <p class="sub">
-    Canadian dropdown-driven COB disclosure worksheet, per
-    <code>docs/new-req/006-cost-of-borrowing-disclosure.md</code> — semi-annual
-    compounding for fixed-rate mortgages, a trigger rate for variable-rate mortgages,
-    and the regulatory average-balance COB rate/amount, all scoped to the current
-    contract term. A borrower-facing estimate, not a certified regulatory disclosure.
-    See also the <a href="/ui/index.html">US-style worksheet</a>.
+    Calculate the cost of borrowing for a mortgage or personal loan over its current
+    term: the COB amount and rate, total interest, and a full payment schedule. For
+    variable-rate mortgages it also shows the trigger rate. Fixed-rate mortgage rates
+    are compounded semi-annually.
+  </p>
+  <p class="sub disclaimer">
+    <strong>Note:</strong> results are estimates. They don't replace the cost of
+    borrowing disclosure in the loan documents.
   </p>
 
   <form id="form">
     <h2>Flow</h2>
     <div class="grid">
       <div class="field">
-        <label>Flow</label>
+        <label for="flow">Flow</label>
         <select id="flow">
-          <option value="newMortgage">New mortgage</option>
-          <option value="newLoan">New loan</option>
-          <option value="existingMortgage">Existing mortgage (renewal)</option>
-          <option value="existingLoan">Existing loan (renewal)</option>
+          <option value="newMortgageOrLoan">New mortgage / loan</option>
+          <option value="renewal">Renewal</option>
           <option value="paymentChange">Payment change</option>
           <option value="variableRatePaymentChange">Variable rate payment change</option>
         </select>
       </div>
       <div class="field">
-        <label>Product type</label>
+        <label for="productType">Product type</label>
         <select id="productType">
           <option value="mortgage">Mortgage</option>
           <option value="personalLoan">Personal loan</option>
         </select>
+        <span class="hint locked">Set by the selected flow.</span>
       </div>
       <div class="field">
-        <label>Rate type</label>
+        <label for="rateType">Rate type</label>
         <select id="rateType">
           <option value="variable">Variable</option>
-          <option value="fixed">Fixed</option>
+          <option value="fixed" selected>Fixed</option>
         </select>
+        <span class="hint locked">Set by the selected flow.</span>
       </div>
     </div>
 
     <h2>Loan / mortgage details</h2>
     <div class="grid">
       <div class="field">
-        <label>Loan amount ($)</label>
-        <input type="number" step="0.01" id="loanAmount" value="500000" />
-        <span class="hint">Face amount, or current outstanding balance for existing/renewal flows.</span>
+        <label for="loanAmount">Loan amount ($)</label>
+        <input type="number" step="0.01" id="loanAmount" value="227829.65" aria-describedby="loanAmount-hint" />
+        <span class="hint" id="loanAmount-hint">Face amount, or current outstanding balance for existing/renewal flows.</span>
       </div>
       <div class="field">
-        <label>Contract rate (%)</label>
-        <input type="number" step="0.001" id="contractRatePercent" value="5.95" />
+        <label for="contractRatePercent">Contract rate (%)</label>
+        <input type="number" step="0.001" id="contractRatePercent" value="3.74" />
       </div>
       <div class="field">
-        <label>Payment frequency</label>
+        <label for="paymentAmount">Payment amount ($)</label>
+        <input type="number" step="0.01" id="paymentAmount" value="465.46" aria-describedby="paymentAmount-hint" />
+        <span class="hint" id="paymentAmount-hint">The scheduled payment. It isn't calculated here.</span>
+      </div>
+      <div class="field">
+        <label for="paymentFrequency">Payment frequency</label>
         <select id="paymentFrequency">
-          <option value="monthly" selected>Monthly (12/yr)</option>
+          <option value="monthly">Monthly (12/yr)</option>
           <option value="semiMonthly">Semi-monthly (24/yr)</option>
           <option value="biweekly">Biweekly (26/yr)</option>
-          <option value="weekly">Weekly (52/yr)</option>
+          <option value="weekly" selected>Weekly (52/yr, incl. Accelerated Weekly)</option>
         </select>
       </div>
       <div class="field">
-        <label>Contract term</label>
-        <div class="unit-pair">
-          <input type="number" step="1" id="termYears" value="5" />
-          <input type="number" step="1" id="termMonths" value="0" />
+        <label for="termYears" id="term-label">Contract term</label>
+        <div class="unit-pair" role="group" aria-labelledby="term-label">
+          <input type="number" step="1" id="termYears" value="3" aria-label="Years" aria-describedby="term-hint" />
+          <input type="number" step="1" id="termMonths" value="0" aria-label="Months" aria-describedby="term-hint" />
         </div>
-        <span class="hint">Years / months. The renewable term, not the amortization.</span>
+        <span class="hint" id="term-hint">Years and months. For reference only: the schedule runs to the end date.</span>
       </div>
       <div class="field">
-        <label>Remaining amortization</label>
-        <div class="unit-pair">
-          <input type="number" step="1" id="remainingAmortizationYears" value="25" />
-          <input type="number" step="1" id="remainingAmortizationMonths" value="0" />
-        </div>
-        <span class="hint">Years / months left on the full payoff horizon.</span>
+        <label for="firstPaymentDate">First payment date</label>
+        <input type="date" id="firstPaymentDate" value="2026-03-23" />
       </div>
       <div class="field">
-        <label>First payment date</label>
-        <input type="date" id="firstPaymentDate" value="2026-01-01" />
-      </div>
-      <div class="field">
-        <label>End date (term maturity)</label>
-        <input type="date" id="endDate" value="2031-01-01" />
-        <span class="hint">Maturity/renewal date of this contract term.</span>
+        <label for="endDate">End date</label>
+        <input type="date" id="endDate" value="2029-03-17" aria-describedby="endDate-hint" />
+        <span class="hint" id="endDate-hint">Payments are scheduled up to and including this date, or until the loan is paid off.</span>
       </div>
     </div>
 
     <fieldset class="conditional" id="newFlowFields">
-      <legend>New mortgage / new loan fields</legend>
+      <legend>New mortgage or loan</legend>
       <div class="grid">
         <div class="field">
-          <label>Disbursal date</label>
-          <input type="date" id="disbursalDate" value="2025-12-15" />
-        </div>
-        <div class="field">
-          <label>Pre-approval date (optional)</label>
-          <input type="date" id="preApprovalDate" value="2025-11-01" />
+          <label for="disbursalDate">Disbursal date</label>
+          <input type="date" id="disbursalDate" value="2026-03-17" />
         </div>
       </div>
     </fieldset>
 
     <fieldset class="conditional" id="existingFlowFields">
-      <legend>Existing / renewal / payment-change fields</legend>
+      <legend>Renewal and payment change</legend>
       <div class="grid">
         <div class="field">
-          <label>Renewal date</label>
+          <label for="renewalDate">Renewal date</label>
           <input type="date" id="renewalDate" value="2026-01-01" />
         </div>
         <div class="field">
-          <label>Accrued interest ($)</label>
-          <input type="number" step="0.01" id="accruedInterest" value="0" />
-          <span class="hint">Interest accrued since the last payment, carried into this term.</span>
+          <label for="accruedInterest">Accrued interest ($)</label>
+          <input type="number" step="0.01" id="accruedInterest" value="0" aria-describedby="accruedInterest-hint" />
+          <span class="hint" id="accruedInterest-hint">Interest accrued since the last payment date.</span>
         </div>
       </div>
     </fieldset>
 
     <fieldset class="conditional" id="semiAnnualField">
-      <legend>Fixed-rate mortgage only</legend>
+      <legend>Fixed-rate mortgage</legend>
       <div class="grid">
         <div class="field">
-          <label>Semi-annual compounding reference date</label>
-          <input type="date" id="semiAnnualCompoundingDate" value="2025-12-15" />
-          <span class="hint">Display/reference anchor only — does not change the periodic-rate conversion.</span>
+          <label for="semiAnnualCompoundingDate">Semi-annual compounding reference date</label>
+          <input type="date" id="semiAnnualCompoundingDate" value="2025-12-15" aria-describedby="semiAnnualCompoundingDate-hint" />
+          <span class="hint" id="semiAnnualCompoundingDate-hint">For reference only. It doesn't change the calculation.</span>
         </div>
       </div>
     </fieldset>
@@ -325,7 +466,7 @@
     <div id="feesWrap">
       <table>
         <thead>
-          <tr><th style="text-align:left">Name</th><th>Amount ($)</th><th>Financed?</th><th>Included in COB?</th><th></th></tr>
+          <tr><th style="text-align:left">Name</th><th>Amount ($)</th><th>Financed?</th><th><span class="visually-hidden">Actions</span></th></tr>
         </thead>
         <tbody id="feesBody"></tbody>
       </table>
@@ -333,20 +474,28 @@
     <button type="button" id="addFee" class="add-fee">Add fee</button>
   </form>
 
-  <div id="error"></div>
+  <div id="error" role="alert"></div>
 
   <div id="results" style="display:none">
     <hr class="rule" />
-    <h2>Results (current contract term)</h2>
+    <h2>Results</h2>
     <div class="totals" id="totals"></div>
 
-    <h2>Amortization schedule (this term)</h2>
+    <div class="section-head">
+      <h2>Amortization schedule</h2>
+      <div class="actions">
+        <button type="button" id="downloadCsv">Download CSV</button>
+        <button type="button" id="printSchedule">Print</button>
+      </div>
+    </div>
     <div id="scheduleWrap">
       <table>
         <thead>
           <tr>
-            <th>#</th><th>Date</th><th>Payment</th>
-            <th>Interest</th><th>Principal</th><th>Balance</th>
+            <th>#</th><th>Date</th><th>Days</th><th>Opening balance</th>
+            <th>Period interest</th><th>Accrued int. (open)</th><th>Fees (open)</th>
+            <th>Payment</th><th>Interest paid</th><th>Fees paid</th><th>Principal</th>
+            <th>Accrued int. (close)</th><th>Fees (close)</th><th>Balance</th>
           </tr>
         </thead>
         <tbody id="scheduleBody"></tbody>

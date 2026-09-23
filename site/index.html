@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>COB Calculator</title>
+<title>COB Calculator (Canada)</title>
 <meta name="description" content="Cost-of-borrowing / segmented mortgage calculator, in three forms: an in-browser web app, a Python/Streamlit app, and a formula-driven Excel workbook.">
 <style>
   :root { color-scheme: light dark; }
@@ -183,9 +183,9 @@
 
 <header class="hero">
   <div class="wrap">
-    <div class="kicker">COB Calculator &middot; pick your platform</div>
-    <h1>Cost of borrowing, three ways</h1>
-    <p class="lede">The same segmented-mortgage engine — renewals, lump sums, PMI, points, refinance, affordability — built independently in TypeScript, Python, and plain Excel formulas, and cross-checked against each other row for row. Pick whichever fits how you work.</p>
+    <div class="kicker">COB Calculator (Canada) &middot; pick your platform</div>
+    <h1>Canadian cost of borrowing, three ways</h1>
+    <p class="lede">A replacement for the Excel/VBA Cost of Borrowing calculator: the COB amount, COB rate, payment schedule and trigger rate for mortgages and loans, with semi-annual compounding and actual day-count interest. Built independently in TypeScript, Python, and plain Excel formulas, and checked against the legacy workbook. Pick whichever fits how you work.</p>
   </div>
 </header>
 
@@ -195,11 +195,11 @@
     <article class="card" style="--card-color: var(--ts-color);">
       <span class="stack">TypeScript &middot; runs in your browser</span>
       <h2>Web Calculator</h2>
-      <p class="desc">The original engine, with a live worksheet UI. No install, no account — everything computes client-side.</p>
+      <p class="desc">The COB worksheet in your browser. No install, no account — everything computes client-side.</p>
       <ul class="features">
-        <li>Full amortization schedule with print support</li>
-        <li>Monthly / semi-monthly / biweekly / weekly views</li>
-        <li>Same math, verified against the Python engine</li>
+        <li>New, Renewal, Payment Change and Variable Rate Payment Change flows</li>
+        <li>COB amount, COB rate and trigger rate</li>
+        <li>Full payment schedule for the term</li>
       </ul>
       <a class="btn" href="./ts/" style="--card-color: var(--ts-color);">Open the calculator →</a>
     </article>
@@ -207,11 +207,11 @@
     <article class="card" style="--card-color: var(--py-color);">
       <span class="stack">Python &middot; Streamlit Cloud</span>
       <h2>Streamlit App</h2>
-      <p class="desc">The full feature set across 14 pages: segmented mortgages, PMI, DTI &amp; affordability, fees &amp; APR, bank-statement reconciliation.</p>
+      <p class="desc">The same COB calculator as a Streamlit app, with a downloadable and printable schedule.</p>
       <ul class="features">
-        <li>Every calculator the engine supports</li>
-        <li>Yearly report window ("first 5 years")</li>
-        <li>Upload &amp; reconcile a real bank statement</li>
+        <li>New, Renewal, Payment Change and Variable Rate Payment Change flows</li>
+        <li>COB amount, COB rate and trigger rate</li>
+        <li>Schedule download as CSV, and print</li>
       </ul>
       <a class="btn" id="streamlitLink" href="#" aria-disabled="true" style="--card-color: var(--py-color);">Open the app →</a>
       <p class="pending-note" id="streamlitNote">Not deployed yet. Once it's live on <a href="https://share.streamlit.io" target="_blank" rel="noopener">Streamlit Cloud</a>, set <code>STREAMLIT_URL</code> at the bottom of this page's source.</p>
@@ -220,14 +220,13 @@
     <article class="card" style="--card-color: var(--xl-color);">
       <span class="stack">Excel &middot; no macros, no install</span>
       <h2>Excel Workbook</h2>
-      <p class="desc">A formula-driven workbook for anyone who'd rather stay in a spreadsheet — Google Sheets and LibreOffice Calc open it too.</p>
+      <p class="desc">The COB calculator as plain formulas, no macros — for anyone who'd rather stay in a spreadsheet. Google Sheets and LibreOffice Calc open it too.</p>
       <ul class="features">
-        <li>17 sheets: the full engine + 9 standalone tools</li>
+        <li>Same inputs and outputs as the web calculator</li>
         <li>Blue-cell inputs, everything else recalculates live</li>
-        <li>Manual with cell-level reference &amp; worked examples</li>
+        <li>Opens in Excel, Google Sheets and LibreOffice Calc</li>
       </ul>
-      <a class="btn" href="./excel/" style="--card-color: var(--xl-color);">Read the manual →</a>
-      <a class="btn secondary" href="./excel/COB_Calculator.xlsx" style="--card-color: var(--xl-color);">Download .xlsx</a>
+      <a class="btn" href="./excel/COB_Calculator_CA.xlsx" style="--card-color: var(--xl-color);">Download .xlsx →</a>
     </article>
 
   </div>
@@ -235,16 +234,16 @@
   <section class="about">
     <div class="about-grid">
       <div>
-        <h3>Same engine, three implementations</h3>
-        <p>Not one engine with three front ends — three independent implementations of the same segmented-mortgage math, cross-validated row-for-row against each other during development, including against an independent lending-domain reference model.</p>
+        <h3>One spec, three implementations</h3>
+        <p>Not one engine with three front ends — three independent implementations of one spec, each checked against the legacy workbook's own results and against each other.</p>
       </div>
       <div>
         <h3>Pick based on how you work</h3>
-        <p>Want to poke at it without installing anything? Use the web calculator. Need the full feature set — DTI, APR, bank reconciliation? Use the Streamlit app. Prefer to own the math yourself in a spreadsheet you can edit and hand to someone else? Take the Excel workbook.</p>
+        <p>Want to try it without installing anything? Use the web calculator. Prefer a Python app? Use the Streamlit app. Prefer to own the math yourself in a spreadsheet you can edit and hand to someone else? Take the Excel workbook.</p>
       </div>
       <div>
         <h3>Source</h3>
-        <p>Every engine, the Excel build script, and the full domain-QA writeups (including two real bugs a cross-check caught) live in this repository under <code>COB-ts/</code>, <code>COB-py/</code>, <code>COB-xlsx/</code>, and <code>docs/new-req/</code>.</p>
+        <p>Every engine, the Excel build script, the spec and its open items live in this repository under <code>COB-ts/</code>, <code>COB-py/</code>, <code>COB-xlsx/</code>, and <code>docs/</code>.</p>
       </div>
     </div>
   </section>

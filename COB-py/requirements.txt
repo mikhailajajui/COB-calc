@@ -1,4 +1,4 @@
-streamlit>=1.38
+streamlit>=1.51  # st.navigation + set_page_config on every page; .streamlit/config.toml [theme.light]/[theme.dark] + redColor
 pandas>=2.2
 pytest>=8.0
 # numpy: pandas pulls this in transitively already; listed explicitly because

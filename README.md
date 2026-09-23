@@ -1,39 +1,47 @@
-# COB Calculator
+# COB Calculator (Canada)
 
-A cost-of-borrowing / segmented mortgage calculator engine, implemented three
-times, independently, and cross-validated row-for-row against each other:
-renewals, lump sums, manual bank-statement overrides, PMI with auto-drop,
-interest-only, balloon payments, points, refinance/loan-term comparison,
-DTI/affordability, fees & APR, and payment-frequency schedules.
+A replacement for Alterna Savings' Excel/VBA **Canadian Cost of Borrowing (COB)
+calculator**: COB amount, COB rate, payment schedule and trigger rate for
+mortgages and personal loans (New, Renewal, Payment Change, Variable Rate
+Payment Change). It is built three times from one spec and checked against the
+legacy workbook.
 
 **Live site:** https://mikhailajajui.github.io/COB-calc/ — a portal linking to
 all three variants below.
 
 | Variant | Where it runs | Source |
 |---|---|---|
-| **Web Calculator** | GitHub Pages, client-side | [`COB-ts/`](COB-ts) |
-| **Streamlit App** | [cob-calc.streamlit.app](https://cob-calc.streamlit.app/) | [`COB-py/`](COB-py) |
-| **Excel Workbook** | Download, or read the manual on GitHub Pages | [`COB-xlsx/`](COB-xlsx) |
+| **Web Calculator** | GitHub Pages (`/ts/`), client-side | [`COB-ts/src/ca/`](COB-ts/src/ca), UI [`COB-ts/ui/ca.html`](COB-ts/ui/ca.html) |
+| **Streamlit App** | [cob-calc.streamlit.app](https://cob-calc.streamlit.app/), opens on the Canadian calculator | [`COB-py/cob_calculator/cob_canada.py`](COB-py/cob_calculator/cob_canada.py) |
+| **Excel Workbook** | Download `COB_Calculator_CA.xlsx` | [`COB-xlsx/build_workbook_ca.py`](COB-xlsx/build_workbook_ca.py) |
 
 ## Repository layout
 
-- **`COB-ts/`** — the original engine, in TypeScript, with a browser worksheet UI (`COB-ts/ui/`). `npm test` (vitest, 90 tests).
-- **`COB-py/`** — a from-scratch Python port with a 14-page Streamlit UI (`COB-py/streamlit_app.py` + `COB-py/pages/`), plus features not yet ported back to TS (yearly report window, fees/APR, DTI/affordability) and a cross-check against an independent lending-domain reference model. `python3 -m pytest` (100 tests).
-- **`COB-xlsx/`** — a formula-driven Excel workbook (no macros), built by `COB-xlsx/build_workbook.py`. See [`COB-xlsx/MANUAL.md`](COB-xlsx/MANUAL.md) for usage.
-- **`docs/new-req/`** — platform-agnostic specs for features found via a banking-domain QA pass, plus write-ups of real bugs caught during development (and how they were caught) for each implementation.
-- **`site/`** — source for the portal page published at the repo root of GitHub Pages.
+- **`docs/`** — [`architecture.md`](docs/architecture.md), the engine spec
+  ([`006`](docs/new-req/006-cost-of-borrowing-disclosure.md)), its
+  reconciliation against the BRD and the macro (`007`), and open items (`008`).
+  Status: [`docs/new-req/README.md`](docs/new-req/README.md).
+- **`COB-ts/`**, **`COB-py/`**, **`COB-xlsx/`** — the three implementations.
+- **`COB-py/tests/fixtures/`** — shared reference vectors and a test-only
+  transliteration of the legacy macro.
+- **`site/`** — the portal page published at the root of GitHub Pages.
+- **Legacy:** an older US-style mortgage engine lives in the rest of `COB-ts/src/`,
+  `COB-py/cob_calculator/` and `COB-xlsx/build_workbook.py`. It is no longer
+  developed or linked from the UIs; its pages still answer at their old URLs (web
+  `/ts/us/`, Streamlit `/Loan_Calculator` etc.) and `COB_Calculator.xlsx` is still built.
 
 ## Running things locally
 
 ```bash
-# TypeScript engine + browser UI
+# TypeScript engine + browser UI (opens on the Canadian calculator)
 cd COB-ts && npm ci && npm test && npm run ui
 
-# Python engine + Streamlit UI
+# Python engine + Streamlit UI (opens on the Canadian calculator)
 cd COB-py && pip install -r requirements.txt && python3 -m pytest && streamlit run streamlit_app.py
 
 # Excel workbook (regenerate from source)
-cd COB-xlsx && python3 build_workbook.py
+cd COB-xlsx && python3 build_workbook_ca.py
 ```
 
-All figures across all three variants are estimates for planning purposes only, not financial advice.
+All figures across all three variants are estimates for planning purposes only,
+not financial advice, and not a certified regulatory disclosure.

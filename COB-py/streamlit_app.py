@@ -1,42 +1,49 @@
+"""Entry point: the Canadian Cost of Borrowing calculator is the default page.
+
+The US-style tools are legacy (see CLAUDE.md). They are still registered, so their
+URLs (e.g. /Loan_Calculator) keep working, but the navigation menu is hidden.
+"""
+from pathlib import Path
+
 import streamlit as st
 
-st.set_page_config(page_title="COB Calculator", page_icon="🏠", layout="wide")
+PAGES = Path(__file__).parent / "pages"
 
-st.title("Cost of Borrowing Calculator")
-st.markdown(
-    """
-A Streamlit port of the COB-ts mortgage/loan engine -- every calculation runs
-locally, nothing leaves your machine.
+LEGACY_PAGES = [
+    "00_US_Overview.py",
+    "01_Loan_Calculator.py",
+    "02_Extra_Payments.py",
+    "03_Payment_Frequency.py",
+    "04_Segmented_Mortgage.py",
+    "05_PMI_and_Costs.py",
+    "06_Points_Breakeven.py",
+    "07_Refinance.py",
+    "08_Compare_Loan_Terms.py",
+    "09_LTV_and_DSCR.py",
+    "10_ARM_Rate_Reset.py",
+    "11_Bank_Reconciliation.py",
+    "12_Fees_and_APR.py",
+    "13_DTI_and_Affordability.py",
+]
 
-Use the sidebar to pick a tool:
-
-- **Loan Calculator** -- a simple fixed-rate loan: monthly payment, amortization
-  schedule, totals.
-- **Extra Payments** -- how much time/interest an extra monthly principal payment
-  saves.
-- **Payment Frequency** -- monthly vs. biweekly/weekly/semi-monthly acceleration.
-- **Segmented Mortgage** -- renewals, rate changes, interest-only periods, balloon
-  payments, lump sums, and manual statement overrides, all stitched into one
-  schedule.
-- **PMI & Recurring Costs** -- property tax / insurance / HOA / PMI-with-auto-drop
-  layered on top of P&I.
-- **Points Breakeven** -- is buying discount points worth it.
-- **Refinance** -- breakeven and net savings on a refinance.
-- **Compare Loan Terms** -- side-by-side comparison of 2+ loan offers.
-- **LTV & DSCR** -- loan-to-value, combined LTV, and debt-service coverage ratio.
-- **ARM Rate Reset** -- capped rate at an adjustable-rate mortgage's reset.
-- **Bank Statement Reconciliation** -- import actual payment history (CSV/JSON) as
-  manual overrides against the computed schedule.
-- **Fees & APR** -- origination/application/closing fees and a simplified APR
-  (always &ge; the note rate), so you compare offers correctly even when fee
-  structures differ.
-- **DTI & Affordability** -- front-end/back-end debt-to-income check, plus a
-  reverse "how much house can I afford" calculator.
-
-Also on the **Loan Calculator** page: a "Yearly summary / report window" panel
-to see just the first N years of a loan (interest/principal/balance per year),
-without scrolling a 360-row schedule.
-"""
+navigation = st.navigation(
+    {
+        "Canada": [
+            st.Page(
+                PAGES / "14_Cost_of_Borrowing_CA.py",
+                title="Cost of Borrowing Calculator",
+                icon="🍁",
+                default=True,
+            ),
+        ],
+        "US engine (legacy)": [st.Page(PAGES / name) for name in LEGACY_PAGES],
+    },
+    position="hidden",
 )
-
-st.info("All figures are estimates for planning purposes only, not financial advice.")
+# Hotlinked from alterna.ca like the TS page; the browser loads it, so nothing is stored here.
+st.logo(
+    "https://www.alterna.ca/media/t0onoi0m/alterna-savings.svg",
+    link="https://www.alterna.ca/",
+    size="large",
+)
+navigation.run()
