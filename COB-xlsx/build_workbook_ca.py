@@ -1,10 +1,34 @@
 #!/usr/bin/env python3
 """Builds COB_Calculator_CA.xlsx -- the Canadian Cost-of-Borrowing (COB)
 disclosure calculator. See docs/new-req/006-cost-of-borrowing-disclosure.md
-for the spec this implements, and that spec's new "Excel implementation
-notes" section for why this is a SIBLING workbook (not new sheets bolted
-onto COB_Calculator.xlsx) and for the judgment calls made on the spec's
-open questions.
+(rewritten per docs/new-req/007-cob-canada-brd-reconciliation.md's findings)
+for the spec this implements.
+
+This REBUILD reflects the reconciled model (doc 007's ten findings), not the
+prior draft:
+  - payment_amount is a plain user INPUT (no PMT solve).
+  - No "remaining amortization" concept -- the schedule runs from
+    first_payment_date to end_date (or until closing_balance hits zero,
+    whichever first). No term-vs-amortization clamp.
+  - amortized_principal (P0) = loan_amount, unchanged by the fee split.
+    disbursal_amount = loan_amount - financed_fees (cash fees never touch
+    disbursal).
+  - Interest accrues on ACTUAL CALENDAR DAYS per period (day-count
+    proration), not a fixed periodic rate: period_interest = opening_balance
+    x calculated_rate x (days_in_period / 365), split 365/366 across a
+    leap-year boundary.
+  - accrued_interest is a running carried_accrued_interest column (never
+    capitalized into the opening balance).
+  - Per-row payment waterfall: interest (incl. carried accrued) -> fees
+    (financed + cash combined, recovered gradually) -> principal.
+  - cob_amount = total_interest + ALL fees, unconditionally (no
+    included_in_cob filtering).
+  - APR's T = actual days from start_date to the LAST GENERATED schedule
+    row's date, divided by 365 (not a nominal term_years+term_months/12).
+  - Flow dropdown collapsed to 4 values (COB Requirements v2.3.docx IN-01).
+  - Compounding m selected by product/rate type: fixed mortgage m=2,
+    variable mortgage m=n (no conversion), personal loan (either rate
+    type) m=12.
 
 This is a separate script (not new functions appended to build_workbook.py)
 but reuses that module's styling constants and helpers directly, so the two
@@ -15,6 +39,7 @@ Run: python3 build_workbook_ca.py [output_path]
 """
 
 import sys
+from datetime import date
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
@@ -45,13 +70,21 @@ from build_workbook import (
 SHEET_NAME_CA = "COB_CA"
 SHEET_NAME_SCHEDULE = "COB_CA_Schedule"
 
-# Bound for the term-scoped amortization schedule (COB_CA_Schedule). A contract
-# term is short by design (commonly 3-5 years) but term_years is explicitly
-# user-customizable and not restricted to that range, so this is sized generously:
+# Percent-numbers in this workbook (e.g. 3.74 meaning 3.74%) are displayed
+# with a plain high-precision NUMBER format, not Excel's "%" format -- "%"
+# would multiply the stored value by 100 again, which is wrong since the
+# value already IS the percent number (matches this project's
+# percent-rate convention and build_workbook.py's own "0.00000000" usage
+# for rate cells throughout COB_Calculator.xlsx).
+RATE_FMT = "0.00000000000000"
+
+# Bound for COB_CA_Schedule. There is no amortization-horizon concept in the
+# corrected model (doc 007 finding #2) -- the schedule just runs from
+# first_payment_date to end_date (or an early full payoff). Sized generously:
 # 10 years at the densest supported cadence (weekly, 52/yr) = 520 rows. Same
 # house convention as the rest of this workbook: extend by copying the last
-# row's formulas down if a longer term is needed.
-MAX_CA_TERM_ROWS = 520
+# row's formulas down if a longer schedule is needed.
+MAX_CA_SCHEDULE_ROWS = 520
 
 SECTION_FONT = Font(name=FONT_NAME, bold=True, size=12)
 
@@ -89,55 +122,91 @@ def xref(sheet: str, ref: str) -> str:
     return f"{sheet}!${col}${row}"
 
 
+def _is_leap_expr(year_expr: str) -> str:
+    """Excel has no built-in ISLEAP; standard Gregorian rule inline."""
+    return f"AND(MOD({year_expr},4)=0,OR(MOD({year_expr},100)<>0,MOD({year_expr},400)=0))"
+
+
+def _day_count_factor_expr(prior_expr: str, this_expr: str) -> str:
+    """Equation 3's leap-year day-count split, matching the live macro's exact
+    getRate/crossesLeapYear/daysInYear algorithm bit-for-bit (doc 007's
+    "Addendum: VBA macro source review", verified against doc 007's full
+    156-row worked vector in a standalone Python simulation before being
+    ported here). Split point is JAN 1 of the following year (NOT Dec 31 of
+    the prior year -- that off-by-one was this implementation's original,
+    incorrect boundary and is exactly what caused a ~$0.007 total_interest
+    drift against the live workbook in an earlier draft): the segment from
+    prior_expr up to (but not including) Jan 1 uses prior_expr's year's own
+    day-count divisor; the segment from Jan 1 onward uses this_expr's year's
+    divisor. Every payment_frequency this engine supports (monthly/
+    semiMonthly/biweekly/weekly) produces periods well under 365 days, so a
+    period can straddle AT MOST ONE such boundary (touching exactly two
+    calendar years) -- this formula handles exactly that case and is not
+    generalized to a period spanning multiple full years (the macro's own
+    multi-year loop case), a deliberate, documented simplification.
+    """
+    boundary = f"(DATE(YEAR({prior_expr})+1,1,1))"  # Jan 1 of prior_expr's year + 1
+    same_year = f"({this_expr}-{prior_expr})/IF({_is_leap_expr(f'YEAR({this_expr})')},366,365)"
+    cross_part1 = f"(({boundary})-{prior_expr})/IF({_is_leap_expr(f'YEAR({prior_expr})')},366,365)"
+    cross_part2 = f"({this_expr}-({boundary}))/IF({_is_leap_expr(f'YEAR({this_expr})')},366,365)"
+    return f"IF(YEAR({prior_expr})=YEAR({this_expr}),{same_year},{cross_part1}+{cross_part2})"
+
+
 def build_cob_ca_sheet(wb: Workbook):
     ws = wb.create_sheet(SHEET_NAME_CA)
     title_block(
         ws,
         "Canadian Cost of Borrowing (COB) Disclosure -- inputs & summary",
-        "Borrower-facing COST-OF-BORROWING ESTIMATE, not a certified regulatory disclosure -- "
-        "see docs/new-req/006-cost-of-borrowing-disclosure.md. Blue cells = edit; black = "
-        "computed. Every input field stays visible for every Flow (no macros can hide/show "
-        "fields) -- pick Flow/Product type/Rate type below, then read the four computed helper "
-        "rows to see which date field, trigger-rate, compounding, and accrued-interest rules "
-        "actually apply; unused fields for your Flow are simply ignored by the formulas.",
+        "Reproduces Alterna Savings' COB Calculator v7 for the same inputs (see "
+        "docs/new-req/006-cost-of-borrowing-disclosure.md and "
+        "docs/new-req/007-cob-canada-brd-reconciliation.md) -- a borrower-facing "
+        "cost-of-borrowing ESTIMATE, not a certified regulatory disclosure engine or a "
+        "general model of every Canadian lender's practice. Blue cells = edit; black = "
+        "computed. Every input field stays visible for every Flow (no macros hide/show "
+        "fields) -- pick Flow/Product type/Rate type below, then read the computed helper "
+        "rows to see which date field, trigger-rate, and compounding rule actually apply; "
+        "unused fields for your Flow are simply ignored by the formulas.",
     )
 
     ref = {}
     r = 4
     _section(ws, r, "Flow / product / rate-type selection")
     r += 1
-    ref["flow"] = _row(ws, r, "Flow", value="New mortgage", is_input=True)
-    flow_cell_row = r
+    ref["flow"] = _row(
+        ws, r, "Flow", value="New Mortgage/Loan", is_input=True,
+        note="4 values per COB Requirements v2.3.docx IN-01 (doc 007 finding #9): New Mortgage/Loan, "
+        "Renewal, Payment Change, Variable Rate Payment Change.",
+    )
     r += 1
     ref["product_type"] = _row(ws, r, "Product type", value="mortgage", is_input=True)
     r += 1
-    ref["rate_type"] = _row(ws, r, "Rate type", value="variable", is_input=True)
+    ref["rate_type"] = _row(ws, r, "Rate type", value="fixed", is_input=True)
     r += 1
     r += 1  # spacer
 
     ref["date_field_used"] = _row(
         ws, r, "Date field used (per spec's Flow table)",
-        formula=f'=IF(OR({ref["flow"]}="New mortgage",{ref["flow"]}="New loan"),"Pre-approval date","Renewal date")',
+        formula=f'=IF({ref["flow"]}="New Mortgage/Loan","Disbursal date","Renewal date")',
     )
     r += 1
     ref["carry_forward"] = _row(
         ws, r, "Accrued-interest carry-forward applies?",
-        formula=(
-            f'=IF(OR({ref["flow"]}="Existing mortgage",{ref["flow"]}="Existing loan",'
-            f'{ref["flow"]}="Payment change",{ref["flow"]}="Variable rate payment change"),"Yes","No")'
-        ),
+        formula=f'=IF({ref["flow"]}="New Mortgage/Loan","No","Yes")',
     )
     r += 1
     ref["compounding"] = _row(
-        ws, r, "Compounding convention (eq. 1 / eq. 2)",
+        ws, r, "Compounding convention (eq. 1 / eq. 2, docx section 4.2)",
         formula=(
             f'=IF(AND({ref["product_type"]}="mortgage",{ref["rate_type"]}="fixed"),'
-            f'"Semi-annual (Interest Act s.6, CONFIRMED)","Monthly (best-available default, eq. 2)")'
+            f'"Fixed mortgage: m=2, semi-annual (Interest Act s.6, CONFIRMED)",'
+            f'IF(AND({ref["product_type"]}="mortgage",{ref["rate_type"]}="variable"),'
+            f'"Variable mortgage: m=n, no conversion (calculated rate = contract rate)",'
+            f'"Personal loan: m=12, monthly compounding"))'
         ),
     )
     r += 1
     ref["trigger_applies"] = _row(
-        ws, r, "Trigger rate computed? (mortgage + variable only)",
+        ws, r, "Trigger rate computed? (mortgage + variable only, all 4 flows)",
         formula=f'=IF(AND({ref["product_type"]}="mortgage",{ref["rate_type"]}="variable"),"Yes","No / N/A")',
     )
     r += 1
@@ -157,85 +226,94 @@ def build_cob_ca_sheet(wb: Workbook):
     _section(ws, r, "Inputs -- common to every flow")
     r += 1
     ref["loan_amount"] = _row(
-        ws, r, "Loan amount ($) / current outstanding balance ($)", value=400000, fmt=MONEY_FMT, is_input=True,
-        note="New flows: the new loan/mortgage face amount. Existing/Payment-change flows: enter the "
-        "CURRENT OUTSTANDING BALANCE here instead (same field, reused per spec).",
+        ws, r, "Loan amount ($) / current outstanding balance ($)", value=227829.65, fmt=MONEY_FMT, is_input=True,
+        note="New Mortgage/Loan: the new loan/mortgage face amount, ALREADY INCLUSIVE of financed fees "
+        "(IN-02). Renewal/Payment Change/Variable Rate Payment Change flows: enter the prior term's "
+        "final closing_balance here instead (same field, reused per spec).",
     )
     r += 1
-    ref["contract_rate"] = _row(ws, r, "Contract rate, nominal annual (%)", value=5.0, fmt="0.00000000", is_input=True)
+    ref["contract_rate"] = _row(
+        ws, r, "Contract rate, nominal annual (%, e.g. 3.74 means 3.74%)", value=3.74, fmt="0.00000000",
+        is_input=True,
+    )
     r += 1
-    ref["payment_frequency"] = _row(ws, r, "Payment frequency", value="monthly", is_input=True)
-    payment_frequency_row = r
+    ref["payment_frequency"] = _row(
+        ws, r, "Payment frequency", value="weekly", is_input=True,
+        note='"Accelerated Weekly" is treated identically to plain Weekly for rate/day-count purposes '
+        "(BR-09) -- select weekly for either.",
+    )
     r += 1
-    ref["term_years"] = _row(ws, r, "Term years (CONTRACT TERM, not amortization)", value=5, fmt=NUM_FMT, is_input=True)
+    ref["payment_amount"] = _row(
+        ws, r, "Payment amount ($) -- PLAIN INPUT, never solved by this engine", value=465.46, fmt=MONEY_FMT,
+        is_input=True,
+        note="Doc 007 finding #1: payment_amount is user-entered in every flow, not an annuity solve. "
+        "Constant across every scheduled payment.",
+    )
     r += 1
-    ref["term_months"] = _row(ws, r, "Term months (contract term, extra months)", value=0, fmt=NUM_FMT, is_input=True)
-    r += 1
-    ref["rem_amort_years"] = _row(ws, r, "Remaining amortization years", value=25, fmt=NUM_FMT, is_input=True)
-    r += 1
-    ref["rem_amort_months"] = _row(ws, r, "Remaining amortization months (extra)", value=0, fmt=NUM_FMT, is_input=True)
-    r += 1
-    ref["first_payment_date"] = _row(ws, r, "First payment date", value="2026-02-01", fmt=DATE_FMT, is_input=True)
+    ref["first_payment_date"] = _row(ws, r, "First payment date", value=date(2026, 3, 23), fmt=DATE_FMT, is_input=True)
     r += 1
     ref["end_date"] = _row(
-        ws, r, "End date (this term's maturity/renewal date)", value="2031-01-01", fmt=DATE_FMT, is_input=True,
+        ws, r, "End date (the date the schedule is run to)", value=date(2029, 3, 17), fmt=DATE_FMT, is_input=True,
+        note="No amortization-horizon concept exists in this engine (doc 007 finding #2) -- the schedule "
+        "commonly ends with a nonzero closing_balance still outstanding.",
     )
+    r += 1
+    ref["term_years"] = _row(
+        ws, r, "Term years (DISPLAY ONLY -- does not drive the schedule)", value=3, fmt=NUM_FMT, is_input=True,
+    )
+    r += 1
+    ref["term_months"] = _row(ws, r, "Term months (display only, extra months)", value=0, fmt=NUM_FMT, is_input=True)
     r += 1
     r += 1  # spacer
 
     _section(ws, r, "Inputs -- flow-conditional")
     r += 1
     ref["disbursal_date"] = _row(
-        ws, r, "Disbursal date (new flows only)", value="2026-01-15", fmt=DATE_FMT, is_input=True,
-    )
-    r += 1
-    ref["pre_approval_date"] = _row(
-        ws, r, "Pre-approval date (new mortgage / new loan only)", value="2025-12-01", fmt=DATE_FMT, is_input=True,
+        ws, r, "Disbursal date (New Mortgage/Loan ONLY)", value=date(2026, 3, 17), fmt=DATE_FMT, is_input=True,
     )
     r += 1
     ref["renewal_date"] = _row(
-        ws, r, "Renewal date (existing/payment-change flows only)", value="2026-01-01", fmt=DATE_FMT, is_input=True,
+        ws, r, "Renewal date (Renewal / Payment Change / Variable Rate Payment Change ONLY)",
+        value=date(2026, 3, 17), fmt=DATE_FMT, is_input=True,
     )
     r += 1
     ref["accrued_interest"] = _row(
-        ws, r, "Accrued interest ($) -- existing/renewal flows only", value=0, fmt=MONEY_FMT, is_input=True,
-        note="Judgment call: capitalized into this term's opening balance when the carry-forward row above "
-        "reads Yes -- see docs/new-req/006's Excel implementation notes.",
+        ws, r, "Accrued interest ($) -- Renewal/Payment Change/Variable Rate Payment Change ONLY",
+        value=0, fmt=MONEY_FMT, is_input=True,
+        note="NOT capitalized into the opening balance (doc 007 finding #5). Seeds the schedule's "
+        "carried_accrued_interest running column instead -- see COB_CA_Schedule column F.",
     )
     r += 1
     ref["semi_annual_ref_date"] = _row(
-        ws, r, "Semi-annual compounding reference date (fixed mortgages only)", value="2026-01-01", fmt=DATE_FMT,
+        ws, r, "Semi-annual compounding reference date (fixed mortgages only)", value=date(2026, 3, 17), fmt=DATE_FMT,
         is_input=True,
-        note="Display/reference only -- eq. 1's periodic-rate conversion does not depend on this date "
-        "(see spec 006, equation 1). Not used in any formula below.",
+        note="Display/reference only -- eq. 1's periodic-rate conversion does not depend on this date. "
+        "Not used in any formula below.",
     )
     r += 1
     r += 1  # spacer
 
-    _section(ws, r, "Fees (equation 7's fee-inclusion list)")
+    _section(ws, r, "Fees")
     r += 1
     ws.cell(
         row=r, column=1,
         value=(
-            "Financed? and Included in COB? are INDEPENDENT flags (spec 006 eq. 7) -- e.g. a "
-            "prepayment penalty or discharge fee is never included in cob_amount even if financed."
+            "cob_amount now includes ALL fees unconditionally (financed + cash), per doc 007 finding #6. "
+            "The 'Included in COB?' column below is kept for backward compatibility only -- it no longer "
+            "drives any formula (do not re-wire it)."
         ),
     ).font = NOTE_FONT
     r += 2
 
     fee_header_row = r
-    fee_headers = ["Fee name", "Amount ($)", "Financed? (Y/N)", "Included in COB? (Y/N)"]
+    fee_headers = ["Fee name", "Amount ($)", "Financed? (Y/N)", "Included in COB? (Y/N, UNUSED)"]
     for i, h in enumerate(fee_headers, start=1):
         ws.cell(row=fee_header_row, column=i, value=h)
     style_header_row(ws, fee_header_row, 1, len(fee_headers))
     fee_first_row = fee_header_row + 1
     fee_examples = [
-        ("Administrative charge", 200, "N", "Y"),
-        ("Appraisal fee (lender-required)", 400, "N", "Y"),
-        ("Broker fee (paid by lender to broker, included in amount borrowed)", 500, "Y", "Y"),
-        ("Prepayment penalty", 0, "N", "N"),
-        ("Discharge fee", 0, "N", "N"),
-        ("Mortgage default insurance premium (high-ratio)", 0, "Y", "N"),
+        ("Example financed fee (edit amount/name)", 0, "Y", "Y"),
+        ("Example cash-paid fee (edit amount/name)", 0, "N", "Y"),
     ]
     fee_last_row = fee_first_row + len(fee_examples) - 1
     for i, (name, amt, fin, inc) in enumerate(fee_examples):
@@ -251,13 +329,12 @@ def build_cob_ca_sheet(wb: Workbook):
         ws.cell(row=rr, column=2).number_format = MONEY_FMT
     fee_amt_rng = f"$B${fee_first_row}:$B${fee_last_row}"
     fee_fin_rng = f"$C${fee_first_row}:$C${fee_last_row}"
-    fee_inc_rng = f"$D${fee_first_row}:$D${fee_last_row}"
     r = fee_last_row + 2
 
     # --- Data validation (dropdown) lists ---
     dv_flow = DataValidation(
         type="list",
-        formula1='"New mortgage,New loan,Existing mortgage,Existing loan,Payment change,Variable rate payment change"',
+        formula1='"New Mortgage/Loan,Renewal,Payment Change,Variable Rate Payment Change"',
         allow_blank=False,
     )
     ws.add_data_validation(dv_flow)
@@ -284,192 +361,189 @@ def build_cob_ca_sheet(wb: Workbook):
         fmt=NUM_FMT,
     )
     r += 1
-    ref["i_period"] = _row(
-        ws, r, "Periodic rate i_period (eq. 1 / eq. 2)",
+    ref["m"] = _row(
+        ws, r, "Compounding periods/year (m, eq. 2 -- doc 007 finding #10)",
         formula=(
-            f'=IF(AND({ref["product_type"]}="mortgage",{ref["rate_type"]}="fixed"),'
-            f'(1+{ref["contract_rate"]}/100/2)^(2/{ref["n"]})-1,'
-            f'{ref["contract_rate"]}/100/{ref["n"]})'
+            f'=IF(AND({ref["product_type"]}="mortgage",{ref["rate_type"]}="fixed"),2,'
+            f'IF(AND({ref["product_type"]}="mortgage",{ref["rate_type"]}="variable"),{ref["n"]},12))'
         ),
-        fmt="0.000000%",
+        fmt=NUM_FMT,
     )
     r += 1
-    ref["total_fees"] = _row(ws, r, "Total fees", formula=f"=SUM({fee_amt_rng})", fmt=MONEY_FMT)
+    ref["calculated_rate"] = _row(
+        ws, r, "Calculated rate (%, eq. 1: n*((1+rate/m)^(m/n)-1))",
+        formula=f'={ref["n"]}*((1+{ref["contract_rate"]}/100/{ref["m"]})^({ref["m"]}/{ref["n"]})-1)*100',
+        fmt=RATE_FMT,
+        note="Unified formula for all 3 branches (m=2 fixed mortgage / m=n variable mortgage / m=12 "
+        "personal loan) -- when m=n this algebraically reduces to calculated_rate = contract_rate exactly.",
+    )
+    r += 1
+    ref["total_fees"] = _row(ws, r, "Total fees (financed + cash)", formula=f"=SUM({fee_amt_rng})", fmt=MONEY_FMT)
     r += 1
     ref["total_financed_fees"] = _row(
         ws, r, "Total financed fees", formula=f'=SUMIF({fee_fin_rng},"Y",{fee_amt_rng})', fmt=MONEY_FMT,
     )
     r += 1
     ref["total_cash_fees"] = _row(
-        ws, r, "Total cash fees", formula=f"={ref['total_fees']}-{ref['total_financed_fees']}", fmt=MONEY_FMT,
+        ws, r, "Total cash (non-financed) fees", formula=f"={ref['total_fees']}-{ref['total_financed_fees']}",
+        fmt=MONEY_FMT,
     )
     r += 1
-    ref["total_fees_in_cob"] = _row(
-        ws, r, "Total fees included in cob_amount (eq. 7 list)",
-        formula=f'=SUMIF({fee_inc_rng},"Y",{fee_amt_rng})', fmt=MONEY_FMT,
+    ref["p0"] = _row(
+        ws, r, "Amortized principal P0 (== loan_amount, invariant #3)",
+        formula=f"={ref['loan_amount']}",
+        fmt=MONEY_FMT,
+        note="Doc 007 finding #4: loan_amount is ALREADY INCLUSIVE of financed fees -- financing a fee "
+        "does not change this figure at all.",
     )
     r += 1
     ref["disbursal_amount"] = _row(
         ws, r, "Disbursal amount (cash actually advanced)",
-        formula=f"={ref['loan_amount']}+{ref['total_financed_fees']}-{ref['total_cash_fees']}", fmt=MONEY_FMT,
-        note="Per spec 006's resolved 'Financed fees' formulas (matching spec 002's "
-        "effective_loan_amount/amount_financed exactly): financed fees layer ON TOP of "
-        "loan_amount (never reduce disbursal); only cash fees reduce disbursal. See "
-        "docs/new-req/006's Excel implementation notes.",
+        formula=f"={ref['loan_amount']}-{ref['total_financed_fees']}", fmt=MONEY_FMT,
+        note="Cash (non-financed) fees do NOT reduce disbursal (IN-07, BR-04) -- only financed fees do.",
     )
     r += 1
-    ref["accrued_capitalized"] = _row(
-        ws, r, "Accrued interest capitalized into this term's opening balance",
-        formula=f'=IF({ref["carry_forward"]}="Yes",{ref["accrued_interest"]},0)', fmt=MONEY_FMT,
+    ref["start_date"] = _row(
+        ws, r, "start_date (this flow's schedule/APR start date)",
+        formula=f'=IF({ref["flow"]}="New Mortgage/Loan",{ref["disbursal_date"]},{ref["renewal_date"]})',
+        fmt=DATE_FMT,
     )
     r += 1
-    ref["p0"] = _row(
-        ws, r, "Amortized principal P0 (opening balance this term)",
-        formula=f"={ref['loan_amount']}+{ref['total_financed_fees']}+{ref['accrued_capitalized']}",
-        fmt=MONEY_FMT,
+    ref["accrued_initial"] = _row(
+        ws, r, "carried_accrued_interest seed (0 for New Mortgage/Loan)",
+        formula=f'=IF({ref["flow"]}="New Mortgage/Loan",0,{ref["accrued_interest"]})', fmt=MONEY_FMT,
     )
     r += 1
-    ref["term_total_months"] = _row(
-        ws, r, "Term total months", formula=f"=({ref['term_years']}*12+{ref['term_months']})", fmt=NUM_FMT,
+    ref["fees_to_recover_initial"] = _row(
+        ws, r, "fees_to_recover seed (financed + cash, eq. 4)",
+        formula=f"={ref['total_financed_fees']}+{ref['total_cash_fees']}", fmt=MONEY_FMT,
     )
     r += 1
-    ref["term_years_decimal"] = _row(
-        ws, r, "Term, years (T, eq. 6, 2dp)", formula=f"=ROUND({ref['term_total_months']}/12,2)", fmt="0.00",
-    )
-    r += 1
-    ref["rem_amort_total_months"] = _row(
-        ws, r, "Remaining amortization total months",
-        formula=f"=({ref['rem_amort_years']}*12+{ref['rem_amort_months']})", fmt=NUM_FMT,
-    )
-    r += 1
-    ref["rem_amort_periods"] = _row(
-        ws, r, "Remaining amortization total periods (n in eq. 3)",
-        formula=f"=ROUND({ref['rem_amort_total_months']}/12*{ref['n']},0)", fmt=NUM_FMT,
-    )
-    r += 1
-    ref["term_periods_raw"] = _row(
-        ws, r, "Term length, periods (raw, before clamping to remaining amortization)",
-        formula=f"=ROUND({ref['term_total_months']}/12*{ref['n']},0)", fmt=NUM_FMT,
-    )
-    r += 1
-    ref["term_periods"] = _row(
-        ws, r, "Term length, periods (schedule bound, clamped)",
-        formula=f"=MIN({ref['term_periods_raw']},{ref['rem_amort_periods']})", fmt=NUM_FMT,
-        note=f"Clamped so a term can never run longer than remaining amortization. Bounded to "
-        f"{MAX_CA_TERM_ROWS} schedule rows -- see COB_CA_Schedule.",
-    )
-    r += 1
-    ref["payment_amount"] = _row(
-        ws, r, "Payment amount (eq. 3 -- always an OUTPUT, never entered)",
-        formula=f"=ROUND(-PMT({ref['i_period']},{ref['rem_amort_periods']},{ref['p0']}),2)", fmt=MONEY_FMT,
+    ref["trigger_rate_raw"] = _row(
+        ws, r, "Trigger rate, raw/unconditional calc (eq. 6): payment*n/loan_amount*100",
+        formula=f'={ref["payment_amount"]}*{ref["n"]}/{ref["p0"]}*100',
+        fmt=RATE_FMT,
+        note="Always computed (matches the live workbook's own 'Other related calculations!D9' cell, "
+        "which has no product/rate-type gating at the formula level) -- see trigger_applies above for "
+        "whether this value is actually MEANINGFUL for the current Flow/Product/Rate type. "
+        "loan_amount here = P0 = the flow's current outstanding principal. Ratios stay unrounded per "
+        "this project's rounding policy; the number format above truncates display only.",
     )
     r += 1
     ref["trigger_rate"] = _row(
-        ws, r, "Trigger rate % (eq. 4 -- mortgage + variable only)",
-        formula=(
-            f'=IF({ref["trigger_applies"]}="Yes",'
-            f'ROUND({ref["payment_amount"]}*{ref["n"]}/{ref["p0"]}*100,4),"N/A")'
-        ),
-        fmt="0.0000",
-        note="total_borrowed = current outstanding balance = P0 above (== loan_amount for a brand-new "
-        "disbursal, == the current-balance input for existing/renewal/payment-change flows).",
-    )
-    r += 1
-    ref["term_end_whole_months"] = _row(
-        ws, r, "(helper) first_payment_date + term_total_months, whole-month date",
-        formula=(
-            f"=DATE(YEAR({ref['first_payment_date']})+INT((MONTH({ref['first_payment_date']})-1"
-            f"+{ref['term_total_months']})/12),MOD(MONTH({ref['first_payment_date']})-1"
-            f"+{ref['term_total_months']},12)+1,1)+(DAY({ref['first_payment_date']})-1)"
-        ),
-        fmt=DATE_FMT,
-        note="Explicit month-rollover arithmetic (not EDATE), matching this project's other date "
-        "formulas -- see docs/new-req/005.",
-    )
-    r += 1
-    ref["term_days"] = _row(
-        ws, r, "term_days (eq. 8, DISPLAY ONLY -- never feeds any monetary formula)",
-        formula=f"={ref['end_date']}-{ref['term_end_whole_months']}", fmt=NUM_FMT,
+        ws, r, "trigger_rate_percent (eq. 6 output -- mortgage + variable only, per spec)",
+        formula=f'=IF({ref["trigger_applies"]}="Yes",{ref["trigger_rate_raw"]},"N/A")',
+        fmt=RATE_FMT,
+        note="Spec 006: null/N/A for personal loans and fixed-rate mortgages -- this is the RESTRICTED "
+        "output field. See the raw/unconditional row above for the always-computed value.",
     )
     r += 1
     r += 1  # spacer
 
-    _section(ws, r, "Outputs -- scoped to the current contract term only")
+    _section(ws, r, "Outputs")
     r += 1
     return ws, ref, r, fee_first_row, fee_last_row
 
 
 def _finish_cob_ca_outputs(ws: Worksheet, ref: dict, r: int, sched_ranges: dict) -> dict:
-    """Second pass: writes the term-scoped output rows once the Schedule sheet's
-    (fixed) column layout is known, so these can reference real bounded ranges."""
+    """Second pass: writes the output rows once the Schedule sheet's (fixed) column
+    layout is known, so these can reference real bounded ranges."""
     counted_rng = sched_ranges["counted"]
-    interest_rng = sched_ranges["interest"]
+    date_rng = sched_ranges["date"]
+    opening_rng = sched_ranges["opening"]
+    interest_paid_rng = sched_ranges["interest_paid"]
+    fees_paid_rng = sched_ranges["fees_paid"]
+    principal_rng = sched_ranges["principal"]
     payment_rng = sched_ranges["payment"]
-    beginning_rng = sched_ranges["beginning"]
+    closing_rng = sched_ranges["closing"]
 
     ref["number_of_payments"] = _row(
         ws, r, "number_of_payments", formula=f"=COUNTIF({counted_rng},TRUE)", fmt=NUM_FMT,
     )
     r += 1
-    ref["total_payment"] = _row(
-        ws, r, "total_payment", formula=f"=SUMIFS({payment_rng},{counted_rng},TRUE)", fmt=MONEY_FMT,
+    ref["final_payment_date"] = _row(
+        ws, r, "final_payment_date (last row actually generated, eq. 7)",
+        formula=f"=INDEX({date_rng},{ref['number_of_payments']})", fmt=DATE_FMT,
     )
     r += 1
-    ref["total_interest"] = _row(
-        ws, r, "total_interest", formula=f"=SUMIFS({interest_rng},{counted_rng},TRUE)", fmt=MONEY_FMT,
+    ref["final_closing_balance"] = _row(
+        ws, r, "Final closing_balance (may be nonzero -- next flow's loan_amount input)",
+        formula=f"=INDEX({closing_rng},{ref['number_of_payments']})", fmt=MONEY_FMT,
     )
     r += 1
-    ref["principal_payment"] = _row(
-        ws, r, "principal_payment (== total_payment - total_interest, eq. 5)",
-        formula=f"={ref['total_payment']}-{ref['total_interest']}", fmt=MONEY_FMT,
+    ref["term_days"] = _row(
+        ws, r, "term_days (informational -- same day-count basis as T, doc 007 finding #7)",
+        formula=f"={ref['final_payment_date']}-{ref['start_date']}", fmt=NUM_FMT,
     )
     r += 1
-    ref["ending_balance_this_term"] = _row(
-        ws, r, "Ending balance at term maturity (next renewal's opening balance)",
-        formula=(
-            f"=IFERROR(INDEX({sched_ranges['ending']},MATCH({ref['term_periods']},"
-            f"{sched_ranges['periodnum']},0)),\"n/a\")"
-        ),
-        fmt=MONEY_FMT,
+    ref["T"] = _row(
+        ws, r, "T = term_days / 365 (eq. 7)",
+        formula=f"={ref['term_days']}/365", fmt="0.00000000",
     )
     r += 1
     ref["avg_outstanding_balance"] = _row(
-        ws, r, "P: average outstanding balance per period (eq. 6)",
+        ws, r, "P: average of each counted row's opening balance (eq. 7)",
         formula=(
             f"=IF({ref['number_of_payments']}=0,0,"
-            f"SUMPRODUCT(({counted_rng})*({beginning_rng}))/{ref['number_of_payments']})"
+            f"SUMPRODUCT(({counted_rng})*({opening_rng}))/{ref['number_of_payments']})"
         ),
         fmt=MONEY_FMT,
-        note="Average, across this term's counted periods, of the balance outstanding at the END of "
-        "each period BEFORE that period's payment is subtracted -- i.e. each period's beginning "
-        "balance (interest accrues on it before the payment is applied). Per Financial Consumer "
-        "Protection Framework Regulations SOR/2021-181 s.47(1).",
+    )
+    r += 1
+    ref["total_interest"] = _row(
+        ws, r, "total_interest (sum of interest_paid across counted rows)",
+        formula=f"=SUMIFS({interest_paid_rng},{counted_rng},TRUE)", fmt=MONEY_FMT,
+    )
+    r += 1
+    ref["fees_recovered"] = _row(
+        ws, r, "fees_recovered (sum of fees_paid, for invariant #2's reconciliation)",
+        formula=f"=SUMIFS({fees_paid_rng},{counted_rng},TRUE)", fmt=MONEY_FMT,
+    )
+    r += 1
+    ref["principal_payment"] = _row(
+        ws, r, "principal_payment (sum of principal_portion across counted rows)",
+        formula=f"=SUMIFS({principal_rng},{counted_rng},TRUE)", fmt=MONEY_FMT,
+    )
+    r += 1
+    ref["total_payment"] = _row(
+        ws, r, "total_payment (sum of each row's recorded payment, capped on an early full payoff row)",
+        formula=f"=SUMIFS({payment_rng},{counted_rng},TRUE)", fmt=MONEY_FMT,
+        note="Invariant #2: total_payment == total_interest + fees_recovered + principal_payment exactly "
+        "(within floating-point rounding).",
     )
     r += 1
     ref["cob_amount"] = _row(
-        ws, r, "cob_amount = total_interest + fees included in COB (eq. 7)",
-        formula=f"={ref['total_interest']}+{ref['total_fees_in_cob']}", fmt=MONEY_FMT,
+        ws, r, "cob_amount = total_interest + ALL fees, unconditionally (eq. 8)",
+        formula=f"={ref['total_interest']}+{ref['total_financed_fees']}+{ref['total_cash_fees']}",
+        fmt=MONEY_FMT,
     )
     r += 1
     ref["cob_rate"] = _row(
-        ws, r, "cob_rate_percent = (C/(T*P))*100 (eq. 6)",
+        ws, r, "cob_rate_percent (eq. 7 -- HARD SHORT-CIRCUIT when fees are $0, not a T/P limit)",
         formula=(
-            f"=IF(OR({ref['term_years_decimal']}=0,{ref['avg_outstanding_balance']}=0),\"n/a\","
-            f"ROUND({ref['cob_amount']}/({ref['term_years_decimal']}*{ref['avg_outstanding_balance']})*100,4))"
+            f"=IF({ref['total_financed_fees']}+{ref['total_cash_fees']}=0,{ref['calculated_rate']},"
+            f"IF(OR({ref['T']}=0,{ref['avg_outstanding_balance']}=0),\"n/a\","
+            f"{ref['cob_amount']}/({ref['T']}*{ref['avg_outstanding_balance']})*100))"
         ),
-        fmt="0.0000",
-        note="Regulatory average-outstanding-balance formula (Financial Consumer Protection Framework "
-        "Regulations SOR/2021-181 ss.47-48) -- deliberately NOT spec 002's IRR/actuarial APR solve.",
+        fmt=RATE_FMT,
+        note="Doc 007's 'Addendum: VBA macro source review' #1 (settled via the live macro's own "
+        "source): when total_financed_fees+total_cash_fees=0, cob_rate_percent = calculated_rate "
+        "DIRECTLY -- this is literal macro logic (`If finFee+nonFinFee=0 Then COBRate=aRate*100`, FCPFR "
+        "s.32), not an approximation, and NO choice of T/P reproduces this value as an identity from "
+        "the general C/(T*P) formula -- do not remove this branch to 'simplify.' Only when fees > 0 does "
+        "the general Financial Consumer Protection Framework Regulations SOR/2021-181 ss.47-48 formula "
+        "apply (T plain /365 per the macro's `totalYears = termDay/365`, not leap-adjusted; P = simple "
+        "unweighted average of opening balances). Unrounded per this project's rounding policy.",
     )
     r += 1
     r += 1  # spacer
     ws.cell(
         row=r, column=1,
         value=(
-            "Optional: COB_Calculator_CA_macros.bas (in this folder) adds a chart of the schedule "
-            "above plus a one-click disclosure-summary PDF export -- see COB-xlsx/MANUAL.md, "
-            "\"COB_CA macros\", for how to import it (requires saving this file as a "
-            "macro-enabled .xlsm; not required to use any of the formulas on this sheet)."
+            "Optional: COB_Calculator_CA_macros.bas (in this folder) is STALE against this rebuild -- it "
+            "hardcodes the PRIOR schedule's cell/column layout (COB_CA!B58, COB_CA!B65, an 8-column "
+            "A-H schedule) which no longer matches this sheet. Treat it as legacy/unused until it is "
+            "updated to match the layout below; none of the formulas on this sheet depend on it."
         ),
     ).font = NOTE_FONT
     return ref
@@ -480,30 +554,45 @@ def build_cob_ca_schedule_sheet(wb: Workbook, ref: dict):
     title_block(
         ws,
         "COB_CA amortization schedule (computed) -- do not edit",
-        f"One row per period within the CURRENT CONTRACT TERM ONLY (not the full amortization) -- "
-        f"bounded to {MAX_CA_TERM_ROWS} rows. Rows past the term's own length (COB_CA!{ref['term_periods']}) "
-        "freeze at the term's own ending balance; rows past an early full payoff (rare -- only if "
-        "remaining amortization is shorter than the term) read $0, same self-stabilizing technique used "
-        "throughout COB_Calculator.xlsx (see docs/new-req/005).",
+        f"One row per payment_frequency period from first_payment_date, bounded to "
+        f"{MAX_CA_SCHEDULE_ROWS} rows. A row is 'counted' (column O) only if its own opening balance is "
+        "still positive AND its date is on or before end_date (eq. 5, INCLUSIVE of end_date per doc 007's "
+        "VBA macro source review) -- rows past that point freeze at $0/FALSE, the same self-stabilizing "
+        "technique used throughout this project (see docs/new-req/005). Interest (column E) is "
+        "day-count-prorated (eq. 3), matching the live macro's getRate algorithm bit-for-bit: leap-year "
+        "periods are split 365/366 at the Jan-1 boundary (the segment before Jan 1 uses the PRIOR year's "
+        "day-count divisor, the segment from Jan 1 onward uses the NEW year's), but this formula assumes a "
+        "period never spans more than one such boundary -- true for every payment_frequency this engine "
+        "supports (max ~31 days/period), but a documented simplification, not a fully general multi-year "
+        "day-count routine. Values are NOT rounded to cents at each row (matching the live Alterna "
+        "workbook's own full-precision behavior, confirmed "
+        "in doc 007's worked vector) -- only cell display formats truncate for readability.",
     )
 
-    headers = ["Period #", "Period Date", "Beginning Balance", "Interest", "Principal", "Payment",
-               "Ending Balance", "Counted in term totals?"]
+    headers = [
+        "Period #", "Period Date", "Days in Period", "Opening Balance", "Period Interest",
+        "Accrued Int. (Opening)", "Fees (Opening)", "Payment Amount", "Interest Paid", "Fees Paid",
+        "Principal Portion", "Accrued Int. (Closing)", "Fees (Closing)", "Closing Balance",
+        "Counted in totals?",
+    ]
     header_row = 4
     for i, h in enumerate(headers, start=1):
         ws.cell(row=header_row, column=i, value=h)
     style_header_row(ws, header_row, 1, len(headers))
     first_data_row = header_row + 1
-    last_data_row = first_data_row + MAX_CA_TERM_ROWS - 1
+    last_data_row = first_data_row + MAX_CA_SCHEDULE_ROWS - 1
 
     p0 = xref("COB_CA", ref["p0"])
-    i_period = xref("COB_CA", ref["i_period"])
+    calculated_rate = xref("COB_CA", ref["calculated_rate"])
     payment_amount = xref("COB_CA", ref["payment_amount"])
-    term_periods = xref("COB_CA", ref["term_periods"])
+    end_date = xref("COB_CA", ref["end_date"])
     first_payment_date = xref("COB_CA", ref["first_payment_date"])
+    start_date = xref("COB_CA", ref["start_date"])
+    accrued_initial = xref("COB_CA", ref["accrued_initial"])
+    fees_initial = xref("COB_CA", ref["fees_to_recover_initial"])
     n_per_year = xref("COB_CA", ref["n"])
 
-    for i in range(MAX_CA_TERM_ROWS):
+    for i in range(MAX_CA_SCHEDULE_ROWS):
         rr = first_data_row + i
         period_num = i + 1
         prev_rr = rr - 1
@@ -512,8 +601,9 @@ def build_cob_ca_schedule_sheet(wb: Workbook, ref: dict):
 
         # Period date: explicit month/day-count stepping matching the rest of the
         # project's date arithmetic (see docs/new-req/005) -- monthly/semiMonthly use
-        # whole-month rollover, biweekly/weekly use exact day steps. months_per_period
-        # = 12/n for monthly-family cadences; biweekly/weekly step by exact days.
+        # whole-month rollover (semiMonthly is an approximation: 365.25/24 days/period
+        # on average, a pre-existing simplification carried over from the prior draft,
+        # not new to this rebuild), biweekly/weekly step by exact days.
         ws.cell(
             row=rr, column=2,
             value=(
@@ -527,52 +617,92 @@ def build_cob_ca_schedule_sheet(wb: Workbook, ref: dict):
         )
         ws.cell(row=rr, column=2).number_format = DATE_FMT
 
-        beginning_expr = p0 if period_num == 1 else f"G{prev_rr}"
-        within_term_expr = f"({'A' + str(rr)}<={term_periods})"
+        this_date_expr = f"B{rr}"
+        prior_date_expr = start_date if period_num == 1 else f"B{prev_rr}"
 
-        ws.cell(row=rr, column=3, value=f"={beginning_expr}")
-        ws.cell(row=rr, column=3).number_format = MONEY_FMT
+        ws.cell(row=rr, column=3, value=f"={this_date_expr}-{prior_date_expr}")
+        ws.cell(row=rr, column=3).number_format = NUM_FMT
 
-        interest_expr = f"IF({within_term_expr},ROUND(C{rr}*{i_period},2),0)"
-        ws.cell(row=rr, column=4, value=f"={interest_expr}")
+        opening_expr = p0 if period_num == 1 else f"N{prev_rr}"
+        ws.cell(row=rr, column=4, value=f"={opening_expr}")
         ws.cell(row=rr, column=4).number_format = MONEY_FMT
 
-        would_payoff_expr = f"AND({within_term_expr},ROUND(C{rr}-ROUND({payment_amount}-D{rr},2),2)<=0)"
-        principal_expr = f"IF({within_term_expr},IF({would_payoff_expr},C{rr},ROUND({payment_amount}-D{rr},2)),0)"
-        ws.cell(row=rr, column=5, value=f"={principal_expr}")
+        factor_expr = _day_count_factor_expr(prior_date_expr, this_date_expr)
+        ws.cell(row=rr, column=5, value=f"=D{rr}*{calculated_rate}/100*({factor_expr})")
         ws.cell(row=rr, column=5).number_format = MONEY_FMT
 
-        payment_expr = f"IF({within_term_expr},IF({would_payoff_expr},ROUND(D{rr}+E{rr},2),{payment_amount}),0)"
-        ws.cell(row=rr, column=6, value=f"={payment_expr}")
+        accrued_open_expr = accrued_initial if period_num == 1 else f"L{prev_rr}"
+        ws.cell(row=rr, column=6, value=f"={accrued_open_expr}")
         ws.cell(row=rr, column=6).number_format = MONEY_FMT
 
-        ending_expr = f"IF({within_term_expr},IF({would_payoff_expr},0,ROUND(C{rr}-E{rr},2)),C{rr})"
-        ws.cell(row=rr, column=7, value=f"={ending_expr}")
+        fees_open_expr = fees_initial if period_num == 1 else f"M{prev_rr}"
+        ws.cell(row=rr, column=7, value=f"={fees_open_expr}")
         ws.cell(row=rr, column=7).number_format = MONEY_FMT
 
-        # H column stores a plain "is the loan still genuinely being paid" flag
-        # combined with the term bound, exactly mirroring the main workbook's
-        # IsActive column (build_workbook.py's Schedule sheet) plus one extra AND
-        # for the term-length clamp.
-        if period_num == 1:
-            counted_expr = f"={within_term_expr}"
-        else:
-            counted_expr = f"=AND(H{prev_rr},C{prev_rr}>0,{within_term_expr})"
-        ws.cell(row=rr, column=8, value=counted_expr)
+        # -- Waterfall (eq. 4): interest (own + carried accrued) -> fees -> principal.
+        total_interest_due = f"(E{rr}+F{rr})"
+        ws.cell(row=rr, column=9, value=f"=MIN({payment_amount},{total_interest_due})")  # interest_paid
+        ws.cell(row=rr, column=9).number_format = MONEY_FMT
 
-        for c in range(1, 9):
+        remaining_after_interest = f"({payment_amount}-I{rr})"
+        ws.cell(row=rr, column=10, value=f"=MIN({remaining_after_interest},G{rr})")  # fees_paid
+        ws.cell(row=rr, column=10).number_format = MONEY_FMT
+
+        remaining_after_fees = f"({remaining_after_interest}-J{rr})"
+        ws.cell(row=rr, column=11, value=f"=MIN({remaining_after_fees},D{rr})")  # principal_portion
+        ws.cell(row=rr, column=11).number_format = MONEY_FMT
+
+        # Payment Amount (H): this flow's constant payment_amount, EXCEPT capped down
+        # on an early full-payoff row (remaining_after_fees would exceed the opening
+        # balance) so invariant #2's reconciliation (total_payment == total_interest +
+        # fees_recovered + principal_payment) holds exactly rather than "leaking" the
+        # uncollected overpayment.
+        would_full_payoff = f"({remaining_after_fees}>D{rr})"
+        ws.cell(row=rr, column=8, value=f"=IF({would_full_payoff},I{rr}+J{rr}+K{rr},{payment_amount})")
+        ws.cell(row=rr, column=8).number_format = MONEY_FMT
+
+        ws.cell(row=rr, column=12, value=f"=E{rr}+F{rr}-I{rr}")  # carried_accrued_interest_closing
+        ws.cell(row=rr, column=12).number_format = MONEY_FMT
+
+        ws.cell(row=rr, column=13, value=f"=G{rr}-J{rr}")  # fees_closing
+        ws.cell(row=rr, column=13).number_format = MONEY_FMT
+
+        ws.cell(row=rr, column=14, value=f"=D{rr}-K{rr}")  # closing_balance
+        ws.cell(row=rr, column=14).number_format = MONEY_FMT
+
+        # Counted (eq. 5 stop condition, INCLUSIVE of end_date -- doc 007's "Addendum:
+        # VBA macro source review" #4, matching the live macro's own
+        # `DateDiff("d", endDate, candidateDate) > 0` exit check): a row landing
+        # exactly ON end_date IS generated/counted; only a candidate date strictly
+        # AFTER end_date is excluded (hence <= here, not <). This row's own opening
+        # balance must also still be positive (i.e. the prior row hadn't already
+        # fully paid off). Both conditions are monotonic across the schedule (balance
+        # never resurrects from 0, dates only increase), so TRUE rows always form a
+        # contiguous prefix starting at row 1 -- see build_cob_ca_schedule
+        # docstring/comment for why INDEX(range, number_of_payments) is valid below.
+        ws.cell(row=rr, column=15, value=f"=AND(D{rr}>0,{this_date_expr}<={end_date})")
+
+        for c in range(1, 16):
             ws.cell(row=rr, column=c).font = FORMULA_FONT
 
-    set_col_widths(ws, {"A": 10, "B": 14, "C": 16, "D": 13, "E": 13, "F": 13, "G": 16, "H": 14})
+    set_col_widths(
+        ws,
+        {
+            "A": 9, "B": 13, "C": 11, "D": 15, "E": 13, "F": 14, "G": 12, "H": 13, "I": 12, "J": 11,
+            "K": 13, "L": 14, "M": 12, "N": 15, "O": 12,
+        },
+    )
     ws.freeze_panes = ws.cell(row=first_data_row, column=2).coordinate
 
     sched_ranges = {
-        "periodnum": f"COB_CA_Schedule!$A${first_data_row}:$A${last_data_row}",
-        "beginning": f"COB_CA_Schedule!$C${first_data_row}:$C${last_data_row}",
-        "interest": f"COB_CA_Schedule!$D${first_data_row}:$D${last_data_row}",
-        "payment": f"COB_CA_Schedule!$F${first_data_row}:$F${last_data_row}",
-        "ending": f"COB_CA_Schedule!$G${first_data_row}:$G${last_data_row}",
-        "counted": f"COB_CA_Schedule!$H${first_data_row}:$H${last_data_row}",
+        "date": f"COB_CA_Schedule!$B${first_data_row}:$B${last_data_row}",
+        "opening": f"COB_CA_Schedule!$D${first_data_row}:$D${last_data_row}",
+        "payment": f"COB_CA_Schedule!$H${first_data_row}:$H${last_data_row}",
+        "interest_paid": f"COB_CA_Schedule!$I${first_data_row}:$I${last_data_row}",
+        "fees_paid": f"COB_CA_Schedule!$J${first_data_row}:$J${last_data_row}",
+        "principal": f"COB_CA_Schedule!$K${first_data_row}:$K${last_data_row}",
+        "closing": f"COB_CA_Schedule!$N${first_data_row}:$N${last_data_row}",
+        "counted": f"COB_CA_Schedule!$O${first_data_row}:$O${last_data_row}",
     }
     return ws, sched_ranges
 
@@ -600,15 +730,15 @@ if __name__ == "__main__":
         wb.remove(wb.active)
 
     ws_ca, ref, r_after_fees, fee_first_row, fee_last_row = build_cob_ca_sheet(wb)
-    # Schedule sheet needs ref (P0/i_period/payment_amount/term_periods/etc.) built
-    # above; COB_CA's own term-scoped OUTPUT rows need the Schedule sheet's bounded
-    # ranges, which need the Schedule sheet built. Two-pass: build Schedule using the
-    # partial ref dict (it only needs the derived-quantity cells, already written),
-    # then come back and finish COB_CA's output rows using the Schedule ranges.
+    # Schedule sheet needs ref (P0/calculated_rate/payment_amount/start_date/etc.) built
+    # above; COB_CA's own OUTPUT rows need the Schedule sheet's bounded ranges, which
+    # need the Schedule sheet built. Two-pass: build Schedule using the partial ref dict
+    # (it only needs the derived-quantity cells, already written), then come back and
+    # finish COB_CA's output rows using the Schedule ranges.
     ws_sched, sched_ranges = build_cob_ca_schedule_sheet(wb, ref)
     ref = _finish_cob_ca_outputs(ws_ca, ref, r_after_fees, sched_ranges)
 
-    set_col_widths(ws_ca, {"A": 55, "B": 18, "C": 46, "D": 14, "E": 12})
+    set_col_widths(ws_ca, {"A": 62, "B": 18, "C": 46, "D": 14, "E": 12})
 
     _scrub_empty_string_cells(wb)
     wb.save(out_path)

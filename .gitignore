@@ -1,1 +1,7 @@
 .DS_Store
+
+# Client source documents (BRD and live workbook) -- never publish; see CLAUDE.md
+docs/*.docx
+docs/*.xlsm
+~$*
+__pycache__/

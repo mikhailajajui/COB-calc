@@ -46,14 +46,18 @@ export {
 } from './ca/fees.js';
 export type { Fee, FeeSchedule } from './ca/fees.js';
 export {
-  calculateTermDaysDisplay,
+  applyPaymentWaterfall,
+  calculatedRate,
   cobAmount,
   cobRatePercent,
-  periodicRateFromNominalPerPeriod,
-  periodicRateFromSemiAnnualNominal,
-  totalPeriodsFromYearsMonths,
+  costOfBorrowingRatePercent,
+  dayCountFraction,
+  daysBetween,
+  periodInterest,
+  selectCompoundingPeriodsPerYear,
   triggerRatePercent,
 } from './ca/equations.js';
+export type { PaymentWaterfallResult } from './ca/equations.js';
 
 export type {
   Segment,

@@ -4,17 +4,16 @@ import type { CobCanadaInput } from '../../src/ca/types.js';
 
 function baseInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
   return {
-    flow: 'newMortgage',
+    flow: 'newMortgageOrLoan',
     productType: 'mortgage',
     rateType: 'fixed',
     loanAmount: 500000,
     fees: { fees: [] },
     contractRatePercent: 5,
+    paymentAmount: 2908.02,
     paymentFrequency: 'monthly',
     termYears: 5,
     termMonths: 0,
-    remainingAmortizationYears: 25,
-    remainingAmortizationMonths: 0,
     firstPaymentDate: new Date('2024-02-01'),
     endDate: new Date('2029-01-01'),
     disbursalDate: new Date('2024-01-01'),
@@ -24,24 +23,29 @@ function baseInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
 }
 
 describe('validateCobCanadaInput', () => {
-  it('happy path: a well-formed new-mortgage input passes', () => {
+  it('happy path: a well-formed newMortgageOrLoan input passes', () => {
     expect(() => validateCobCanadaInput(baseInput())).not.toThrow();
   });
 
-  it('edge case: term exactly equal to remaining amortization is allowed (boundary)', () => {
+  it('happy path: a well-formed renewal input (with accruedInterest) passes', () => {
     expect(() =>
-      validateCobCanadaInput(baseInput({ termYears: 25, remainingAmortizationYears: 25 })),
+      validateCobCanadaInput(
+        baseInput({
+          flow: 'renewal',
+          disbursalDate: undefined,
+          renewalDate: new Date('2024-01-01'),
+          accruedInterest: 250,
+        }),
+      ),
     ).not.toThrow();
-  });
-
-  it('throws RangeError when the term exceeds the remaining amortization', () => {
-    expect(() =>
-      validateCobCanadaInput(baseInput({ termYears: 26, remainingAmortizationYears: 25 })),
-    ).toThrow(RangeError);
   });
 
   it('throws RangeError on non-positive loanAmount', () => {
     expect(() => validateCobCanadaInput(baseInput({ loanAmount: 0 }))).toThrow(RangeError);
+  });
+
+  it('throws RangeError on non-positive paymentAmount', () => {
+    expect(() => validateCobCanadaInput(baseInput({ paymentAmount: 0 }))).toThrow(RangeError);
   });
 
   it('throws RangeError when term_years/term_months are both 0', () => {
@@ -54,30 +58,57 @@ describe('validateCobCanadaInput', () => {
     ).toThrow(RangeError);
   });
 
-  it("throws RangeError when flow 'newMortgage' is combined with productType 'personalLoan'", () => {
-    expect(() => validateCobCanadaInput(baseInput({ productType: 'personalLoan' }))).toThrow(RangeError);
+  it('does NOT require productType mortgage for flow newMortgageOrLoan -- flow no longer implies product type', () => {
+    expect(() => validateCobCanadaInput(baseInput({ productType: 'personalLoan' }))).not.toThrow();
   });
 
   it("throws RangeError when flow 'variableRatePaymentChange' isn't mortgage+variable", () => {
     expect(() =>
       validateCobCanadaInput(
-        baseInput({ flow: 'variableRatePaymentChange', rateType: 'fixed', renewalDate: new Date('2029-01-01') }),
+        baseInput({
+          flow: 'variableRatePaymentChange',
+          rateType: 'fixed',
+          disbursalDate: undefined,
+          renewalDate: new Date('2024-01-01'),
+        }),
       ),
     ).toThrow(RangeError);
   });
 
-  it('throws RangeError when a new flow is missing disbursalDate', () => {
+  it("allows flow 'variableRatePaymentChange' when mortgage+variable", () => {
+    expect(() =>
+      validateCobCanadaInput(
+        baseInput({
+          flow: 'variableRatePaymentChange',
+          rateType: 'variable',
+          semiAnnualCompoundingDate: undefined,
+          disbursalDate: undefined,
+          renewalDate: new Date('2024-01-01'),
+        }),
+      ),
+    ).not.toThrow();
+  });
+
+  it('throws RangeError when a newMortgageOrLoan flow is missing disbursalDate', () => {
     const input = baseInput();
     delete (input as { disbursalDate?: Date }).disbursalDate;
     expect(() => validateCobCanadaInput(input)).toThrow(RangeError);
   });
 
-  it('throws RangeError when an existing flow is missing renewalDate', () => {
+  it('throws RangeError when a renewal flow is missing renewalDate', () => {
     expect(() =>
-      validateCobCanadaInput(
-        baseInput({ flow: 'existingMortgage', disbursalDate: undefined, accruedInterest: 100 }),
-      ),
+      validateCobCanadaInput(baseInput({ flow: 'renewal', disbursalDate: undefined, accruedInterest: 100 })),
     ).toThrow(RangeError);
+  });
+
+  it('throws RangeError when disbursalDate is after firstPaymentDate', () => {
+    expect(() =>
+      validateCobCanadaInput(baseInput({ disbursalDate: new Date('2024-03-01') })),
+    ).toThrow(RangeError);
+  });
+
+  it('throws RangeError when endDate is not after firstPaymentDate', () => {
+    expect(() => validateCobCanadaInput(baseInput({ endDate: new Date('2024-02-01') }))).toThrow(RangeError);
   });
 
   it('throws RangeError when a fixed-rate mortgage is missing semiAnnualCompoundingDate', () => {
@@ -89,6 +120,14 @@ describe('validateCobCanadaInput', () => {
   it('does not require semiAnnualCompoundingDate for a variable-rate mortgage', () => {
     expect(() =>
       validateCobCanadaInput(baseInput({ rateType: 'variable', semiAnnualCompoundingDate: undefined })),
+    ).not.toThrow();
+  });
+
+  it('does not require semiAnnualCompoundingDate for a personal loan', () => {
+    expect(() =>
+      validateCobCanadaInput(
+        baseInput({ productType: 'personalLoan', semiAnnualCompoundingDate: undefined }),
+      ),
     ).not.toThrow();
   });
 

@@ -19,19 +19,21 @@ class Fee:
     # False (default): paid out-of-pocket at closing, reduces the amount financed.
     # True: added to the loan principal instead (VA funding fee, upfront FHA MIP).
     financed: bool = False
-    # Independent second axis, added for docs/new-req/006-cost-of-borrowing-disclosure.md
-    # (Canadian COB engine): does this fee count toward the *regulatory*
-    # cost-of-borrowing dollar amount (Financial Consumer Protection Framework
-    # Regulations s. 48)? This is NOT the same question as `financed` -- e.g. a
-    # financed mortgage-default-insurance premium is still excluded from COB, while a
-    # cash-paid appraisal fee can still be included. Defaults to `None` ("unset")
-    # rather than `True`/`False` on purpose: spec 002's US callers (apr.py) never read
-    # this field and are completely unaffected either way, but a Canadian flow
-    # constructing a Fee must set it explicitly -- silently defaulting to `True` would
-    # pull regulation-excluded categories into cob_amount, and defaulting to `False`
-    # would silently drop includable ones. cob_canada.py's own validation enforces
-    # "required in practice" for Canadian flows; this dataclass stays optional for
-    # backward compatibility.
+    # Independent second axis, originally added for
+    # docs/new-req/006-cost-of-borrowing-disclosure.md's first draft: does this fee
+    # count toward a *regulatory* cost-of-borrowing dollar amount (Financial Consumer
+    # Protection Framework Regulations s. 48)? NOT the same question as `financed` --
+    # e.g. a financed mortgage-default-insurance premium could be excluded from COB
+    # while a cash-paid appraisal fee is included.
+    #
+    # UNUSED by cob_canada.py as of the spec's reconciliation against the real Alterna
+    # Savings BRD (docs/new-req/007-cob-canada-brd-reconciliation.md, finding #6): the
+    # real application includes ALL fees (financed and cash) in cob_amount
+    # unconditionally, with no regulatory filtering, so cob_canada.py never reads this
+    # field. It stays on this shared dataclass, optional and unenforced, only for
+    # backward compatibility / a possible future, more general Canadian-disclosure
+    # engine that might want FCPFR-style filtering -- not for the current Canadian COB
+    # calculator.
     included_in_cob: Optional[bool] = None
 
     def __post_init__(self) -> None:

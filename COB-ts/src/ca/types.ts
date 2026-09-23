@@ -2,42 +2,30 @@ import type { PaymentFrequency } from '../types.js';
 import type { FeeSchedule } from './fees.js';
 
 /**
- * Canadian Cost of Borrowing (COB) disclosure engine -- a new sibling module to the
+ * Canadian Cost of Borrowing (COB) disclosure engine -- a sibling module to the
  * existing US-style engine (src/payment.ts, src/segment.ts, src/mortgage.ts), per
- * docs/new-req/006-cost-of-borrowing-disclosure.md's "Open questions" -> target-module
- * resolution: the monthly-compounding assumption is hardcoded independently in at
- * least three US-engine files, the output aggregation contract is different (US
- * LoanSummary spans a whole stitched multi-segment schedule; this module's outputs are
- * scoped to just the current contract term), and there's no US concept of trigger rate
- * or contract-term-vs-amortization split. This module does not stitch into
- * segment.ts/mortgage.ts -- that integration is explicitly out of scope for spec 006.
+ * docs/new-req/006-cost-of-borrowing-disclosure.md (rewritten per doc 007's BRD
+ * reconciliation against the real Alterna Savings requirements/workbook). This module
+ * does not stitch into segment.ts/mortgage.ts -- that integration is explicitly out of
+ * scope for spec 006.
  */
 
 /**
- * The six dropdown-driven flows from spec 006's "Presentation layer" table. Determines
- * which date field is required (pre-approval vs renewal), whether accrued interest
- * carries forward, and whether a trigger rate is computed -- see
- * flowComputesTriggerRate in cobCanada.ts for the exact table.
+ * The four dropdown-driven flows from spec 006's "Presentation layer" table (docx
+ * IN-01, collapsed from an earlier six-value draft per doc 007 finding #9 -- product
+ * type, IN-03, is already a separate, orthogonal dropdown that applies identically
+ * across all four). Determines which date field is required (disbursal vs renewal),
+ * whether accrued interest carries forward, and (jointly with productType/rateType)
+ * whether a trigger rate is computed.
  */
-export type CobFlow =
-  | 'newMortgage'
-  | 'newLoan'
-  | 'existingMortgage'
-  | 'existingLoan'
-  | 'paymentChange'
-  | 'variableRatePaymentChange';
+export type CobFlow = 'newMortgageOrLoan' | 'renewal' | 'paymentChange' | 'variableRatePaymentChange';
 
 export type ProductType = 'mortgage' | 'personalLoan';
 export type RateType = 'variable' | 'fixed';
 
-/**
- * Payments/year per payment frequency. Re-declared here (rather than imported from
- * paymentFrequency.ts's private FREQUENCY_CONFIG) because this module derives a
- * genuine annuity at the periodic cadence directly from equations 1-3, unlike
- * paymentFrequency.ts's "pay half the monthly payment every 2 weeks" acceleration
- * model -- the two modules don't share a config shape worth factoring out, only the
- * underlying payments-per-year counts (12/24/26/52), which are standard.
- */
+/** Payments/year per payment frequency -- standard counts (12/24/26/52), used
+ *  throughout equations 1-8. "Accelerated Weekly" (BR-09) is treated identically to
+ *  plain Weekly for rate/day-count purposes, so there is no separate enum value. */
 export const PAYMENTS_PER_YEAR: Record<PaymentFrequency, number> = {
   monthly: 12,
   semiMonthly: 24,
@@ -50,103 +38,128 @@ export interface CobCanadaInput {
   productType: ProductType;
   rateType: RateType;
 
-  /** spec: loan_amount -- face/contract amount for new flows, or the CURRENT
-   *  outstanding balance for existing/payment-change flows (the prior term's final
-   *  schedule row's remainingBalance -- see CobCanadaResult.endingBalance). */
+  /** spec: loan_amount -- face amount, ALREADY INCLUSIVE of any financed fees
+   *  (IN-02). For renewal/paymentChange/variableRatePaymentChange flows this is the
+   *  CURRENT outstanding balance (the prior term's final closing_balance), not the
+   *  original disbursed amount -- see doc 007 finding #4. */
   loanAmount: number;
   fees: FeeSchedule;
   /** spec: contract_rate_percent -- nominal annual, a percent number (6 means 6%, per
    *  this project's percent-rate convention). */
   contractRatePercent: number;
+  /** spec: payment_amount -- USER-ENTERED, present in EVERY flow (IN-08). Never
+   *  derived by this engine (doc 007 finding #1); constant across every scheduled
+   *  payment for the flow being computed. */
+  paymentAmount: number;
   paymentFrequency: PaymentFrequency;
 
-  /** spec: term_years / term_months -- the CONTRACT TERM (renewable,
-   *  user-customizable -- commonly 3 or 5 years but not restricted to those values),
-   *  distinct from the amortization period. */
-  termYears: number;
-  termMonths: number;
-  /** spec: remaining_amortization_years / remaining_amortization_months -- what's left
-   *  of the full payoff horizon at the start of THIS contract term. Equals the full
-   *  requested amortization for new-flow inputs; shorter than the original for
-   *  existing/renewal flows. */
-  remainingAmortizationYears: number;
-  remainingAmortizationMonths: number;
-
   firstPaymentDate: Date;
-  /** spec: end_date -- maturity/renewal date of THIS contract term, NOT the
-   *  amortization payoff date. */
+  /** spec: end_date (IN-13) -- the date the schedule is run to. The schedule stops at
+   *  the last scheduled row before this date is reached, or when closing_balance
+   *  reaches zero, whichever comes first -- see cobCanada.ts's schedule generator.
+   *  There is no amortization-horizon concept in this engine (doc 007 finding #2). */
   endDate: Date;
 
-  /** new mortgage / new loan only. */
+  /** term_years / term_months -- DISPLAY ONLY. Informational contract-term length;
+   *  does not drive the schedule (end_date does) and does not feed any monetary
+   *  output. */
+  termYears: number;
+  termMonths: number;
+
+  /** newMortgageOrLoan ONLY -- start of interest accrual and this flow's start_date
+   *  for the cob_rate_percent equation's T. */
   disbursalDate?: Date;
-  /** new mortgage / new loan only -- display metadata, not read by any equation. */
-  preApprovalDate?: Date;
-  /** existing mortgage / existing loan / payment change / variable rate payment
-   *  change only. */
+  /** renewal / paymentChange / variableRatePaymentChange ONLY -- this flow's
+   *  start_date, same role as disbursalDate for a new flow. */
   renewalDate?: Date;
-  /** existing/renewal flows: interest accrued since the last payment, carried into
-   *  this calculation. Capitalized into this term's opening balance alongside
-   *  financed fees -- a documented judgment call mirroring the COB-xlsx reference
-   *  implementation's treatment (spec 006 doesn't pin down accrued-interest mechanics
-   *  beyond "carried into this calculation" -- see cobCanada.ts). Defaults to 0 when
-   *  omitted, and is ignored entirely for new flows. */
+  /** renewal/paymentChange/variableRatePaymentChange flows: interest accrued since
+   *  the last payment, carried into this calculation as the schedule's initial
+   *  carriedAccruedInterest (equation 4) -- NOT added to loanAmount or the schedule's
+   *  opening balance (doc 007 finding #5). Defaults to 0 when omitted, and is ignored
+   *  entirely for newMortgageOrLoan (always starts at 0 for that flow). */
   accruedInterest?: number;
-  /** fixed-rate mortgages only -- display/reference anchor for equation 1's
-   *  semi-annual conversion; does not change the conversion itself. */
+  /** fixed-rate mortgages only -- display/reference anchor for the semi-annual
+   *  compounding conversion (equation 1); does not change the conversion itself. */
   semiAnnualCompoundingDate?: Date;
 }
 
 export interface CobScheduleRow {
-  /** 1-based, within this term's schedule only (not a global/cross-renewal number). */
-  periodNumber: number;
-  periodDate: Date;
-  /** The balance this row's interest accrues on, before this row's payment is
-   *  applied -- equation 6's P averages this column across the term, per the
-   *  Financial Consumer Protection Framework Regulations s.47(1) wording ("principal
-   *  outstanding ... before subtracting the payment due at that time"). */
-  beginningBalance: number;
+  /** 1-based, within this schedule only. */
+  period: number;
+  /** This row's payment date. */
+  date: Date;
+  /** Actual calendar days since the prior row's date (or since start_date for the
+   *  first row) -- feeds period_interest (equation 3). */
+  daysInPeriod: number;
+  openingBalance: number;
+  /** openingBalance x calculated_rate x (days_in_period / 365), split across a
+   *  leap-year boundary if the period straddles one (equation 3). */
+  periodInterest: number;
+  /** Unrecovered accrued interest entering this row (0 once fully recovered, always
+   *  0 for newMortgageOrLoan flows). */
+  carriedAccruedInterestOpening: number;
+  /** feesToRecover balance entering this row. */
+  feesOpening: number;
+  /** This flow's constant payment_amount. */
   paymentAmount: number;
-  interestPortion: number;
+  /** Portion of the payment applied to period_interest + carried accrued interest
+   *  (waterfall step 1, equation 4). */
+  interestPaid: number;
+  /** Portion applied to feesOpening (waterfall step 2). */
+  feesPaid: number;
+  /** Remainder, applied to openingBalance (waterfall step 3). */
   principalPortion: number;
-  remainingBalance: number;
+  carriedAccruedInterestClosing: number;
+  feesClosing: number;
+  closingBalance: number;
 }
 
 export interface CobCanadaResult {
-  /** Always computed, never a direct input, across every flow (spec 006, "Data
-   *  shapes") -- solved via the annuity formula (equation 3) using
-   *  remainingAmortization* as n. */
-  paymentAmount: number;
-  /** spec: cob_amount (equation 7). */
+  /** docx OUT-01 ("Semi-Annual Compounding Rate") -- the frequency-equivalent
+   *  nominal rate equations 1/2 derive from contractRatePercent (e.g. 3.74% at m=2,
+   *  n=52 -> 3.706781471105014%). Was computed and used internally (periodInterest,
+   *  costOfBorrowingRatePercent's short-circuit) but not previously exposed here. */
+  calculatedRatePercent: number;
+  /** spec: cob_amount (equation 8) -- total_interest + all fees, unconditionally. */
   cobAmount: number;
-  /** spec: cob_rate_percent -- this project's Canadian equivalent of APR (equation 6).
-   *  A ratio, left unrounded per this project's rounding policy. */
+  /** spec: cob_rate_percent -- this project's Canadian equivalent of APR
+   *  (equation 7). A ratio, left unrounded per this project's rounding policy. */
   cobRatePercent: number;
-  /** Scoped to the current contract term, not the full amortization. */
+  /** Total of all scheduled payments actually generated. */
   totalPayment: number;
+  /** Total count of scheduled payments actually generated (bounded by end_date --
+   *  see "Schedule generation"). */
   numberOfPayments: number;
+  /** Sum of interest_paid across every row -- includes any recovered accrued
+   *  interest, per equation 4. */
   totalInterest: number;
+  /** Sum of principal_portion across every row. principal_payment ==
+   *  total_payment - total_interest - fees_recovered (invariant #2). */
   principalPayment: number;
-  /** mortgage + variable-rate only; null for personal loans and fixed-rate mortgages
-   *  (equation 4, invariant #1). A ratio, left unrounded. */
+  /** Sum of fees_paid across every row -- new in this rewrite (invariant #2's
+   *  three-bucket reconciliation). */
+  feesRecovered: number;
+  /** mortgage + variable-rate only; null for personal loans and fixed-rate
+   *  mortgages (equation 6, invariant #1). A ratio, left unrounded. */
   triggerRatePercent: number | null;
-  /** Scoped to the current contract term. The final row's remainingBalance is exposed
-   *  separately as endingBalance below -- what a follow-on renewal call would pass in
-   *  as its loanAmount (no automatic cross-call chaining is implemented). */
   amortizationSchedule: CobScheduleRow[];
-  /** spec: term_days -- DISPLAY ONLY, derived from the term's start reference date +
-   *  term_years/term_months. Never read back into any monetary calculation
-   *  (invariant #4). */
+  /** spec: term_days -- computed the SAME way as T in the cob_rate_percent equation
+   *  (start_date to final_payment_date, actual days) rather than derived
+   *  independently from term_years/term_months (doc 007 finding #7). Unlike the
+   *  prior model, this DOES feed a monetary output (cob_rate_percent's T), so it is
+   *  no longer purely cosmetic. */
   termDays: number;
-  /** loanAmount + fees.totalFinancedFees - fees.totalCashFees ("Financed fees",
-   *  Conditional calculation paths) -- what's actually disbursed on a NEW mortgage/
-   *  loan. Still computed (for completeness) on existing/renewal flows, though nothing
-   *  is freshly disbursed there. */
+  /** loanAmount - fees.totalFinancedFees -- the actual cash advanced. Cash
+   *  (non-financed) fees do NOT reduce disbursal (doc 007 finding #4). Still
+   *  computed (for completeness) on renewal/paymentChange flows, though nothing is
+   *  freshly disbursed there. */
   disbursalAmount: number;
-  /** loanAmount + fees.totalFinancedFees (+ accruedInterest for existing/renewal
-   *  flows) -- the P0 that paymentAmount, totalInterest, and equation 6's average
-   *  balance are all computed against. */
+  /** == loanAmount, always (doc 007 finding #4) -- financing a fee does not change
+   *  this figure at all, it only changes how much of loanAmount is cash vs fee.
+   *  Exposed for completeness/renewal-chaining convenience. */
   amortizedPrincipal: number;
-  /** amortizationSchedule's last row's remainingBalance -- what a follow-on
-   *  "existing"/"payment change" call would use as its loanAmount input. */
+  /** amortizationSchedule's last row's closingBalance -- commonly nonzero (the
+   *  schedule may end before full payoff, doc 007 finding #2); what a follow-on
+   *  renewal/paymentChange call would use as its loanAmount input. */
   endingBalance: number;
 }

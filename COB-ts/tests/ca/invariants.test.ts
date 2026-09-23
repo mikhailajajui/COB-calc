@@ -6,19 +6,18 @@ import type { CobCanadaInput, FeeSchedule } from '../../src/index.js';
 /** A well-formed new fixed-rate mortgage, overridable per test. */
 function fixedMortgageInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
   return {
-    flow: 'newMortgage',
+    flow: 'newMortgageOrLoan',
     productType: 'mortgage',
     rateType: 'fixed',
-    loanAmount: 500000,
+    loanAmount: 100000,
     fees: { fees: [] },
     contractRatePercent: 5,
+    paymentAmount: 1000,
     paymentFrequency: 'monthly',
     termYears: 5,
     termMonths: 0,
-    remainingAmortizationYears: 25,
-    remainingAmortizationMonths: 0,
     firstPaymentDate: new Date('2024-02-01'),
-    endDate: new Date('2029-01-01'),
+    endDate: new Date('2029-02-01'),
     disbursalDate: new Date('2024-01-01'),
     semiAnnualCompoundingDate: new Date('2024-01-01'),
     ...overrides,
@@ -27,17 +26,16 @@ function fixedMortgageInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaI
 
 function personalLoanInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
   return {
-    flow: 'newLoan',
+    flow: 'newMortgageOrLoan',
     productType: 'personalLoan',
     rateType: 'fixed',
     loanAmount: 20000,
     fees: { fees: [] },
     contractRatePercent: 8,
+    paymentAmount: 700,
     paymentFrequency: 'monthly',
     termYears: 3,
     termMonths: 0,
-    remainingAmortizationYears: 3,
-    remainingAmortizationMonths: 0,
     firstPaymentDate: new Date('2024-02-01'),
     endDate: new Date('2027-01-01'),
     disbursalDate: new Date('2024-01-01'),
@@ -56,19 +54,7 @@ describe('invariant #1: fixed-rate mortgage / any personal loan -> trigger rate 
   });
 });
 
-describe('invariant #2: principal_payment + total_interest == total_payment exactly', () => {
-  it.each([
-    ['fixed mortgage', fixedMortgageInput()],
-    ['variable mortgage', fixedMortgageInput({ rateType: 'variable', semiAnnualCompoundingDate: undefined })],
-    ['fixed personal loan', personalLoanInput({ rateType: 'fixed' })],
-    ['variable personal loan', personalLoanInput({ rateType: 'variable' })],
-  ] as const)('reconciles for %s', (_label, input) => {
-    const result = calculateCobCanada(input);
-    expect(result.principalPayment + result.totalInterest).toBeCloseTo(result.totalPayment, 6);
-  });
-});
-
-describe('invariant #3: financed fees increase the amortized principal (never disbursal); cash fees do the opposite', () => {
+describe('invariant #2: total_payment == total_interest + fees_recovered + principal_payment', () => {
   function withFees(financed: number, cash: number): FeeSchedule {
     return {
       fees: [
@@ -78,85 +64,111 @@ describe('invariant #3: financed fees increase the amortized principal (never di
     };
   }
 
-  it('increasing total_financed_fees must not decrease total_interest', () => {
+  it.each([
+    ['fixed mortgage, no fees', fixedMortgageInput()],
+    ['variable mortgage, no fees', fixedMortgageInput({ rateType: 'variable', semiAnnualCompoundingDate: undefined })],
+    ['fixed personal loan, no fees', personalLoanInput({ rateType: 'fixed' })],
+    ['variable personal loan, no fees', personalLoanInput({ rateType: 'variable' })],
+    ['fixed mortgage with fees (fees_recovered > 0)', fixedMortgageInput({ fees: withFees(3000, 500) })],
+  ] as const)('reconciles for %s', (_label, input) => {
+    const result = calculateCobCanada(input);
+    expect(result.totalInterest + result.feesRecovered + result.principalPayment).toBeCloseTo(
+      result.totalPayment,
+      6,
+    );
+  });
+
+  it('fee-free case: fees_recovered == 0 and the identity collapses to the two-term form', () => {
+    const result = calculateCobCanada(fixedMortgageInput());
+    expect(result.feesRecovered).toBe(0);
+    expect(result.totalInterest + result.principalPayment).toBeCloseTo(result.totalPayment, 6);
+  });
+});
+
+describe('invariant #3: amortized_principal == loanAmount regardless of the financed/cash fee split', () => {
+  function withFees(financed: number, cash: number): FeeSchedule {
+    return {
+      fees: [
+        { name: 'Financed fee', amount: financed, financed: true, includedInCob: false },
+        { name: 'Cash fee', amount: cash, financed: false, includedInCob: false },
+      ],
+    };
+  }
+
+  it('increasing total_financed_fees must not change amortized_principal, but DOES increase total_interest (fees slow principal paydown via the waterfall)', () => {
     const smallerFee = calculateCobCanada(fixedMortgageInput({ fees: withFees(1000, 0) }));
     const largerFee = calculateCobCanada(fixedMortgageInput({ fees: withFees(5000, 0) }));
+    expect(largerFee.amortizedPrincipal).toBe(smallerFee.amortizedPrincipal);
     expect(largerFee.totalInterest).toBeGreaterThan(smallerFee.totalInterest);
-    expect(largerFee.amortizedPrincipal).toBeGreaterThan(smallerFee.amortizedPrincipal);
-    // Financed fees layer on top of loanAmount for BOTH amortizedPrincipal and
-    // disbursalAmount (disbursalAmount = loanAmount + total_financed_fees -
-    // total_cash_fees, per the resolved carve-out direction -- see "Financed fees" in
-    // the spec) -- a financed fee is never "carved out" of disbursal, it's added on
-    // top of it just like it's added on top of the amortized principal. What financed
-    // fees never do is REDUCE disbursal -- that's cash fees' job (see the next test).
-    expect(largerFee.disbursalAmount).toBeGreaterThan(smallerFee.disbursalAmount);
+    // Financed fees DO reduce disbursalAmount -- the larger the financed fee, the
+    // smaller the cash actually advanced (doc 007 finding #4).
+    expect(largerFee.disbursalAmount).toBeLessThan(smallerFee.disbursalAmount);
   });
 
-  it('increasing total_cash_fees must not change total_interest at all', () => {
+  it('reclassifying the SAME total fee amount between financed and cash leaves total_interest/amortized_principal unchanged -- only disbursalAmount is split-sensitive', () => {
+    const allCash = calculateCobCanada(fixedMortgageInput({ fees: withFees(0, 3000) }));
+    const allFinanced = calculateCobCanada(fixedMortgageInput({ fees: withFees(3000, 0) }));
+    expect(allFinanced.totalInterest).toBeCloseTo(allCash.totalInterest, 6);
+    expect(allFinanced.amortizedPrincipal).toBe(allCash.amortizedPrincipal);
+    expect(allFinanced.disbursalAmount).toBeLessThan(allCash.disbursalAmount); // only financed fees reduce disbursal
+    expect(allFinanced.cobAmount).toBeCloseTo(allCash.cobAmount, 6); // equation 8 sums both types regardless of split
+  });
+
+  it('increasing total_cash_fees must not change amortized_principal or disbursalAmount, but DOES increase total_interest, cob_amount, and fees_recovered', () => {
     const smallerCash = calculateCobCanada(fixedMortgageInput({ fees: withFees(0, 500) }));
     const largerCash = calculateCobCanada(fixedMortgageInput({ fees: withFees(0, 3000) }));
-    expect(largerCash.totalInterest).toBe(smallerCash.totalInterest);
-    expect(largerCash.amortizedPrincipal).toBe(smallerCash.amortizedPrincipal); // cash fees never touch principal
-    expect(largerCash.disbursalAmount).toBeLessThan(smallerCash.disbursalAmount); // only disbursal moves
+    expect(largerCash.totalInterest).toBeGreaterThan(smallerCash.totalInterest);
+    expect(largerCash.amortizedPrincipal).toBe(smallerCash.amortizedPrincipal);
+    expect(largerCash.disbursalAmount).toBe(smallerCash.disbursalAmount); // cash fees never touch disbursal
+    // Cash fees DO increase cob_amount and fees_recovered (both fee types feed the
+    // waterfall's feesToRecover, per doc 007 finding #8).
+    expect(largerCash.cobAmount).toBeGreaterThan(smallerCash.cobAmount);
+    expect(largerCash.feesRecovered).toBeGreaterThan(smallerCash.feesRecovered);
   });
 });
 
-describe('invariant #4: term_days never changes any monetary output', () => {
-  it('varying only end_date (and therefore term_days) leaves every monetary output byte-identical', () => {
-    const shortTermDays = calculateCobCanada(fixedMortgageInput({ endDate: new Date('2029-01-01') }));
-    const longerTermDays = calculateCobCanada(fixedMortgageInput({ endDate: new Date('2029-03-15') }));
+describe('term_days tracks the same day-count basis as cob_rate_percent\'s T (no longer isolated -- doc 007 finding #7)', () => {
+  it('varying endDate (and therefore the schedule length / term_days) DOES change monetary outputs now', () => {
+    const shorterTerm = calculateCobCanada(fixedMortgageInput({ endDate: new Date('2027-02-01') }));
+    const longerTerm = calculateCobCanada(fixedMortgageInput({ endDate: new Date('2029-02-01') }));
 
-    expect(shortTermDays.termDays).not.toBe(longerTermDays.termDays);
-    expect(shortTermDays.paymentAmount).toBe(longerTermDays.paymentAmount);
-    expect(shortTermDays.totalInterest).toBe(longerTermDays.totalInterest);
-    expect(shortTermDays.totalPayment).toBe(longerTermDays.totalPayment);
-    expect(shortTermDays.cobAmount).toBe(longerTermDays.cobAmount);
-    expect(shortTermDays.cobRatePercent).toBe(longerTermDays.cobRatePercent);
+    expect(shorterTerm.termDays).not.toBe(longerTerm.termDays);
+    expect(shorterTerm.numberOfPayments).not.toBe(longerTerm.numberOfPayments);
+    // Unlike the pre-rewrite model, a shorter schedule genuinely pays less total
+    // interest/principal -- these are NOT invariant to term_days anymore.
+    expect(shorterTerm.totalInterest).not.toBeCloseTo(longerTerm.totalInterest, 2);
   });
 });
 
-describe('invariant #5: semi-annual vs. monthly compounding produce different payments at the same nominal rate', () => {
-  it('a fixed-rate mortgage and a variable-rate mortgage at the same contract rate do not produce the same payment', () => {
-    // Direction is NOT asserted here: the spec's own invariant #5 prose claims
-    // semi-annual is "more expensive," which is backwards (semi-annual is actually
-    // cheaper at the same nominal rate -- see equations.test.ts's cross-check and the
-    // spec's own "Excel implementation notes" judgment-call #7, which flags this as a
-    // documented error in the spec's prose). Only the direction-agnostic, actually
-    // testable claim -- that the two conventions differ -- is asserted.
+describe('invariant #5: semi-annual, m=n, and m=12 conversions produce different calculated rates', () => {
+  it('a fixed-rate mortgage and a variable-rate mortgage at the same contract rate do not produce the same schedule', () => {
     const fixed = calculateCobCanada(fixedMortgageInput());
     const variable = calculateCobCanada(
       fixedMortgageInput({ rateType: 'variable', semiAnnualCompoundingDate: undefined }),
     );
-    expect(fixed.paymentAmount).not.toBe(variable.paymentAmount);
+    expect(fixed.totalInterest).not.toBeCloseTo(variable.totalInterest, 2);
   });
 });
 
 describe('invariant #6: trigger rate monotonicity (payment_amount and payments_per_year held fixed)', () => {
-  it('increasing total_borrowed decreases trigger_rate_percent when payment is not re-derived from the new balance', () => {
-    // This is deliberately checked against the trigger-rate equation directly rather
-    // than through calculateCobCanada end to end: the engine always recomputes
-    // payment_amount from the same balance used as total_borrowed (equation 3), so
-    // scaling loanAmount up while letting the engine also recompute the payment
-    // leaves trigger_rate_percent UNCHANGED, not decreased -- this is not a bug, it's
-    // the Bank of Canada's own origination-time finding cited in equation 4's sourcing
-    // ("at origination, the trigger rate does not depend on the size of the loan").
-    // Invariant #6's actual premise -- payment held fixed, balance varying
-    // independently (e.g. an existing, already-amortized loan checked against its
-    // original scheduled payment) -- is what's verified here.
-    const paymentAmount = 2235.71;
+  it('increasing the equation-level loanAmount decreases trigger_rate_percent directly', () => {
+    const paymentAmount = 2200;
     const paymentsPerYear = 12;
     const smallerBalance = triggerRatePercent(paymentAmount, paymentsPerYear, 250000);
     const largerBalance = triggerRatePercent(paymentAmount, paymentsPerYear, 300000);
     expect(largerBalance).toBeLessThan(smallerBalance);
   });
 
-  it('confirms the engine-level corollary: scaling loanAmount leaves trigger_rate_percent unchanged at origination', () => {
+  it('confirms the engine-level version: payment_amount is a plain input, never re-derived from loanAmount, so varying loanAmount alone (payment fixed) changes trigger_rate_percent -- unlike the pre-rewrite model where payment was always re-solved from the same balance', () => {
     const smaller = calculateCobCanada(
-      fixedMortgageInput({ rateType: 'variable', semiAnnualCompoundingDate: undefined, loanAmount: 500000 }),
+      fixedMortgageInput({ rateType: 'variable', semiAnnualCompoundingDate: undefined, loanAmount: 250000 }),
     );
     const larger = calculateCobCanada(
-      fixedMortgageInput({ rateType: 'variable', semiAnnualCompoundingDate: undefined, loanAmount: 1000000 }),
+      fixedMortgageInput({ rateType: 'variable', semiAnnualCompoundingDate: undefined, loanAmount: 300000 }),
     );
-    expect(larger.triggerRatePercent).toBeCloseTo(smaller.triggerRatePercent!, 9);
+    // Same paymentAmount (1000/mo) in both cases (inherited from fixedMortgageInput),
+    // held fixed independently of loanAmount -- this is exactly what finding #1
+    // makes newly testable (see spec 006 invariant #6's "Note").
+    expect(larger.triggerRatePercent!).toBeLessThan(smaller.triggerRatePercent!);
   });
 });

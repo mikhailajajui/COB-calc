@@ -13,6 +13,17 @@ It also includes features identified in a banking-domain QA pass that don't
 exist in COB-ts yet (`reporting.py`, `fees.py`, `apr.py`, `dti.py`) -- see
 [`docs/new-req`](../docs/new-req) for the platform-agnostic specs behind them.
 
+`cob_canada.py` is a separate, standalone engine (not a US-mortgage variant --
+see [`docs/new-req/006`](../docs/new-req/006-cost-of-borrowing-disclosure.md))
+that reproduces one specific lender's real production calculator (Alterna
+Savings' Cost of Borrowing Calculator, per its BRD and live workbook -- see
+[`docs/new-req/007`](../docs/new-req/007-cob-canada-brd-reconciliation.md) for
+the reconciliation that verified every formula against that source). It takes
+a manually entered payment amount rather than solving for one, accrues
+interest on actual calendar days rather than a fixed periodic rate, and has no
+system integration -- all inputs are typed in by the user, matching the real
+application's own scope.
+
 ## Run the app
 
 ```bash
@@ -40,6 +51,11 @@ Pages (sidebar):
   financed into the loan) and a simplified actuarial-method APR.
 - **DTI & Affordability** -- front-end/back-end debt-to-income check, and a
   reverse "how much house can I afford" calculator.
+- **Cost of Borrowing (Canada)** -- standalone Canadian mortgage/personal-loan
+  disclosure calculator (4 flows: new mortgage/loan, renewal, payment change,
+  variable-rate payment change), reproducing Alterna Savings' real production
+  calculator: user-entered payment amount, day-count interest accrual, and an
+  interest-then-fees-then-principal payment waterfall.
 
 The Loan Calculator page also has a "Yearly summary / report window" panel for
 viewing just the first N years of a loan.

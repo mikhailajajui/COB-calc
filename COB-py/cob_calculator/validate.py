@@ -24,10 +24,8 @@ if TYPE_CHECKING:
 
 VALID_PAYMENT_FREQUENCIES = ("monthly", "semiMonthly", "biweekly", "weekly")
 VALID_COB_CANADA_FLOWS = (
-    "newMortgage",
-    "newLoan",
-    "existingMortgage",
-    "existingLoan",
+    "newMortgageOrLoan",
+    "renewal",
     "paymentChange",
     "variableRatePaymentChange",
 )
@@ -328,9 +326,17 @@ def validate_bank_statement_row(row: "BankStatementRow", row_index: int) -> None
 
 
 def validate_cob_canada_input(input: "CobCanadaInput") -> None:
-    """Port of docs/new-req/006-cost-of-borrowing-disclosure.md's field rules onto
-    this project's plain-ValueError validation convention. Called first, before any
-    equation runs (cob_canada.calculate_cob_canada)."""
+    """Port of docs/new-req/006-cost-of-borrowing-disclosure.md's (rewritten) field
+    rules onto this project's plain-ValueError validation convention. Called first,
+    before any equation runs (cob_canada.calculate_cob_canada).
+
+    Product type (IN-03) and rate type (IN-04) are validated as two independent
+    dropdowns -- the flow (IN-01) no longer encodes product type at all (doc 007
+    finding #9 collapsed the 6-value flow enum to 4, dropping the old
+    newMortgage/newLoan/existingMortgage/existingLoan split), so there is no
+    flow-vs-product-type cross-check anymore EXCEPT for `variableRatePaymentChange`,
+    which the docx scopes to mortgage+variable "by construction" (the flow exists
+    specifically to recompute the trigger rate for that combination)."""
     if input.flow not in VALID_COB_CANADA_FLOWS:
         raise ValueError(f"flow must be one of {', '.join(VALID_COB_CANADA_FLOWS)}, got {input.flow}")
     if input.product_type not in VALID_COB_CANADA_PRODUCT_TYPES:
@@ -346,6 +352,8 @@ def validate_cob_canada_input(input: "CobCanadaInput") -> None:
         raise ValueError(f"loanAmount must be > 0, got {input.loan_amount}")
     if not (input.contract_rate_percent >= 0):
         raise ValueError(f"contractRatePercent must be >= 0, got {input.contract_rate_percent}")
+    if not (input.payment_amount > 0):
+        raise ValueError(f"paymentAmount must be > 0, got {input.payment_amount}")
     if input.payment_frequency not in VALID_PAYMENT_FREQUENCIES:
         raise ValueError(
             f"paymentFrequency must be one of {', '.join(VALID_PAYMENT_FREQUENCIES)}, "
@@ -356,26 +364,10 @@ def validate_cob_canada_input(input: "CobCanadaInput") -> None:
         raise ValueError(
             f"termYears/termMonths must both be >= 0, got {input.term_years}/{input.term_months}"
         )
-    if input.term_years == 0 and input.term_months == 0:
-        raise ValueError("termYears/termMonths must total more than 0")
-
-    if not (input.remaining_amortization_years >= 0) or not (input.remaining_amortization_months >= 0):
-        raise ValueError(
-            "remainingAmortizationYears/remainingAmortizationMonths must both be >= 0, "
-            f"got {input.remaining_amortization_years}/{input.remaining_amortization_months}"
-        )
-    if input.remaining_amortization_years == 0 and input.remaining_amortization_months == 0:
-        raise ValueError("remainingAmortizationYears/remainingAmortizationMonths must total more than 0")
 
     if not (input.accrued_interest >= 0):
         raise ValueError(f"accruedInterest must be >= 0, got {input.accrued_interest}")
 
-    if input.flow in ("newMortgage", "existingMortgage") and input.product_type != "mortgage":
-        raise ValueError(f"flow {input.flow!r} requires productType 'mortgage', got {input.product_type!r}")
-    if input.flow in ("newLoan", "existingLoan") and input.product_type != "personalLoan":
-        raise ValueError(
-            f"flow {input.flow!r} requires productType 'personalLoan', got {input.product_type!r}"
-        )
     if input.flow == "variableRatePaymentChange" and (
         input.product_type != "mortgage" or input.rate_type != "variable"
     ):
@@ -384,19 +376,11 @@ def validate_cob_canada_input(input: "CobCanadaInput") -> None:
             f"'variable', got {input.product_type!r}/{input.rate_type!r}"
         )
 
-    if input.flow in ("newMortgage", "newLoan"):
+    if input.flow == "newMortgageOrLoan":
         if input.disbursal_date is None:
-            raise ValueError(f"disbursalDate is required for flow {input.flow!r}")
+            raise ValueError("disbursalDate is required for flow 'newMortgageOrLoan'")
     elif input.renewal_date is None:
         raise ValueError(f"renewalDate is required for flow {input.flow!r}")
-
-    for fee in input.fees.fees:
-        if fee.included_in_cob is None:
-            raise ValueError(
-                f"fee {fee.name!r} must set includedInCob explicitly for a Canadian COB flow "
-                "-- there is no safe default (see equation 7 / Financial Consumer Protection "
-                "Framework Regulations s. 48)"
-            )
 
 
 def validate_overrides_in_range(
