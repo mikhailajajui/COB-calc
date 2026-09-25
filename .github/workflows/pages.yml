@@ -65,6 +65,9 @@ jobs:
           cp -R COB-ts/dist/. _site/ts/dist/
           sed -i 's#/ui/ca.js#ca.js#' _site/ts/index.html
           sed -i "s#/dist/index.js#./dist/index.js#" _site/ts/ca.js
+          # The printout reads the engine version from package.json at runtime.
+          cp COB-ts/package.json _site/ts/package.json
+          sed -i "s#fetch('/package.json')#fetch('package.json')#" _site/ts/ca.js
           sed -i 's#/ui/main.js#main.js#; s#/ui/ca.html#../#' _site/ts/us/index.html
           sed -i "s#/dist/index.js#../dist/index.js#" _site/ts/us/main.js
 
