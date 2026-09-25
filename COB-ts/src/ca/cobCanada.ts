@@ -119,8 +119,11 @@ function buildSchedule(args: BuildScheduleArgs): CobScheduleRow[] {
       carriedAccruedInterest,
       feesToRecover,
       paymentAmount,
+      openingBalance - feesToRecover,
     );
-    const closingBalance = openingBalance - waterfall.principalPortion;
+    // Spec 011 D9/D8 (DEV-011-2): financed fees are inside openingBalance, so the fees
+    // paid reduce it as well as the principal paid.
+    const closingBalance = openingBalance - waterfall.feesPaid - waterfall.principalPortion;
 
     rows.push({
       period: index + 1,
@@ -130,7 +133,7 @@ function buildSchedule(args: BuildScheduleArgs): CobScheduleRow[] {
       periodInterest: periodInterestAmount,
       carriedAccruedInterestOpening: carriedAccruedInterest,
       feesOpening: feesToRecover,
-      paymentAmount,
+      paymentAmount: waterfall.amountPaid,
       interestPaid: waterfall.interestPaid,
       feesPaid: waterfall.feesPaid,
       principalPortion: waterfall.principalPortion,
@@ -203,9 +206,10 @@ export function calculateCobCanada(input: CobCanadaInput): CobCanadaResult {
   // renewal/paymentChange/variableRatePaymentChange flows, 0 for newMortgageOrLoan
   // (doc 007 finding #5 -- never capitalized into the opening balance).
   const initialCarriedAccruedInterest = input.flow === 'newMortgageOrLoan' ? 0 : (input.accruedInterest ?? 0);
-  // fees_to_recover starts at BOTH fee types combined (unlike disbursal_amount,
-  // which uses only financed fees -- doc 007 finding #8).
-  const initialFeesToRecover = financedFees + cashFees;
+  // fees_to_recover starts at the FINANCED fees only (spec 011 DEV-011-1, BRD IN-07 /
+  // BR-04): non-financed fees are paid separately by the member, never enter the
+  // waterfall, and count only in cobAmount / cobRatePercent below.
+  const initialFeesToRecover = financedFees;
 
   const schedule = buildSchedule({
     loanAmount: amortizedPrincipal,
@@ -236,7 +240,8 @@ export function calculateCobCanada(input: CobCanadaInput): CobCanadaResult {
   // waterfall math imprecise.
   const principalPayment = schedule.reduce((sum, row) => sum + row.principalPortion, 0);
 
-  // Equation 8 -- all fees, unconditionally.
+  // Equation 8 -- all fees, unconditionally (the only place non-financed fees enter,
+  // with cobRatePercent through it -- spec 011).
   const cobDollarAmount = cobAmountEquation(totalInterest, financedFees, cashFees);
 
   // Equation 7 -- T = actual days from start_date to the LAST ROW ACTUALLY

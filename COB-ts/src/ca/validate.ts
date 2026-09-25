@@ -1,14 +1,14 @@
 import type { CobCanadaInput } from './types.js';
 import { PAYMENTS_PER_YEAR } from './types.js';
-import { validateFeeSchedule } from './fees.js';
+import { totalFinancedFees, validateFeeSchedule } from './fees.js';
 
 /**
  * Validates a CobCanadaInput against docs/new-req/006-cost-of-borrowing-disclosure.md's
  * "Data shapes" and "Presentation layer" sections (rewritten per doc 007's BRD
- * reconciliation): field ranges, the flow-conditional required date fields, and the
- * mortgage+variable-only scoping of the variableRatePaymentChange flow. Called first
- * by calculateCobCanada, per this project's validateXInput convention (plain
- * RangeError, no custom error classes).
+ * reconciliation): field ranges, the BRD §6 financed-fee limit, the flow-conditional
+ * required date fields, and the mortgage+variable-only scoping of the
+ * variableRatePaymentChange flow. Called first by calculateCobCanada, per this
+ * project's validateXInput convention (plain RangeError, no custom error classes).
  *
  * Unlike the pre-rewrite model, flow no longer implies productType (doc 007
  * finding #9 -- newMortgageOrLoan/renewal/paymentChange apply identically to both
@@ -43,6 +43,14 @@ export function validateCobCanadaInput(input: CobCanadaInput): void {
   }
 
   validateFeeSchedule(input.fees);
+  // BRD §6: total fees must be less than the loan amount. Only financed fees count
+  // until the BRD author says whether non-financed fees do (open in 008).
+  const financedFees = totalFinancedFees(input.fees);
+  if (!(financedFees < input.loanAmount)) {
+    throw new RangeError(
+      `total financed fees (${financedFees}) must be less than loanAmount (${input.loanAmount}) (BRD §6)`,
+    );
+  }
 
   // variableRatePaymentChange exists specifically to recompute the trigger rate, so
   // it's mortgage+variable-only by construction (spec 006's "Presentation layer"

@@ -1,0 +1,356 @@
+{
+ "source": "generate_app_wire_vectors.py; mapping assumptions in its docstring",
+ "tolerance_rel": 1e-09,
+ "totals_map": {
+  "numberOfPayments": "n",
+  "cobAmount": "cob_amount",
+  "cobRatePercent": "cob_rate",
+  "totalPayment": "total_payment",
+  "totalInterest": "total_interest",
+  "termDays": "term_days",
+  "principalPayment": "principal"
+ },
+ "row_map": {
+  "date": "date",
+  "openingBalance": "open_loan",
+  "feesOpening": "open_fees",
+  "periodInterest": "new_int",
+  "paymentAmount": "payment",
+  "interestPaid": "interest_paid",
+  "feesPaid": "fees_paid",
+  "principalPortion": "principal_paid",
+  "feesClosing": "close_fees",
+  "closingBalance": "close_loan"
+ },
+ "rate_map": {
+  "calculatedRatePercent": "converted_rate_pct (oracle only)"
+ },
+ "not_compared": {
+  "trigger": "007 cell is computed for a fixed mortgage; the engine returns null by spec 006 invariant 1 (cobCanada.test.ts judgment call)",
+  "open_principal/close_principal/total_int": "no engine field yet (008 D5)",
+  "avg_opening_principle": "internal to the macro; no engine field"
+ },
+ "known_divergence_as_of": "2026-09-24, app/engine (011 DQ-27, D9/D8, DQ-28)",
+ "appendix_a_reachable_through_api": {
+  "note": "calculateCobCanada exposes calculatedRatePercent only for n in {12, 24, 26, 52}; n in {1, 2, 4} is reachable through equations.calculatedRate only",
+  "frequency_by_n": {
+   "12": "monthly",
+   "24": "semiMonthly",
+   "26": "biweekly",
+   "52": "weekly"
+  }
+ },
+ "vectors": [
+  {
+   "id": "V007_live",
+   "source": "ca_007_worked_vector.json",
+   "reference": "live workbook cached cells (not a macro re-run)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": 227829.65,
+    "contractRatePercent": 3.74,
+    "paymentAmount": 465.46,
+    "paymentFrequency": "weekly",
+    "firstPaymentDate": "2026-03-23",
+    "endDate": "2029-03-17",
+    "termYears": 3,
+    "termMonths": 0,
+    "fees": {
+     "fees": []
+    },
+    "disbursalDate": "2026-03-17",
+    "semiAnnualCompoundingDate": "2026-03-17"
+   },
+   "known_divergence": []
+  },
+  {
+   "id": "S0_007",
+   "source": "ca_oracle_scenarios.json#/scenarios/0",
+   "reference": "macro_oracle.py (VBA transliteration, not a live macro run)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": 227829.65,
+    "contractRatePercent": 3.74,
+    "paymentAmount": 465.46,
+    "paymentFrequency": "weekly",
+    "firstPaymentDate": "2026-03-23",
+    "endDate": "2029-03-17",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": []
+    },
+    "disbursalDate": "2026-03-17",
+    "semiAnnualCompoundingDate": "2026-03-17"
+   },
+   "known_divergence": []
+  },
+  {
+   "id": "S1_fees",
+   "source": "ca_oracle_scenarios.json#/scenarios/1",
+   "reference": "macro_oracle.py (VBA transliteration, not a live macro run)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": 227829.65,
+    "contractRatePercent": 3.74,
+    "paymentAmount": 465.46,
+    "paymentFrequency": "weekly",
+    "firstPaymentDate": "2026-03-23",
+    "endDate": "2029-03-17",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": [
+      {
+       "name": "Financed fees",
+       "amount": 2000,
+       "financed": true,
+       "includedInCob": true
+      },
+      {
+       "name": "Non-financed fees",
+       "amount": 500,
+       "financed": false,
+       "includedInCob": true
+      }
+     ]
+    },
+    "disbursalDate": "2026-03-17",
+    "semiAnnualCompoundingDate": "2026-03-17"
+   },
+   "known_divergence": [
+    "008 B1",
+    "008 B3",
+    "011 DEV-011-1"
+   ]
+  },
+  {
+   "id": "S2_monthly_jan31",
+   "source": "ca_oracle_scenarios.json#/scenarios/2",
+   "reference": "macro_oracle.py (VBA transliteration, not a live macro run)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": 100000,
+    "contractRatePercent": 5.0,
+    "paymentAmount": 1000,
+    "paymentFrequency": "monthly",
+    "firstPaymentDate": "2027-01-31",
+    "endDate": "2028-01-31",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": []
+    },
+    "disbursalDate": "2027-01-15",
+    "semiAnnualCompoundingDate": "2027-01-15"
+   },
+   "known_divergence": [
+    "008 C1",
+    "008 E1"
+   ]
+  },
+  {
+   "id": "S3_leap_weekly",
+   "source": "ca_oracle_scenarios.json#/scenarios/3",
+   "reference": "macro_oracle.py (VBA transliteration, not a live macro run)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": 200000,
+    "contractRatePercent": 4.5,
+    "paymentAmount": 900,
+    "paymentFrequency": "weekly",
+    "firstPaymentDate": "2027-12-27",
+    "endDate": "2029-01-15",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": []
+    },
+    "disbursalDate": "2027-12-20",
+    "semiAnnualCompoundingDate": "2027-12-20"
+   },
+   "known_divergence": []
+  },
+  {
+   "id": "S4_semimonthly",
+   "source": "ca_oracle_scenarios.json#/scenarios/4",
+   "reference": "macro_oracle.py (VBA transliteration, not a live macro run)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": 150000,
+    "contractRatePercent": 4.0,
+    "paymentAmount": 600,
+    "paymentFrequency": "semiMonthly",
+    "firstPaymentDate": "2026-03-15",
+    "endDate": "2027-03-15",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": []
+    },
+    "disbursalDate": "2026-03-01",
+    "semiAnnualCompoundingDate": "2026-03-01"
+   },
+   "known_divergence": [
+    "008 C1 (semi-monthly dates)"
+   ]
+  },
+  {
+   "id": "S5_payoff",
+   "source": "ca_oracle_scenarios.json#/scenarios/5",
+   "reference": "macro_oracle.py (VBA transliteration, not a live macro run)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": 5000,
+    "contractRatePercent": 6.0,
+    "paymentAmount": 1000,
+    "paymentFrequency": "monthly",
+    "firstPaymentDate": "2026-02-01",
+    "endDate": "2027-02-01",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": []
+    },
+    "disbursalDate": "2026-01-01",
+    "semiAnnualCompoundingDate": "2026-01-01"
+   },
+   "known_divergence": [
+    "008 B6",
+    "011 DEV-011-3"
+   ]
+  },
+  {
+   "id": "S6_underpay",
+   "source": "ca_oracle_scenarios.json#/scenarios/6",
+   "reference": "macro_oracle.py (VBA transliteration, not a live macro run)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": 227829.65,
+    "contractRatePercent": 3.74,
+    "paymentAmount": 100,
+    "paymentFrequency": "weekly",
+    "firstPaymentDate": "2026-03-23",
+    "endDate": "2026-06-30",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": []
+    },
+    "disbursalDate": "2026-03-17",
+    "semiAnnualCompoundingDate": "2026-03-17"
+   },
+   "known_divergence": [
+    "008 B4",
+    "008 B5"
+   ]
+  },
+  {
+   "id": "S7_biweekly",
+   "source": "ca_oracle_scenarios.json#/scenarios/7",
+   "reference": "macro_oracle.py (VBA transliteration, not a live macro run)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": 227829.65,
+    "contractRatePercent": 3.74,
+    "paymentAmount": 930.92,
+    "paymentFrequency": "biweekly",
+    "firstPaymentDate": "2026-03-23",
+    "endDate": "2029-03-17",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": []
+    },
+    "disbursalDate": "2026-03-17",
+    "semiAnnualCompoundingDate": "2026-03-17"
+   },
+   "known_divergence": []
+  },
+  {
+   "id": "S8_10y_weekly",
+   "source": "ca_oracle_scenarios.json#/scenarios/8",
+   "reference": "macro_oracle.py (VBA transliteration, not a live macro run)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": 300000,
+    "contractRatePercent": 4.0,
+    "paymentAmount": 500,
+    "paymentFrequency": "weekly",
+    "firstPaymentDate": "2026-01-08",
+    "endDate": "2036-01-01",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": []
+    },
+    "disbursalDate": "2026-01-01",
+    "semiAnnualCompoundingDate": "2026-01-01"
+   },
+   "known_divergence": []
+  },
+  {
+   "id": "S9_fees_payoff",
+   "source": "ca_oracle_scenarios.json#/scenarios/9",
+   "reference": "macro_oracle.py (VBA transliteration, not a live macro run)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": 5000,
+    "contractRatePercent": 6.0,
+    "paymentAmount": 1000,
+    "paymentFrequency": "monthly",
+    "firstPaymentDate": "2026-02-01",
+    "endDate": "2027-02-01",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": [
+      {
+       "name": "Financed fees",
+       "amount": 300,
+       "financed": true,
+       "includedInCob": true
+      },
+      {
+       "name": "Non-financed fees",
+       "amount": 200,
+       "financed": false,
+       "includedInCob": true
+      }
+     ]
+    },
+    "disbursalDate": "2026-01-01",
+    "semiAnnualCompoundingDate": "2026-01-01"
+   },
+   "known_divergence": [
+    "008 B1",
+    "008 B3",
+    "008 B6",
+    "011 DEV-011-1",
+    "011 DEV-011-3"
+   ]
+  }
+ ]
+}

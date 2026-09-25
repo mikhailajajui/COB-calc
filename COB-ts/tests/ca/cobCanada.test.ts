@@ -123,7 +123,10 @@ describe('calculateCobCanada', () => {
     // variable mortgage), 36 payments generated (end_date lands exactly on payment
     // #36's date, and equation 5's corrected boundary is INCLUSIVE of end_date --
     // see doc 007's addendum finding #4 -- so that row IS generated), totalInterest
-    // 33935.54168933623, feesRecovered 2300 (both fee types).
+    // 33935.54168933623, feesRecovered 2300 (both fee types) under 006. Spec 011
+    // (DEV-011-1): only the financed 2000 enters the waterfall; the 300 cash fee
+    // counts in cobAmount only. Spec 011 D9/D8: the fees paid reduce the balance, so
+    // totals were recomputed (engine and an independent Python model of 011 agree).
     const input: CobCanadaInput = {
       flow: 'renewal',
       productType: 'mortgage',
@@ -161,19 +164,21 @@ describe('calculateCobCanada', () => {
     expect(row1.carriedAccruedInterestOpening).toBe(250);
     expect(row1.interestPaid).toBeCloseTo(1266.3934426229744, 3);
     expect(row1.carriedAccruedInterestClosing).toBe(0);
-    expect(row1.feesOpening).toBe(2300);
+    expect(row1.feesOpening).toBe(2000);
     expect(row1.feesPaid).toBeCloseTo(933.6065573770256, 3);
     expect(row1.principalPortion).toBe(0); // payment fully absorbed by interest + fees this row
 
-    expect(result.totalInterest).toBeCloseTo(33935.54168933623, 3);
-    expect(result.feesRecovered).toBeCloseTo(2300, 6); // both fee types fully recovered
-    expect(result.principalPayment).toBeCloseTo(42964.45831066377, 3);
-    expect(result.cobAmount).toBeCloseTo(33935.54168933623 + 2000 + 300, 3);
+    expect(row1.closingBalance).toBeCloseTo(299066.39344262297, 3); // fees paid reduce it (D9/D8)
+
+    expect(result.totalInterest).toBeCloseTo(33656.864360184074, 3);
+    expect(result.feesRecovered).toBeCloseTo(2000, 6); // financed fees only (spec 011)
+    expect(result.principalPayment).toBeCloseTo(43543.135639815926, 3);
+    expect(result.cobAmount).toBeCloseTo(33656.864360184074 + 2000 + 300, 3);
     expect(result.triggerRatePercent).not.toBeNull();
     expect(result.triggerRatePercent!).toBeCloseTo(8.8, 6); // 2200*12/300000*100
     // fees > 0 -> equation 7's GENERAL branch: (cob_amount / (T x P)) x 100, with a
     // PLAIN (non-leap-adjusted) T and a SIMPLE (unweighted) average P.
-    expect(result.cobRatePercent).toBeCloseTo(4.298453956896566, 3);
+    expect(result.cobRatePercent).toBeCloseTo(4.300959303519965, 3);
 
     // Invariant #2: total_payment == total_interest + fees_recovered + principal_payment.
     expect(result.totalPayment).toBeCloseTo(
@@ -304,27 +309,26 @@ describe('calculateCobCanada', () => {
       };
     }
 
-    it('reclassifying the SAME total fee amount from cash to financed leaves amortizedPrincipal/totalInterest/cobAmount untouched -- only disbursalAmount moves', () => {
-      // feesToRecover (equation 4's waterfall input) sums BOTH fee types, so a
-      // same-size fee produces an identical schedule regardless of its
-      // financed/cash label -- only disbursalAmount (loanAmount - financedFees
-      // only) is sensitive to the split (invariant #3).
+    it('reclassifying the SAME total fee amount from cash to financed leaves amortizedPrincipal untouched -- disbursalAmount and the waterfall split move (spec 011)', () => {
+      // feesToRecover (equation 4's waterfall input) is the financed fees only
+      // (spec 011 DEV-011-1), so moving a fee to financed moves payment dollars from
+      // principal to fees; disbursalAmount (loanAmount - financedFees) drops. The fees
+      // paid reduce the balance (spec 011 D9/D8), so interest is unchanged.
       const allCash = calculateCobCanada(fixedMortgageInput({ fees: withFees(0, 5000) }));
       const allFinanced = calculateCobCanada(fixedMortgageInput({ fees: withFees(5000, 0) }));
       expect(allFinanced.amortizedPrincipal).toBe(allCash.amortizedPrincipal);
+      expect(allFinanced.feesRecovered).toBeCloseTo(5000, 6);
+      expect(allCash.feesRecovered).toBe(0);
+      expect(allFinanced.principalPayment).toBeCloseTo(allCash.principalPayment - 5000, 6);
       expect(allFinanced.totalInterest).toBeCloseTo(allCash.totalInterest, 6);
-      expect(allFinanced.cobAmount).toBeCloseTo(allCash.cobAmount, 6);
       expect(allFinanced.disbursalAmount).toBeLessThan(allCash.disbursalAmount);
     });
 
-    it('adding fee dollars (any split) slows principal paydown, which genuinely increases total_interest -- fees are NOT free of interest effect', () => {
-      // This is a real economic consequence of the interest -> fees -> principal
-      // waterfall (equation 4), not a bug: diverting part of each payment to
-      // fee-recovery leaves a higher balance outstanding for longer, so later rows
-      // accrue more period_interest than they would with no fees at all.
+    it('financed fees are inside loanAmount and paid down with it: while every payment covers interest, total_interest equals the no-fee result (spec 011 D9/D8)', () => {
       const noFees = calculateCobCanada(fixedMortgageInput({ fees: { fees: [] } }));
       const withFees5000 = calculateCobCanada(fixedMortgageInput({ fees: withFees(5000, 0) }));
-      expect(withFees5000.totalInterest).toBeGreaterThan(noFees.totalInterest);
+      expect(withFees5000.totalInterest).toBeCloseTo(noFees.totalInterest, 6);
+      expect(withFees5000.endingBalance).toBeCloseTo(noFees.endingBalance, 6);
       expect(withFees5000.amortizedPrincipal).toBe(noFees.amortizedPrincipal); // still untouched
     });
 

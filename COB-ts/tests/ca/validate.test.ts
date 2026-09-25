@@ -139,3 +139,53 @@ describe('validateCobCanadaInput', () => {
     ).toThrow(RangeError);
   });
 });
+
+describe('BRD §6: total financed fees must be less than loanAmount', () => {
+  // QA F1 reproduction: personal loan of 1000 with a 1500 financed fee.
+  function qaInput(amount: number, financed = true): CobCanadaInput {
+    return baseInput({
+      productType: 'personalLoan',
+      loanAmount: 1000,
+      contractRatePercent: 6,
+      paymentAmount: 100,
+      disbursalDate: new Date('2026-01-01'),
+      firstPaymentDate: new Date('2026-02-01'),
+      endDate: new Date('2026-12-01'),
+      termYears: 1,
+      termMonths: 0,
+      semiAnnualCompoundingDate: undefined,
+      fees: { fees: [{ name: 'Admin', amount, financed, includedInCob: true }] },
+    });
+  }
+
+  it('rejects financed fees above the loan amount, naming both amounts', () => {
+    expect(() => validateCobCanadaInput(qaInput(1500))).toThrow(
+      new RangeError('total financed fees (1500) must be less than loanAmount (1000) (BRD §6)'),
+    );
+  });
+
+  it('rejects financed fees equal to the loan amount', () => {
+    expect(() => validateCobCanadaInput(qaInput(1000))).toThrow(
+      new RangeError('total financed fees (1000) must be less than loanAmount (1000) (BRD §6)'),
+    );
+  });
+
+  it('sums every financed fee', () => {
+    const input = qaInput(600);
+    input.fees.fees.push({ name: 'Legal', amount: 400, financed: true, includedInCob: true });
+    expect(() => validateCobCanadaInput(input)).toThrow(
+      new RangeError('total financed fees (1000) must be less than loanAmount (1000) (BRD §6)'),
+    );
+  });
+
+  it('accepts financed fees of loanAmount - 0.01', () => {
+    expect(() => validateCobCanadaInput(qaInput(999.99))).not.toThrow();
+  });
+
+  it('does not count non-financed fees (open with the BRD author)', () => {
+    expect(() => validateCobCanadaInput(qaInput(1500, false))).not.toThrow();
+    const input = qaInput(999.99);
+    input.fees.fees.push({ name: 'Appraisal', amount: 5000, financed: false, includedInCob: true });
+    expect(() => validateCobCanadaInput(input)).not.toThrow();
+  });
+});

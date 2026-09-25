@@ -1,0 +1,36 @@
+{
+ "source": "BRD Appendix A (COB Requirements v2.3.docx): 3.74% compounded m=2 converted to n payments/yr",
+ "contract_rate_pct": 3.74,
+ "m": 2,
+ "tolerance_abs": 1e-12,
+ "rows": [
+  {
+   "n": 1,
+   "converted_rate_pct": 3.7749689999999836
+  },
+  {
+   "n": 2,
+   "converted_rate_pct": 3.739999999999988
+  },
+  {
+   "n": 4,
+   "converted_rate_pct": 3.72267709406664
+  },
+  {
+   "n": 12,
+   "converted_rate_pct": 3.711187832875318
+  },
+  {
+   "n": 24,
+   "converted_rate_pct": 3.7083229039668097
+  },
+  {
+   "n": 26,
+   "converted_rate_pct": 3.7081026469586664
+  },
+  {
+   "n": 52,
+   "converted_rate_pct": 3.706781471105014
+  }
+ ]
+}
