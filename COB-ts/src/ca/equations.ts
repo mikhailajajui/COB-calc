@@ -164,6 +164,9 @@ export interface PaymentWaterfallResult {
   feesPaid: number;
   feesClosing: number;
   principalPortion: number;
+  /** What the row actually pays: `paymentAmount` itself unless the principal step was
+   *  capped (a payoff row), then interestPaid + feesPaid + principalPortion. */
+  amountPaid: number;
 }
 
 /**
@@ -172,12 +175,17 @@ export interface PaymentWaterfallResult {
  * finding #8). Pure function over one row's inputs, reused per schedule row by
  * cobCanada.ts's schedule generator -- kept independently testable rather than
  * inlined into the loop.
+ *
+ * `principalOutstanding` (= the row's openingBalance - feesOpening) caps the
+ * principal step, so a payoff row pays only what is owed (spec 011 DQ-28):
+ * principalPortion = min(paymentAmount - interestPaid - feesPaid, principalOutstanding).
  */
 export function applyPaymentWaterfall(
   periodInterestAmount: number,
   carriedAccruedInterestOpening: number,
   feesOpening: number,
   paymentAmount: number,
+  principalOutstanding: number,
 ): PaymentWaterfallResult {
   if (!(periodInterestAmount >= 0)) {
     throw new RangeError(`periodInterestAmount must be >= 0, got ${periodInterestAmount}`);
@@ -191,6 +199,9 @@ export function applyPaymentWaterfall(
   if (!(paymentAmount > 0)) {
     throw new RangeError(`paymentAmount must be > 0, got ${paymentAmount}`);
   }
+  if (Number.isNaN(principalOutstanding)) {
+    throw new RangeError(`principalOutstanding must be a number, got ${principalOutstanding}`);
+  }
 
   const totalInterestDue = periodInterestAmount + carriedAccruedInterestOpening;
   const interestPaid = Math.min(paymentAmount, totalInterestDue);
@@ -200,9 +211,20 @@ export function applyPaymentWaterfall(
   const feesPaid = Math.min(remainingAfterInterest, feesOpening);
   const feesClosing = feesOpening - feesPaid;
 
-  const principalPortion = remainingAfterInterest - feesPaid;
+  const remainingAfterFees = remainingAfterInterest - feesPaid;
+  const isPayoff = principalOutstanding < remainingAfterFees;
+  const principalPortion = isPayoff ? principalOutstanding : remainingAfterFees;
+  const amountPaid = isPayoff ? interestPaid + feesPaid + principalPortion : paymentAmount;
 
-  return { totalInterestDue, interestPaid, carriedAccruedInterestClosing, feesPaid, feesClosing, principalPortion };
+  return {
+    totalInterestDue,
+    interestPaid,
+    carriedAccruedInterestClosing,
+    feesPaid,
+    feesClosing,
+    principalPortion,
+    amountPaid,
+  };
 }
 
 /**

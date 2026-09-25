@@ -98,16 +98,18 @@ export interface CobScheduleRow {
   /** Unrecovered accrued interest entering this row (0 once fully recovered, always
    *  0 for newMortgageOrLoan flows). */
   carriedAccruedInterestOpening: number;
-  /** feesToRecover balance entering this row. */
+  /** feesToRecover balance entering this row (financed fees only, spec 011). */
   feesOpening: number;
-  /** This flow's constant payment_amount. */
+  /** The amount actually paid on this row (the input payment, except on a payoff
+   *  row, where it is interestPaid + feesPaid + principalPortion -- spec 011 DQ-28). */
   paymentAmount: number;
   /** Portion of the payment applied to period_interest + carried accrued interest
    *  (waterfall step 1, equation 4). */
   interestPaid: number;
   /** Portion applied to feesOpening (waterfall step 2). */
   feesPaid: number;
-  /** Remainder, applied to openingBalance (waterfall step 3). */
+  /** Remainder, applied to openingBalance, capped at openingBalance - feesOpening
+   *  (waterfall step 3, spec 011 DQ-28). */
   principalPortion: number;
   carriedAccruedInterestClosing: number;
   feesClosing: number;

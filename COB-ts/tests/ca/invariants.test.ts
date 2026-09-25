@@ -95,35 +95,40 @@ describe('invariant #3: amortized_principal == loanAmount regardless of the fina
     };
   }
 
-  it('increasing total_financed_fees must not change amortized_principal, but DOES increase total_interest (fees slow principal paydown via the waterfall)', () => {
+  it('increasing total_financed_fees must not change amortized_principal; the fees paid reduce the balance, so total_interest is unchanged (spec 011 D9/D8)', () => {
     const smallerFee = calculateCobCanada(fixedMortgageInput({ fees: withFees(1000, 0) }));
     const largerFee = calculateCobCanada(fixedMortgageInput({ fees: withFees(5000, 0) }));
     expect(largerFee.amortizedPrincipal).toBe(smallerFee.amortizedPrincipal);
-    expect(largerFee.totalInterest).toBeGreaterThan(smallerFee.totalInterest);
+    expect(largerFee.totalInterest).toBeCloseTo(smallerFee.totalInterest, 6);
+    expect(largerFee.feesRecovered - smallerFee.feesRecovered).toBeCloseTo(4000, 6);
     // Financed fees DO reduce disbursalAmount -- the larger the financed fee, the
     // smaller the cash actually advanced (doc 007 finding #4).
     expect(largerFee.disbursalAmount).toBeLessThan(smallerFee.disbursalAmount);
   });
 
-  it('reclassifying the SAME total fee amount between financed and cash leaves total_interest/amortized_principal unchanged -- only disbursalAmount is split-sensitive', () => {
+  it('reclassifying the SAME total fee amount between financed and cash leaves amortized_principal unchanged -- disbursalAmount and the waterfall are split-sensitive (spec 011)', () => {
+    const noFees = calculateCobCanada(fixedMortgageInput());
     const allCash = calculateCobCanada(fixedMortgageInput({ fees: withFees(0, 3000) }));
     const allFinanced = calculateCobCanada(fixedMortgageInput({ fees: withFees(3000, 0) }));
-    expect(allFinanced.totalInterest).toBeCloseTo(allCash.totalInterest, 6);
     expect(allFinanced.amortizedPrincipal).toBe(allCash.amortizedPrincipal);
     expect(allFinanced.disbursalAmount).toBeLessThan(allCash.disbursalAmount); // only financed fees reduce disbursal
-    expect(allFinanced.cobAmount).toBeCloseTo(allCash.cobAmount, 6); // equation 8 sums both types regardless of split
+    // Only financed fees enter the waterfall (DEV-011-1): cash fees leave interest untouched.
+    // Financed fees are paid down inside the balance (D9/D8), so interest is unchanged too.
+    expect(allCash.totalInterest).toBeCloseTo(noFees.totalInterest, 6);
+    expect(allFinanced.totalInterest).toBeCloseTo(allCash.totalInterest, 6);
+    expect(allFinanced.feesRecovered).toBeCloseTo(3000, 6);
+    expect(allCash.feesRecovered).toBe(0);
   });
 
-  it('increasing total_cash_fees must not change amortized_principal or disbursalAmount, but DOES increase total_interest, cob_amount, and fees_recovered', () => {
+  it('increasing total_cash_fees must not change amortized_principal, disbursalAmount, total_interest or fees_recovered, but DOES increase cob_amount (spec 011)', () => {
     const smallerCash = calculateCobCanada(fixedMortgageInput({ fees: withFees(0, 500) }));
     const largerCash = calculateCobCanada(fixedMortgageInput({ fees: withFees(0, 3000) }));
-    expect(largerCash.totalInterest).toBeGreaterThan(smallerCash.totalInterest);
+    expect(largerCash.totalInterest).toBe(smallerCash.totalInterest);
     expect(largerCash.amortizedPrincipal).toBe(smallerCash.amortizedPrincipal);
     expect(largerCash.disbursalAmount).toBe(smallerCash.disbursalAmount); // cash fees never touch disbursal
-    // Cash fees DO increase cob_amount and fees_recovered (both fee types feed the
-    // waterfall's feesToRecover, per doc 007 finding #8).
-    expect(largerCash.cobAmount).toBeGreaterThan(smallerCash.cobAmount);
-    expect(largerCash.feesRecovered).toBeGreaterThan(smallerCash.feesRecovered);
+    expect(largerCash.feesRecovered).toBe(0);
+    expect(smallerCash.feesRecovered).toBe(0);
+    expect(largerCash.cobAmount - smallerCash.cobAmount).toBeCloseTo(2500, 6);
   });
 });
 

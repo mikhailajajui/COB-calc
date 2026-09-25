@@ -117,16 +117,17 @@ describe('periodInterest (equation 3)', () => {
 
 describe('applyPaymentWaterfall (equation 4)', () => {
   it('happy path: payment comfortably covers interest+fees, remainder reduces principal', () => {
-    const result = applyPaymentWaterfall(100, 0, 50, 500);
+    const result = applyPaymentWaterfall(100, 0, 50, 500, 10000);
     expect(result.interestPaid).toBe(100);
     expect(result.carriedAccruedInterestClosing).toBe(0);
     expect(result.feesPaid).toBe(50);
     expect(result.feesClosing).toBe(0);
     expect(result.principalPortion).toBe(350);
+    expect(result.amountPaid).toBe(500);
   });
 
   it('edge case: payment does not even cover this periods interest + carried accrued interest', () => {
-    const result = applyPaymentWaterfall(100, 80, 50, 120);
+    const result = applyPaymentWaterfall(100, 80, 50, 120, 10000);
     // totalInterestDue = 180, payment only covers 120 of it.
     expect(result.totalInterestDue).toBe(180);
     expect(result.interestPaid).toBe(120);
@@ -134,10 +135,29 @@ describe('applyPaymentWaterfall (equation 4)', () => {
     expect(result.feesPaid).toBe(0);
     expect(result.feesClosing).toBe(50);
     expect(result.principalPortion).toBe(0);
+    expect(result.amountPaid).toBe(120);
+  });
+
+  it('payoff (spec 011 DQ-28): principal is capped at principalOutstanding and the row pays only what is owed', () => {
+    const result = applyPaymentWaterfall(10, 0, 50, 1000, 200);
+    expect(result.interestPaid).toBe(10);
+    expect(result.feesPaid).toBe(50);
+    expect(result.principalPortion).toBe(200);
+    expect(result.amountPaid).toBe(260);
+  });
+
+  it('boundary: principalOutstanding exactly equal to the remainder is not a payoff cap', () => {
+    const result = applyPaymentWaterfall(10, 0, 50, 260, 200);
+    expect(result.principalPortion).toBe(200);
+    expect(result.amountPaid).toBe(260);
   });
 
   it('throws RangeError on a non-positive paymentAmount', () => {
-    expect(() => applyPaymentWaterfall(100, 0, 0, 0)).toThrow(RangeError);
+    expect(() => applyPaymentWaterfall(100, 0, 0, 0, 10000)).toThrow(RangeError);
+  });
+
+  it('throws RangeError on a NaN principalOutstanding', () => {
+    expect(() => applyPaymentWaterfall(100, 0, 0, 500, Number.NaN)).toThrow(RangeError);
   });
 });
 

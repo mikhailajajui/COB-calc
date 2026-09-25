@@ -28,8 +28,10 @@ import { round2 } from '../money.js';
 export interface Fee {
   name: string;
   amount: number;
-  /** false (default elsewhere in the ecosystem): paid out-of-pocket, reduces
-   *  disbursal. true: added to the amortized principal instead of reducing disbursal. */
+  /** true: already inside loanAmount (reduces disbursal) and recovered through the
+   *  payment waterfall. false: paid separately by the member -- never reduces
+   *  disbursal, never enters principal or the waterfall, counted only in cobAmount
+   *  (BRD IN-07 / BR-04, spec 011). */
   financed: boolean;
   /** Whether this fee counts toward cobAmount (equation 7). Independent of
    *  `financed` -- see the type-level doc comment above. Left `undefined` by any
