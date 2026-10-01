@@ -41,8 +41,8 @@ jobs:
           npm ci
           npm ci --prefix help
           npm run typecheck
-          npm test
           npm run build
+          npm test
 
       - name: Assemble the site
         run: |
