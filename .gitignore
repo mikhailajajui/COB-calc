@@ -5,3 +5,7 @@ docs/*.docx
 docs/*.xlsm
 ~$*
 __pycache__/
+
+# Reference copies of COB-ts -- not published
+COB-ts copy/
+COB-ts-current/

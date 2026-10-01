@@ -1,81 +1,37 @@
 # cob-calculator
 
-Cost of borrowing / segmented mortgage amortization calculator engine, in TypeScript.
-No UI — this is a pure calculation library.
+Cost of Borrowing (COB) calculator for Canadian lending disclosures, in TypeScript.
+It replaces Alterna Savings' Excel COB calculator (`Cost of Borrowing Rate Calc_Current.xlsm`)
+and reproduces the workbook's outputs, except where a recorded decision says otherwise
+(see `CHANGES.md`). It is a standalone calculator: manual input only, with no system
+integration and no storage of member data.
 
-Modeled loosely on [calculator.net's mortgage calculator](https://www.calculator.net/mortgage-calculator.html)
-for the baseline amortization math, extended to support a Canadian-style mortgage
-lifecycle: **renewals**, mid-stream **payment changes**, and **variable rate changes**
-— all modeled as a single mortgage made of an ordered list of **segments**.
+- Engine: `src/ca/`. Its public API (`src/ca/index.ts`, re-exported by `src/index.ts`) is
+  `calculateCobCanada`, `PAYMENTS_PER_YEAR` and the input/result types.
+- UI: `ui/ca.html` (with `ui/ca.js`), which imports only the built engine `/dist/ca/index.js`.
 
-## Install / build / test
+## Commands
 
 ```bash
 npm install
-npm run typecheck
-npm test
-npm run build
+npx vitest run        # full suite
+npm run typecheck     # tsc --noEmit
+npm run build         # tsc -> dist/
+npm run test:tz       # golden + purity tests under two time zones
+npm run ui            # build + serve the UI (node ui/serve.mjs)
 ```
+
+`npm run ui` serves the project root on `http://localhost:5173` (or `$PORT`); `/` opens
+`ui/ca.html`.
 
 ## Usage
 
-### Simple fixed-rate loan (no renewal)
-
 ```ts
-import { summarizeLoan } from 'cob-calculator';
+import { calculateCobCanada } from 'cob-calculator';
+import type { CobCanadaInput } from 'cob-calculator';
 
-const summary = summarizeLoan({
-  loanAmount: 200000,
-  annualInterestRatePercent: 6,
-  termYears: 30,
-  startDate: new Date('2024-01-01'),
-});
-
-console.log(summary.segmentSummaries[0].monthlyPayment); // fixed monthly payment
-console.log(summary.totalInterestPaid);
-console.log(summary.schedule.length); // 360
+declare const input: CobCanadaInput;
+const result = calculateCobCanada(input);
 ```
 
-### Segmented mortgage (renewal, payment change, variable rate change)
-
-```ts
-import { summarizeMortgage } from 'cob-calculator';
-
-const summary = summarizeMortgage({
-  segments: [
-    {
-      // Original 5-year term, 25-year amortization
-      startDate: new Date('2020-01-01'),
-      annualInterestRatePercent: 5,
-      amortizationMonthsRemaining: 300,
-      termMonths: 60,
-      startingBalance: 200000,
-    },
-    {
-      // Renewed at a new rate for the remaining 20-year amortization
-      startDate: new Date('2025-01-01'),
-      annualInterestRatePercent: 4,
-      amortizationMonthsRemaining: 240,
-      // termMonths omitted: this segment runs to payoff
-    },
-  ],
-  // Optional: correct specific rows to match a real bank statement.
-  manualOverrides: [{ paymentNumber: 30, interestPortion: 812.34, principalPortion: 431.2 }],
-});
-```
-
-A **payment change** or **variable rate change** is just another segment: same
-mechanism as a renewal, started whenever it actually happened (it doesn't have to wait
-for a term to finish), with a manually chosen `paymentAmount` and/or a new
-`annualInterestRatePercent`.
-
-## Out of scope for v1 / Roadmap
-
-Not implemented yet, but the types (`MortgageInput`, `AmortizationEntry`,
-`LoanSummary`) leave commented, additive extension points for:
-
-- Recurring costs: property tax, home insurance, PMI (with 80% LTV auto-drop), HOA,
-  other costs, and their annual percentage increases.
-- Extra one-time/recurring principal payments.
-- Lump-sum payments applied at a renewal.
-- Cost breakdown (pie-chart-style P&I/tax/insurance/PMI/HOA split).
+`archive/` holds read-only copies of the pre-B27 golden fixtures (`archive/pre-b27/`, with a `MANIFEST.txt`); no test reads them.

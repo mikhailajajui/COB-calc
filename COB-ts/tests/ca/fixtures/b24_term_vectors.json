@@ -1,0 +1,222 @@
+{
+ "_provenance": "B24-R1 table, COB-architecture.md section 5 B24 (revision 31), typed by QA from the brief; expected values are the architect's, not produced by the implementation. Language-neutral.",
+ "rule": "F=from, T=to (UTC calendar dates); M=(T.y-F.y)*12+(T.m-F.m); if addMonthsClamped(F,M)>T then M-=1; months=M%12; years=(M-months)/12; days=daysBetween(addMonthsClamped(F,M),T)",
+ "rows": [
+  {
+   "name": "same day",
+   "from": "2026-03-05",
+   "to": "2026-03-05",
+   "years": 0,
+   "months": 0,
+   "days": 0
+  },
+  {
+   "name": "one day",
+   "from": "2026-03-05",
+   "to": "2026-03-06",
+   "years": 0,
+   "months": 0,
+   "days": 1
+  },
+  {
+   "name": "same month 20 days",
+   "from": "2026-03-05",
+   "to": "2026-03-25",
+   "years": 0,
+   "months": 0,
+   "days": 20
+  },
+  {
+   "name": "weekly two rows",
+   "from": "2026-03-23",
+   "to": "2026-03-30",
+   "years": 0,
+   "months": 0,
+   "days": 7
+  },
+  {
+   "name": "month-end to month-end Jan-Feb 2026",
+   "from": "2026-01-31",
+   "to": "2026-02-28",
+   "years": 0,
+   "months": 1,
+   "days": 0
+  },
+  {
+   "name": "month-end to month-end leap Feb",
+   "from": "2028-01-31",
+   "to": "2028-02-29",
+   "years": 0,
+   "months": 1,
+   "days": 0
+  },
+  {
+   "name": "month-end Aug-Sep",
+   "from": "2026-08-31",
+   "to": "2026-09-30",
+   "years": 0,
+   "months": 1,
+   "days": 0
+  },
+  {
+   "name": "month-end Dec to Jun",
+   "from": "2026-12-31",
+   "to": "2027-06-30",
+   "years": 0,
+   "months": 6,
+   "days": 0
+  },
+  {
+   "name": "clamped 30th to Feb 28",
+   "from": "2026-01-30",
+   "to": "2026-02-28",
+   "years": 0,
+   "months": 1,
+   "days": 0
+  },
+  {
+   "name": "31st to Feb 27",
+   "from": "2026-01-31",
+   "to": "2026-02-27",
+   "years": 0,
+   "months": 0,
+   "days": 27
+  },
+  {
+   "name": "31st to Mar 1",
+   "from": "2026-01-31",
+   "to": "2026-03-01",
+   "years": 0,
+   "months": 1,
+   "days": 1
+  },
+  {
+   "name": "29th to Mar 1",
+   "from": "2026-01-29",
+   "to": "2026-03-01",
+   "years": 0,
+   "months": 1,
+   "days": 1
+  },
+  {
+   "name": "30th leap to Mar 1",
+   "from": "2028-01-30",
+   "to": "2028-03-01",
+   "years": 0,
+   "months": 1,
+   "days": 1
+  },
+  {
+   "name": "leap day start to next Feb 28",
+   "from": "2028-02-29",
+   "to": "2029-02-28",
+   "years": 1,
+   "months": 0,
+   "days": 0
+  },
+  {
+   "name": "leap day start to next Feb 27",
+   "from": "2028-02-29",
+   "to": "2029-02-27",
+   "years": 0,
+   "months": 11,
+   "days": 27
+  },
+  {
+   "name": "leap day start to Mar 31",
+   "from": "2028-02-29",
+   "to": "2028-03-31",
+   "years": 0,
+   "months": 1,
+   "days": 0
+  },
+  {
+   "name": "leap Feb 28 not month-end to Mar 28",
+   "from": "2028-02-28",
+   "to": "2028-03-28",
+   "years": 0,
+   "months": 1,
+   "days": 0
+  },
+  {
+   "name": "leap Feb 28 not month-end to Mar 31",
+   "from": "2028-02-28",
+   "to": "2028-03-31",
+   "years": 0,
+   "months": 1,
+   "days": 3
+  },
+  {
+   "name": "OQ-X Feb 28 2027 to Mar 31",
+   "from": "2027-02-28",
+   "to": "2027-03-31",
+   "years": 0,
+   "months": 1,
+   "days": 0
+  },
+  {
+   "name": "OQ-X Feb 28 2027 to Mar 30",
+   "from": "2027-02-28",
+   "to": "2027-03-30",
+   "years": 0,
+   "months": 0,
+   "days": 30
+  },
+  {
+   "name": "year wrap 30 days",
+   "from": "2026-12-15",
+   "to": "2027-01-14",
+   "years": 0,
+   "months": 0,
+   "days": 30
+  },
+  {
+   "name": "year wrap one month",
+   "from": "2026-12-15",
+   "to": "2027-01-15",
+   "years": 0,
+   "months": 1,
+   "days": 0
+  },
+  {
+   "name": "year wrap 11 months 30 days",
+   "from": "2027-01-15",
+   "to": "2028-01-14",
+   "years": 0,
+   "months": 11,
+   "days": 30
+  },
+  {
+   "name": "REF-01 / S1_fees",
+   "from": "2026-03-23",
+   "to": "2029-03-12",
+   "years": 2,
+   "months": 11,
+   "days": 17
+  },
+  {
+   "name": "RENEWAL",
+   "from": "2026-05-01",
+   "to": "2028-10-01",
+   "years": 2,
+   "months": 5,
+   "days": 0
+  },
+  {
+   "name": "VRPC_zero_accrued",
+   "from": "2026-06-26",
+   "to": "2031-06-06",
+   "years": 4,
+   "months": 11,
+   "days": 11
+  },
+  {
+   "name": "monthly 36 rows from 2026-04-17",
+   "from": "2026-04-17",
+   "to": "2029-03-17",
+   "years": 2,
+   "months": 11,
+   "days": 0
+  }
+ ]
+}

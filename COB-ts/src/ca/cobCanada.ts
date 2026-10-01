@@ -1,58 +1,24 @@
-import type { PaymentFrequency } from '../types.js';
+import { daysBetween, periodDateFor, termBetween } from './calendar.js';
 import { totalCashFees, totalFinancedFees } from './fees.js';
+import { FLOWS, computesTriggerRate } from './flows.js';
+import {
+  PRINCIPAL_PAID,
+  PRIOR_ACCRUED_IN_COB,
+  PRIOR_ACCRUED_IN_P,
+  P_BASIS,
+  UNPAID_INTEREST_CAPITALISED,
+} from './policies.js';
 import {
   applyPaymentWaterfall,
-  calculatedRate,
+  calculatedRateFor,
   cobAmount as cobAmountEquation,
   costOfBorrowingRatePercent,
-  dayCountFraction,
-  daysBetween,
-  selectCompoundingPeriodsPerYear,
+  periodInterest,
   triggerRatePercent as triggerRatePercentEquation,
 } from './equations.js';
-import type { CobCanadaInput, CobCanadaResult, CobScheduleRow } from './types.js';
+import type { CobCanadaInput, CobCanadaResult, CobScheduleRow, ContractTerm, PaymentFrequency } from './types.js';
 import { PAYMENTS_PER_YEAR } from './types.js';
 import { validateCobCanadaInput } from './validate.js';
-
-/**
- * Trigger rate is computed whenever product = mortgage and rate = variable,
- * regardless of which of the four flows is in play (spec 006's "Presentation layer"
- * table: newMortgageOrLoan/renewal/paymentChange all say "Yes, if product = mortgage
- * and rate type = variable"; variableRatePaymentChange says "Yes, always" but that
- * flow is validated to be mortgage+variable-only by construction -- see validate.ts --
- * so the condition collapses to this single productType/rateType check for every flow).
- */
-function flowComputesTriggerRate(input: CobCanadaInput): boolean {
-  return input.productType === 'mortgage' && input.rateType === 'variable';
-}
-
-/** UTC-safe day/month stepping -- see equations.ts's utcDateOnly doc comment for why
- *  this module avoids local-timezone Date getters/setters entirely. */
-function addUtcDays(date: Date, days: number): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days));
-}
-
-function addUtcMonths(date: Date, months: number): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, date.getUTCDate()));
-}
-
-/** periodDate for period index i (0-based) at the given payment frequency.
- *  "Accelerated Weekly" (BR-09) is treated identically to plain Weekly, so there is no
- *  separate case. semiMonthly is evenly spaced, same approximation used elsewhere in
- *  this codebase (paymentFrequency.ts) for the "1st & 15th" convention some lenders
- *  use. */
-function periodDateFor(frequency: PaymentFrequency, firstPaymentDate: Date, index: number): Date {
-  switch (frequency) {
-    case 'monthly':
-      return addUtcMonths(firstPaymentDate, index);
-    case 'weekly':
-      return addUtcDays(firstPaymentDate, index * 7);
-    case 'biweekly':
-      return addUtcDays(firstPaymentDate, index * 14);
-    case 'semiMonthly':
-      return addUtcDays(firstPaymentDate, Math.round((index * 365.25) / 24));
-  }
-}
 
 /** A generous safety cap against a misconfigured schedule that never reaches
  *  end_date (the date-based stop condition below is otherwise self-terminating by
@@ -68,8 +34,9 @@ interface BuildScheduleArgs {
   firstPaymentDate: Date;
   endDate: Date;
   frequency: PaymentFrequency;
-  initialCarriedAccruedInterest: number;
+  initialPastAccruedInterest: number;
   initialFeesToRecover: number;
+  unpaidInterestCapitalised: boolean;
 }
 
 /**
@@ -85,8 +52,26 @@ interface BuildScheduleArgs {
  * generates exactly 156 rows, the last dated 2029-03-12 (row 157 would fall on
  * 2029-03-19, strictly after end_date, so it is never generated) -- there is no
  * amortization-horizon input anywhere in this engine.
+ *
+ * Unpaid interest, shipped branch (UNPAID_INTEREST_CAPITALISED false, DEV-OQL). The
+ * interest base is openingBalance = principal + unrecovered financed fees; it never holds
+ * unpaid interest (B19-R1). Unpaid interest (IN-11 and period shortfalls) is one bucket
+ * outside the balance that earns nothing; the waterfall pays it, and this period's
+ * interest, first, and its own closing value is the next bucket (B19-R2). Payments clear
+ * IN-11 first (oldest first, Q-W4-INT), tracked as `priorAccruedOwed` (B19-R3). The
+ * bucket minus the IN-11 still owed is the period interest unpaid at the end, which
+ * counts in C as charged (B19-R4). closingBalance excludes interest (B19-R5).
+ *
+ * Workbook branch (true): unpaid period interest, OQ-L. A shortfall stays owing, is paid
+ * first from later payments, is part of the Loan balance (closing and next opening), and
+ * is charged interest next period. CalculateAll: `newInt = openingBalance * appliedRate`,
+ * `intAccrued = intAccrued + newInt`, `newBalance = newFees + newPrinciple + intAccrued -
+ * totalInterestPaid`, `openingBalance = newBalance`. Past accrued interest, IN-11, is
+ * carried outside the balance, earning nothing; while any is outstanding, an interest
+ * shortfall is carried with it (OQ-W interim). Only one of the two is ever nonzero, so
+ * the waterfall sees their sum.
  */
-function buildSchedule(args: BuildScheduleArgs): CobScheduleRow[] {
+function buildSchedule(args: BuildScheduleArgs): { schedule: CobScheduleRow[]; unpaidPeriodInterestAtEnd: number } {
   const {
     loanAmount,
     calculatedRateDecimal,
@@ -95,35 +80,61 @@ function buildSchedule(args: BuildScheduleArgs): CobScheduleRow[] {
     firstPaymentDate,
     endDate,
     frequency,
-    initialCarriedAccruedInterest,
+    initialPastAccruedInterest,
     initialFeesToRecover,
+    unpaidInterestCapitalised,
   } = args;
 
   const rows: CobScheduleRow[] = [];
   let openingBalance = loanAmount;
-  let carriedAccruedInterest = initialCarriedAccruedInterest;
   let feesToRecover = initialFeesToRecover;
   let priorDate = startDate;
+  // Workbook branch (UNPAID_INTEREST_CAPITALISED true): T6 / OQ-L plus the OQ-W interim rule.
+  let pastAccruedInterest = initialPastAccruedInterest;
+  let unpaidPeriodInterest = 0;
+  // Shipped branch (false, DEV-OQL): one bucket of unpaid interest outside the balance.
+  let accruedBucket = initialPastAccruedInterest;
+  let priorAccruedOwed = initialPastAccruedInterest;
 
   for (let index = 0; index < MAX_SCHEDULE_ROWS_SAFETY_CAP; index += 1) {
-    const rowDate = periodDateFor(frequency, firstPaymentDate, index);
+    const rowDate = periodDateFor(frequency, firstPaymentDate, index, priorDate);
     if (rowDate.getTime() > endDate.getTime()) {
       break;
     }
 
     const daysInPeriod = daysBetween(priorDate, rowDate);
-    const periodInterestAmount = openingBalance * calculatedRateDecimal * dayCountFraction(priorDate, rowDate);
+    const periodInterestAmount = periodInterest(openingBalance, calculatedRateDecimal, priorDate, rowDate);
 
+    const carriedAccruedInterest = unpaidInterestCapitalised
+      ? pastAccruedInterest + unpaidPeriodInterest
+      : accruedBucket;
     const waterfall = applyPaymentWaterfall(
       periodInterestAmount,
       carriedAccruedInterest,
       feesToRecover,
       paymentAmount,
-      openingBalance - feesToRecover,
+      unpaidInterestCapitalised
+        ? openingBalance - feesToRecover - unpaidPeriodInterest
+        : openingBalance - feesToRecover,
     );
+    let closingBalance: number;
+    if (unpaidInterestCapitalised) {
+      const unpaidPeriodInterestClosing = pastAccruedInterest > 0 ? 0 : waterfall.carriedAccruedInterestClosing;
     // Spec 011 D9/D8 (DEV-011-2): financed fees are inside openingBalance, so the fees
-    // paid reduce it as well as the principal paid.
-    const closingBalance = openingBalance - waterfall.feesPaid - waterfall.principalPortion;
+    // paid reduce it as well as the principal paid. OQ-L: so is unpaid period interest.
+      closingBalance =
+        openingBalance -
+        waterfall.feesPaid -
+        waterfall.principalPortion -
+        unpaidPeriodInterest +
+        unpaidPeriodInterestClosing;
+      pastAccruedInterest = pastAccruedInterest > 0 ? waterfall.carriedAccruedInterestClosing : 0;
+      unpaidPeriodInterest = unpaidPeriodInterestClosing;
+    } else {
+      closingBalance = openingBalance - waterfall.feesPaid - waterfall.principalPortion;
+      priorAccruedOwed = priorAccruedOwed - Math.min(waterfall.interestPaid, priorAccruedOwed);
+      accruedBucket = waterfall.carriedAccruedInterestClosing;
+    }
 
     rows.push({
       period: index + 1,
@@ -143,7 +154,6 @@ function buildSchedule(args: BuildScheduleArgs): CobScheduleRow[] {
     });
 
     openingBalance = closingBalance;
-    carriedAccruedInterest = waterfall.carriedAccruedInterestClosing;
     feesToRecover = waterfall.feesClosing;
     priorDate = rowDate;
 
@@ -152,7 +162,10 @@ function buildSchedule(args: BuildScheduleArgs): CobScheduleRow[] {
     }
   }
 
-  return rows;
+  return {
+    schedule: rows,
+    unpaidPeriodInterestAtEnd: unpaidInterestCapitalised ? unpaidPeriodInterest : accruedBucket - priorAccruedOwed,
+  };
 }
 
 /**
@@ -168,6 +181,8 @@ function buildSchedule(args: BuildScheduleArgs): CobScheduleRow[] {
  * weighting was ever needed or correct.
  */
 function averageOutstandingBalance(rows: CobScheduleRow[]): number {
+  P_BASIS satisfies 'openingBalance'; // OQ-Q
+  PRIOR_ACCRUED_IN_P satisfies false; // OQ-W3
   return rows.reduce((sum, row) => sum + row.openingBalance, 0) / rows.length;
 }
 
@@ -178,8 +193,20 @@ function averageOutstandingBalance(rows: CobScheduleRow[]): number {
  * waterfall, financed fees already inside loan_amount, and the trigger rate / COB
  * rate outputs.
  */
+export interface EngineSwitches {
+  readonly unpaidInterestCapitalised: boolean;
+}
+
+export const SHIPPED_SWITCHES: EngineSwitches = Object.freeze({
+  unpaidInterestCapitalised: UNPAID_INTEREST_CAPITALISED,
+});
+
 export function calculateCobCanada(input: CobCanadaInput): CobCanadaResult {
-  validateCobCanadaInput(input);
+  return calculateCobCanadaWith(input, SHIPPED_SWITCHES);
+}
+
+export function calculateCobCanadaWith(input: CobCanadaInput, switches: EngineSwitches): CobCanadaResult {
+  const { startDate } = validateCobCanadaInput(input);
 
   const paymentsPerYear = PAYMENTS_PER_YEAR[input.paymentFrequency];
 
@@ -192,26 +219,27 @@ export function calculateCobCanada(input: CobCanadaInput): CobCanadaResult {
   const amortizedPrincipal = input.loanAmount;
   const disbursalAmount = input.loanAmount - financedFees;
 
-  // Equations 1/2 -- m selected by product/rate type, then the frequency-equivalent
-  // nominal rate (a decimal).
-  const compoundingPeriodsPerYear = selectCompoundingPeriodsPerYear(
+  // Equations 1/2 -- the Calculated Rate by rate basis (OQ-C): the contract rate
+  // as entered (MONTHLY) or converted at m = 2 (SEMI-ANNUAL, fixed mortgage).
+  const { percent: calculatedRatePercent, decimal: calculatedRateDecimal } = calculatedRateFor(
     input.productType,
     input.rateType,
+    input.contractRatePercent,
     paymentsPerYear,
   );
-  const calculatedRateDecimal = calculatedRate(input.contractRatePercent, compoundingPeriodsPerYear, paymentsPerYear);
 
-  const startDate = input.flow === 'newMortgageOrLoan' ? input.disbursalDate! : input.renewalDate!;
-  // carried_accrued_interest starts at the input accrued_interest for
+  const flowSpec = FLOWS[input.flow];
+  // Past accrued interest (IN-11) starts at the input accrued_interest for
   // renewal/paymentChange/variableRatePaymentChange flows, 0 for newMortgageOrLoan
-  // (doc 007 finding #5 -- never capitalized into the opening balance).
-  const initialCarriedAccruedInterest = input.flow === 'newMortgageOrLoan' ? 0 : (input.accruedInterest ?? 0);
+  // (doc 007 finding #5 -- never capitalized into the opening balance; OQ-W open).
+  // Required since B20; the `?? 0` only satisfies the union type.
+  const initialPastAccruedInterest = flowSpec.accruedInterest === 'hidden' ? 0 : (input.accruedInterest ?? 0);
   // fees_to_recover starts at the FINANCED fees only (spec 011 DEV-011-1, BRD IN-07 /
   // BR-04): non-financed fees are paid separately by the member, never enter the
   // waterfall, and count only in cobAmount / cobRatePercent below.
   const initialFeesToRecover = financedFees;
 
-  const schedule = buildSchedule({
+  const { schedule, unpaidPeriodInterestAtEnd } = buildSchedule({
     loanAmount: amortizedPrincipal,
     calculatedRateDecimal,
     paymentAmount: input.paymentAmount,
@@ -219,8 +247,9 @@ export function calculateCobCanada(input: CobCanadaInput): CobCanadaResult {
     firstPaymentDate: input.firstPaymentDate,
     endDate: input.endDate,
     frequency: input.paymentFrequency,
-    initialCarriedAccruedInterest,
+    initialPastAccruedInterest,
     initialFeesToRecover,
+    unpaidInterestCapitalised: switches.unpaidInterestCapitalised,
   });
 
   if (schedule.length === 0) {
@@ -232,12 +261,17 @@ export function calculateCobCanada(input: CobCanadaInput): CobCanadaResult {
   const lastRow = schedule[schedule.length - 1]!;
 
   const totalPayment = schedule.reduce((sum, row) => sum + row.paymentAmount, 0);
-  const totalInterest = schedule.reduce((sum, row) => sum + row.interestPaid, 0);
+  // Total interest counts period interest as charged (OQ-L / DEV-OQL; CalculateAll:
+  // `TOTALINTERESTCELL = intAccrued`), so the period interest still unpaid at the end is
+  // added. IN-11 past accrued interest still counts only as it is paid (W2).
+  PRIOR_ACCRUED_IN_COB satisfies 'whenPaid'; // OQ-W2
+  const totalInterest = schedule.reduce((sum, row) => sum + row.interestPaid, 0) + unpaidPeriodInterestAtEnd;
   const feesRecovered = schedule.reduce((sum, row) => sum + row.feesPaid, 0);
-  // Equation 4: principal_payment == total_payment - total_interest - fees_recovered,
+  // Equation 4: principal_payment == total_payment - sum(interest_paid) - fees_recovered,
   // reconciling exactly by construction (invariant #2) -- summed directly rather than
   // subtracted, so it holds even if a future change makes any individual row's
   // waterfall math imprecise.
+  PRINCIPAL_PAID satisfies 'sumOfPrincipalPortion'; // OQ-R
   const principalPayment = schedule.reduce((sum, row) => sum + row.principalPortion, 0);
 
   // Equation 8 -- all fees, unconditionally (the only place non-financed fees enter,
@@ -252,6 +286,12 @@ export function calculateCobCanada(input: CobCanadaInput): CobCanadaResult {
   // whenever fees total $0, per doc 007's addendum.
   const finalPaymentDate = lastRow.date;
   const termDays = daysBetween(startDate, finalPaymentDate);
+  if (termDays === 0 && !(financedFees + cashFees === 0)) {
+    const startField = flowSpec.startDateField;
+    throw new RangeError(
+      `${startField} is the same day as the only payment date, so the COB-rate term is 0 days; with fees the term must be at least 1 day`,
+    );
+  }
   const termYearsExact = termDays / 365;
   const averageOutstandingBalanceValue = averageOutstandingBalance(schedule);
   const cobRate = costOfBorrowingRatePercent(
@@ -266,12 +306,12 @@ export function calculateCobCanada(input: CobCanadaInput): CobCanadaResult {
   // Equation 6 -- mortgage + variable only. loan_amount = current outstanding
   // principal = amortizedPrincipal (== loanAmount at disbursal for new flows;
   // already the current balance for renewal/paymentChange flows).
-  const triggerRate = flowComputesTriggerRate(input)
+  const triggerRate = computesTriggerRate(input.productType, input.rateType)
     ? triggerRatePercentEquation(input.paymentAmount, paymentsPerYear, amortizedPrincipal)
     : null;
 
   return {
-    calculatedRatePercent: calculatedRateDecimal * 100,
+    calculatedRatePercent,
     cobAmount: cobDollarAmount,
     cobRatePercent: cobRate,
     totalPayment,
@@ -286,4 +326,19 @@ export function calculateCobCanada(input: CobCanadaInput): CobCanadaResult {
     amortizedPrincipal,
     endingBalance: lastRow.closingBalance,
   };
+}
+
+/**
+ * The contract term (B24): whole years, months and leftover days from the first to the last
+ * row of the calculated schedule. Unrelated to `termDays`, which runs from the flow's start date.
+ * An empty schedule (the engine never returns one) throws a RangeError.
+ */
+export function contractTerm(result: Pick<CobCanadaResult, 'amortizationSchedule'>): ContractTerm {
+  const schedule = result.amortizationSchedule;
+  const first = schedule[0];
+  const last = schedule[schedule.length - 1];
+  if (first === undefined || last === undefined) {
+    throw new RangeError('amortizationSchedule must have at least one row');
+  }
+  return termBetween(first.date, last.date);
 }

@@ -1,0 +1,5 @@
+Pre-B27 golden fixtures (archived 2026-09-30, B27 red step, before any regeneration).
+golden_engine_v1.json     sha256 9e868cdf2edb74c1bf651cacfbfb384730c8e1d3b07ebb983d45580b699bf4b1  (148 groups / 4455 cases)
+golden_engine_pc_v1.json  sha256 5ab1c6a6c086ba737d790bb1e42f2eb36ccd61c3c256e2634a6d5cc312fa7df5  (122 groups / 3536 cases)
+Run by no test, never regenerated; replay only with a pre-B27 engine.
+Frozen generators that reproduce these: tests/ca/fixtures/legacy/generate_golden*_pre_b27.mjs (through the rehome twin).

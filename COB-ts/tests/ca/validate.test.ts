@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateCobCanadaInput } from '../../src/ca/validate.js';
-import type { CobCanadaInput } from '../../src/ca/types.js';
+import type { CobCanadaInput } from '../../src/ca/index.js';
+import { BOTH_SEMI, loadValidate } from './support/semiSwitch.js';
 
 function baseInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
   return {
@@ -19,7 +20,7 @@ function baseInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
     disbursalDate: new Date('2024-01-01'),
     semiAnnualCompoundingDate: new Date('2024-01-01'),
     ...overrides,
-  };
+  } as CobCanadaInput;
 }
 
 describe('validateCobCanadaInput', () => {
@@ -44,13 +45,13 @@ describe('validateCobCanadaInput', () => {
     expect(() => validateCobCanadaInput(baseInput({ loanAmount: 0 }))).toThrow(RangeError);
   });
 
-  it('throws RangeError on non-positive paymentAmount', () => {
-    expect(() => validateCobCanadaInput(baseInput({ paymentAmount: 0 }))).toThrow(RangeError);
+  it('negative payment rejected', () => {
+    // OQ-Y revised 2026-09-28 (B14): payment must be > 0; negative, 0 and -0 rejected
+    // (0 / -0: numericGuard-b3a.test.ts, zeroPayment-oqy.test.ts, b14-payment-rate-positive.test.ts)
+    expect(() => validateCobCanadaInput(baseInput({ paymentAmount: -1 }))).toThrow(RangeError);
   });
 
-  it('throws RangeError when term_years/term_months are both 0', () => {
-    expect(() => validateCobCanadaInput(baseInput({ termYears: 0, termMonths: 0 }))).toThrow(RangeError);
-  });
+  // B24: the 'term_years/term_months both 0' test is retired (the term fields are never validated; b24-term-rule T4).
 
   it('throws RangeError on an unrecognized paymentFrequency', () => {
     expect(() =>
@@ -84,6 +85,7 @@ describe('validateCobCanadaInput', () => {
           semiAnnualCompoundingDate: undefined,
           disbursalDate: undefined,
           renewalDate: new Date('2024-01-01'),
+          accruedInterest: 0, // required since B20 (decision 4)
         }),
       ),
     ).not.toThrow();
@@ -111,10 +113,12 @@ describe('validateCobCanadaInput', () => {
     expect(() => validateCobCanadaInput(baseInput({ endDate: new Date('2024-02-01') }))).toThrow(RangeError);
   });
 
-  it('throws RangeError when a fixed-rate mortgage is missing semiAnnualCompoundingDate', () => {
+  it.each(BOTH_SEMI)('%s: a fixed-rate mortgage missing semiAnnualCompoundingDate throws RangeError when on (Q-SACD), is accepted when off', async (_l, required) => {
+    const api = await loadValidate(required);
     const input = baseInput();
     delete (input as { semiAnnualCompoundingDate?: Date }).semiAnnualCompoundingDate;
-    expect(() => validateCobCanadaInput(input)).toThrow(RangeError);
+    if (required) expect(() => api.validateCobCanadaInput(input)).toThrow(RangeError);
+    else expect(() => api.validateCobCanadaInput(input)).not.toThrow();
   });
 
   it('does not require semiAnnualCompoundingDate for a variable-rate mortgage', () => {
@@ -140,7 +144,7 @@ describe('validateCobCanadaInput', () => {
   });
 });
 
-describe('BRD §6: total financed fees must be less than loanAmount', () => {
+describe('BRD §6: total fees (financed + non-financed) must be less than loanAmount', () => {
   // QA F1 reproduction: personal loan of 1000 with a 1500 financed fee.
   function qaInput(amount: number, financed = true): CobCanadaInput {
     return baseInput({
@@ -158,34 +162,41 @@ describe('BRD §6: total financed fees must be less than loanAmount', () => {
     });
   }
 
-  it('rejects financed fees above the loan amount, naming both amounts', () => {
-    expect(() => validateCobCanadaInput(qaInput(1500))).toThrow(
-      new RangeError('total financed fees (1500) must be less than loanAmount (1000) (BRD §6)'),
+  // B2 2026-09-27 (QA): the ONE exact-text pin for the fee-limit message. Wording is the user's
+  // "Q-MSG interim (fee limit)" decision (COB-user-stories.md §7.5), X = grouped fee total
+  // (B2-R1), Y = loanAmount, raw number formatting as before. Red until B2.
+  // Mixed groups (600 financed + 900 non-financed) so X must be the grouped total, not financed only.
+  it('rejects fees above the loan amount with the Q-MSG interim wording (B2)', () => {
+    const input = qaInput(600);
+    input.fees.fees.push({ name: 'Appraisal', amount: 900, financed: false, includedInCob: true });
+    expect(() => validateCobCanadaInput(input)).toThrow(
+      new RangeError('total fees (financed + non-financed) (1500) must be less than loanAmount (1000)'),
     );
   });
 
+  // Fee-limit fires; message text is pinned once, above.
   it('rejects financed fees equal to the loan amount', () => {
-    expect(() => validateCobCanadaInput(qaInput(1000))).toThrow(
-      new RangeError('total financed fees (1000) must be less than loanAmount (1000) (BRD §6)'),
-    );
+    expect(() => validateCobCanadaInput(qaInput(1000))).toThrow(RangeError);
+    expect(() => validateCobCanadaInput(qaInput(1000))).toThrow(/fee/i);
   });
 
   it('sums every financed fee', () => {
     const input = qaInput(600);
     input.fees.fees.push({ name: 'Legal', amount: 400, financed: true, includedInCob: true });
-    expect(() => validateCobCanadaInput(input)).toThrow(
-      new RangeError('total financed fees (1000) must be less than loanAmount (1000) (BRD §6)'),
-    );
+    expect(() => validateCobCanadaInput(input)).toThrow(RangeError);
+    expect(() => validateCobCanadaInput(input)).toThrow(/fee/i);
   });
 
   it('accepts financed fees of loanAmount - 0.01', () => {
     expect(() => validateCobCanadaInput(qaInput(999.99))).not.toThrow();
   });
 
-  it('does not count non-financed fees (open with the BRD author)', () => {
-    expect(() => validateCobCanadaInput(qaInput(1500, false))).not.toThrow();
+  // B2 2026-09-27 (QA): OQ-M decided -- non-financed fees DO count (macro `(finFee + nonFinFee) >= loanAmt`).
+  // Replaces the pre-decision "does not count non-financed fees" pin. Red until B2; message not pinned (Q-MSG).
+  it('counts non-financed fees (OQ-M, B2 / 012 D-08)', () => {
+    expect(() => validateCobCanadaInput(qaInput(1500, false))).toThrow(RangeError);
     const input = qaInput(999.99);
     input.fees.fees.push({ name: 'Appraisal', amount: 5000, financed: false, includedInCob: true });
-    expect(() => validateCobCanadaInput(input)).not.toThrow();
+    expect(() => validateCobCanadaInput(input)).toThrow(RangeError);
   });
 });

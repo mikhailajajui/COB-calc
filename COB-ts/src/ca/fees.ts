@@ -1,93 +1,64 @@
-import { round2 } from '../money.js';
+import { isFiniteNumber, type Fee, type FeeSchedule } from './types.js';
 
-/**
- * Loan fees, itemized: name/amount/financed, mirroring COB-py's existing
- * `cob_calculator/fees.py` (spec 002's Fee/FeeSchedule shape) rather than diverging —
- * COB-ts has not implemented spec 002 itself (no US fees.ts exists), so this is this
- * project's first TypeScript Fee/FeeSchedule, defined here for the Canadian module.
- *
- * Extended per spec 006 (docs/new-req/006-cost-of-borrowing-disclosure.md) with a
- * second, independent per-fee `includedInCob` flag. `financed` and `includedInCob`
- * answer genuinely different questions: `financed` is "does this fee reduce cash
- * disbursed or get added to the amortized balance," while `includedInCob` is "does
- * Financial Consumer Protection Framework Regulations s.48 count this dollar toward
- * cobAmount" (equation 7) -- e.g. a *financed* mortgage-default-insurance premium is
- * still added to the amortized balance like any other financed fee, but must never be
- * counted toward cobAmount; a discharge fee is excluded from cobAmount regardless of
- * whether it's paid in cash or financed.
- *
- * `includedInCob` has no safe default -- defaulting to `true` would silently pull
- * regulation-excluded categories (mortgage default insurance, discharge fees,
- * prepayment penalties, etc.) into cobAmount, defaulting to `false` would silently
- * drop includable ones. It therefore stays optional/undefined on this shared type
- * (matching COB-py's `included_in_cob: Optional[bool] = None`, a strictly additive
- * no-op for any future US caller that never sets it), but validateFee requires it to
- * be explicitly set (true or false) whenever a Canadian flow constructs a Fee -- see
- * validateFee below.
- */
-export interface Fee {
-  name: string;
-  amount: number;
-  /** true: already inside loanAmount (reduces disbursal) and recovered through the
-   *  payment waterfall. false: paid separately by the member -- never reduces
-   *  disbursal, never enters principal or the waterfall, counted only in cobAmount
-   *  (BRD IN-07 / BR-04, spec 011). */
-  financed: boolean;
-  /** Whether this fee counts toward cobAmount (equation 7). Independent of
-   *  `financed` -- see the type-level doc comment above. Left `undefined` by any
-   *  caller that doesn't care (contributes 0 to totalFeesIncludedInCob); Canadian
-   *  flows must set it explicitly -- see validateFee. */
-  includedInCob?: boolean;
-}
+export type { Fee, FeeSchedule } from './types.js';
 
-export interface FeeSchedule {
-  fees: Fee[];
+function throwRangeError(message: string): never {
+  throw new RangeError(message);
 }
 
 /**
- * Validates a single Fee for use in a Canadian (spec 006) flow: amount must be
- * non-negative, and -- unlike the shared type's optional `includedInCob` -- this
- * validation requires it to be explicitly set (true or false), since there is no safe
- * default (see the Fee doc comment above and spec 006's "Open questions").
+ * Validates a single Fee for use in a Canadian (spec 006) flow: amount must be a
+ * finite, non-negative number and `financed` a boolean. `includedInCob` is optional;
+ * if present it must be a boolean, and its value is never read (C counts every fee in
+ * full: OQ-E, macro line 562; B10, user 2026-09-29).
+ *
+ * Each failing check passes its message to `report` and returns false (a fee gives at
+ * most one message: its first failing check); the default reporter throws a RangeError
+ * with that message. Returns true when the fee is valid.
  */
-export function validateFee(fee: Fee, index: number): void {
+export function validateFee(fee: Fee, index: number, report: (message: string) => void = throwRangeError): boolean {
+  if (typeof fee !== 'object' || fee === null) {
+    report(`fees.fees[${index}] must be a fee object, got ${String(fee)}`);
+    return false;
+  }
   const label = fee.name || `fees.fees[${index}]`;
+  if (!isFiniteNumber(fee.amount)) {
+    report(`${label} amount must be a finite number, got ${String(fee.amount)}`);
+    return false;
+  }
   if (!(fee.amount >= 0)) {
-    throw new RangeError(`${label} amount must be >= 0, got ${fee.amount}`);
+    report(`${label} amount must be >= 0, got ${fee.amount}`);
+    return false;
   }
   if (typeof fee.financed !== 'boolean') {
-    throw new RangeError(`${label}.financed must be a boolean, got ${String(fee.financed)}`);
+    report(`${label}.financed must be a boolean, got ${String(fee.financed)}`);
+    return false;
   }
-  if (typeof fee.includedInCob !== 'boolean') {
-    throw new RangeError(
-      `${label}.includedInCob must be explicitly true or false for a Canadian COB flow -- ` +
-        'it has no safe default (see docs/new-req/006-cost-of-borrowing-disclosure.md "Open questions"): ' +
-        'defaulting true would silently pull regulation-excluded fees into cobAmount, defaulting false ' +
-        'would silently drop includable ones.',
-    );
+  const includedInCob: unknown = fee.includedInCob;
+  if (includedInCob !== undefined && typeof includedInCob !== 'boolean') {
+    report(`${label}.includedInCob must be a boolean if present, got ${String(includedInCob)}`);
+    return false;
   }
+  return true;
 }
 
-export function validateFeeSchedule(schedule: FeeSchedule): void {
-  schedule.fees.forEach((fee, index) => validateFee(fee, index));
-}
-
-export function totalFees(schedule: FeeSchedule): number {
-  return round2(schedule.fees.reduce((sum, fee) => sum + fee.amount, 0));
+/** Validates the schedule's shape, then every fee in index order (holes skipped); same reporter contract as validateFee. */
+export function validateFeeSchedule(schedule: FeeSchedule, report: (message: string) => void = throwRangeError): boolean {
+  if (typeof schedule !== 'object' || schedule === null || !Array.isArray(schedule.fees)) {
+    report('fees must be an object with a fees array');
+    return false;
+  }
+  let ok = true;
+  schedule.fees.forEach((fee, index) => {
+    if (!validateFee(fee, index, report)) ok = false;
+  });
+  return ok;
 }
 
 export function totalFinancedFees(schedule: FeeSchedule): number {
-  return round2(schedule.fees.filter((fee) => fee.financed).reduce((sum, fee) => sum + fee.amount, 0));
+  return schedule.fees.filter((fee) => fee.financed).reduce((sum, fee) => sum + fee.amount, 0);
 }
 
 export function totalCashFees(schedule: FeeSchedule): number {
-  return round2(schedule.fees.filter((fee) => !fee.financed).reduce((sum, fee) => sum + fee.amount, 0));
-}
-
-/** Sum of fee.amount where includedInCob === true. Fees that leave includedInCob
- *  undefined contribute 0, matching COB-py's total_fees_included_in_cob. */
-export function totalFeesIncludedInCob(schedule: FeeSchedule): number {
-  return round2(
-    schedule.fees.filter((fee) => fee.includedInCob === true).reduce((sum, fee) => sum + fee.amount, 0),
-  );
+  return schedule.fees.filter((fee) => !fee.financed).reduce((sum, fee) => sum + fee.amount, 0);
 }

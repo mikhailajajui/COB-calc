@@ -1,0 +1,11 @@
+{
+  "_comment": "B29-R13 tripwire G3, recorded by QA from the live tree on 2026-09-30: every file under tests/ that reads the UI folder (a join/resolve/readdirSync/listFiles call that names 'ui'). 'negative' is the UIG id of the string the file forbids in the UI folder, or null for a file that only reads or serves UI files. A new file is not in this list until QA/architect decides whether help.html can break it.",
+  "files": [
+    { "file": "tests/architecture/f10-imports-resolve.test.ts", "negative": null },
+    { "file": "tests/architecture/f2-ui-imports.test.ts", "negative": null },
+    { "file": "tests/ca/b10-includedincob-optional.test.ts", "negative": "UIG-1" },
+    { "file": "tests/ca/b27-personal-loan-monthly-only.test.ts", "negative": "UIG-3" },
+    { "file": "tests/ca/fees.test.ts", "negative": "UIG-2" },
+    { "file": "tests/tooling/a13-serve.test.ts", "negative": null }
+  ]
+}

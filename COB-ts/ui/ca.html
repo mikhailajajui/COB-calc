@@ -116,6 +116,7 @@
     margin-bottom: 6px;
   }
   .field .hint { display: block; font-size: 13px; line-height: 1.4; color: var(--ink-muted); margin-top: 6px; }
+  .field .hint[hidden] { display: none; }
   .field .hint.locked { display: none; }
   .field select:disabled ~ .hint.locked { display: block; }
   :where(input:not([type="checkbox"]), select) {
@@ -160,9 +161,6 @@
     color: var(--invalid);
     margin-top: 6px;
   }
-
-  .field .unit-pair { display: flex; gap: 8px; align-items: stretch; }
-  .field .unit-pair input { flex: 1; }
 
   fieldset.conditional {
     border: 1px solid var(--rule);
@@ -314,6 +312,16 @@
   .brand-logo img[hidden] { display: none; }
   .brand-fallback { font: 700 22px/37px var(--font-display); color: var(--accent); }
   .brand-logo:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
+  /* HELP:BEGIN */
+  .brand { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 16px; }
+  .help-link {
+    display: inline-flex; align-items: center; gap: 8px; min-height: 40px; box-sizing: border-box;
+    font: 700 15px/1.2 var(--font-body); padding: 8px 18px; text-decoration: none;
+    border-radius: var(--radius-pill); border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  }
+  .help-link:hover { border-color: var(--accent-hover); color: var(--accent-hover); }
+  .help-link:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  /* HELP:END */
   p.sub.disclaimer { margin-top: -8px; font-size: 14px; }
   .visually-hidden {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -469,6 +477,10 @@
     .schedule tbody tr:not(.year-row):hover { background: var(--accent-soft); }
     .schedule tfoot { position: sticky; bottom: 0; z-index: 2; }
     .schedule tfoot th, .schedule tfoot td { background: var(--paper); border-top: 2px solid var(--rule-strong); font-weight: 700; }
+    /* Room for overlay scrollbars: the vertical one sits over the last column and the
+       horizontal one over the sticky totals row, so both get extra inner padding. */
+    .schedule th:last-child, .schedule td:last-child { padding-right: 24px; }
+    .schedule tfoot th, .schedule tfoot td { padding-bottom: 16px; }
     .schedule--compact .col-extra { display: none; }
     @media (max-width: 767px) {
       .schedule .col-period, .schedule .col-date { position: sticky; z-index: 1; background: var(--paper); }
@@ -510,8 +522,6 @@
     .print-fees th, .print-fees td { padding: 2px 12px 2px 0; border-bottom: 1px solid var(--rule); text-align: left; }
     .print-fees .num { text-align: right; }
     .fee-subtotals { font-variant-numeric: tabular-nums; }
-    .fees-explain { margin-top: 6px; line-height: 1.4; color: var(--ink); }
-    .fees-explain p + p { margin-top: 4px; }
     .figure { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
     .figure-label { color: var(--ink); }
     .figure-hint { display: block; color: var(--ink); }
@@ -557,6 +567,9 @@
       <img id="brandLogo" src="https://www.alterna.ca/media/t0onoi0m/alterna-savings.svg" alt="Alterna Savings" width="236" height="37" />
       <span class="brand-fallback" hidden>Alterna Savings</span>
     </a>
+    <!-- HELP:BEGIN -->
+    <a class="help-link" href="/ui/help.html" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.75"/><path d="M6 6.2a2 2 0 1 1 3 1.7c-.7.4-1 .8-1 1.6M8 11.4v.2" stroke-linecap="round"/></svg>Help<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M5 2H2.5v7.5H10V7M7 1.5h3.5V5M10.5 1.5 5.5 6.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden"> (opens in a new tab)</span></a>
+    <!-- HELP:END -->
   </header>
 
   <h1>Cost of Borrowing Calculator</h1>
@@ -581,11 +594,6 @@
       <dl class="print-inputs" id="printInputs"></dl>
       <h3>Fees</h3>
       <div id="printFees"></div>
-      <div class="fees-explain">
-        <p><strong>Financed:</strong> the fee is included in the loan amount and deducted from the advance.</p>
-        <p><strong>Not financed:</strong> the member pays the fee separately. It is not deducted from the advance and not added to the principal.</p>
-        <p>Both kinds count toward the cost of borrowing.</p>
-      </div>
       <p class="print-taxes">* Payment amount does not include taxes.</p>
       <h2>Results</h2>
       <dl class="figures" id="printFigures"></dl>
@@ -633,14 +641,14 @@
 
     <h2>Loan / mortgage details</h2>
     <div class="grid">
-      <div class="field">
+      <div class="field" data-switch="contractDateField">
         <label for="contractDate">Contract date</label>
         <input type="date" id="contractDate" aria-describedby="contractDate-hint" />
         <span class="hint" id="contractDate-hint">The date these terms are quoted as of. Shown on the results; doesn't change the calculation.</span>
       </div>
       <div class="field">
         <label for="loanAmount">Loan amount ($)</label>
-        <input type="number" step="0.01" id="loanAmount" value="227829.65" aria-describedby="loanAmount-hint" />
+        <input type="text" inputmode="decimal" autocomplete="off" data-money id="loanAmount" value="227,829.65" aria-describedby="loanAmount-hint" />
         <span class="hint" id="loanAmount-hint">Face amount, or current outstanding balance for existing/renewal flows.</span>
       </div>
       <div class="field">
@@ -649,28 +657,23 @@
       </div>
       <div class="field">
         <label for="paymentAmount">Payment amount ($)</label>
-        <input type="number" step="0.01" id="paymentAmount" value="465.46" aria-describedby="paymentAmount-hint" />
+        <input type="text" inputmode="decimal" autocomplete="off" data-money id="paymentAmount" value="465.46" aria-describedby="paymentAmount-hint" />
         <span class="hint" id="paymentAmount-hint">The scheduled payment. It isn't calculated here.</span>
       </div>
       <div class="field">
         <label for="paymentFrequency">Payment frequency</label>
-        <select id="paymentFrequency">
-          <option value="monthly">Monthly (12/yr)</option>
+        <select id="paymentFrequency" aria-describedby="paymentFrequencyHint">
+          <option value="weekly" selected>Weekly (52/yr)</option>
+          <option value="acceleratedWeekly" data-switch="acceleratedFrequencies">Accelerated Weekly (52/yr)</option>
+          <option value="biweekly">Bi-weekly (26/yr)</option>
+          <option value="acceleratedBiweekly" data-switch="acceleratedFrequencies">Accelerated Bi-weekly (26/yr)</option>
           <option value="semiMonthly">Semi-monthly (24/yr)</option>
-          <option value="biweekly">Biweekly (26/yr)</option>
-          <option value="weekly" selected>Weekly (52/yr, incl. Accelerated Weekly)</option>
+          <option value="monthly">Monthly (12/yr)</option>
         </select>
+        <span class="hint" id="paymentFrequencyHint" hidden></span>
       </div>
       <div class="field">
-        <label for="termYears" id="term-label">Contract term</label>
-        <div class="unit-pair" role="group" aria-labelledby="term-label">
-          <input type="number" step="1" id="termYears" value="3" aria-label="Years" aria-describedby="term-hint" />
-          <input type="number" step="1" id="termMonths" value="0" aria-label="Months" aria-describedby="term-hint" />
-        </div>
-        <span class="hint" id="term-hint">Years and months. For reference only: the schedule runs to the end date.</span>
-      </div>
-      <div class="field">
-        <label for="firstPaymentDate">First payment date</label>
+        <label for="firstPaymentDate" id="firstPaymentDate-label">First payment date</label>
         <input type="date" id="firstPaymentDate" value="2026-03-23" />
       </div>
       <div class="field">
@@ -678,28 +681,33 @@
         <input type="date" id="endDate" value="2029-03-17" aria-describedby="endDate-hint" />
         <span class="hint" id="endDate-hint">Payments are scheduled up to and including this date, or until the loan is paid off.</span>
       </div>
+      <div class="field">
+        <label for="contractTerm">Contract term</label>
+        <input type="text" id="contractTerm" readonly aria-describedby="contractTerm-hint" />
+        <span class="hint" id="contractTerm-hint"></span>
+      </div>
     </div>
 
     <fieldset class="conditional" id="newFlowFields">
-      <legend>New mortgage or loan</legend>
+      <legend id="newFlowLegend">New mortgage or loan</legend>
       <div class="grid">
         <div class="field">
-          <label for="disbursalDate">Disbursal date</label>
+          <label for="disbursalDate" id="disbursalDate-label">Disbursal date</label>
           <input type="date" id="disbursalDate" value="2026-03-17" />
         </div>
       </div>
     </fieldset>
 
     <fieldset class="conditional" id="existingFlowFields">
-      <legend>Renewal and payment change</legend>
+      <legend id="existingFlowLegend">Renewal</legend>
       <div class="grid">
         <div class="field">
-          <label for="renewalDate">Renewal date</label>
+          <label for="renewalDate" id="renewalDate-label">Renewal date</label>
           <input type="date" id="renewalDate" value="2026-01-01" />
         </div>
         <div class="field">
           <label for="accruedInterest">Accrued interest ($)</label>
-          <input type="number" step="0.01" id="accruedInterest" value="0" aria-describedby="accruedInterest-hint" />
+          <input type="text" inputmode="decimal" autocomplete="off" data-money id="accruedInterest" value="" aria-describedby="accruedInterest-hint" />
           <span class="hint" id="accruedInterest-hint">Interest accrued since the last payment date.</span>
         </div>
       </div>
@@ -720,7 +728,7 @@
     <div id="feesWrap">
       <table>
         <thead>
-          <tr><th style="text-align:left">Name</th><th>Amount ($)</th><th>Financed?</th><th><span class="visually-hidden">Actions</span></th></tr>
+          <tr><th style="text-align:left">Name</th><th>Amount ($)</th><th data-switch="financedOption">Financed?</th><th><span class="visually-hidden">Actions</span></th></tr>
         </thead>
         <tbody id="feesBody"></tbody>
       </table>
@@ -756,7 +764,7 @@
   </div>
 
   <section class="terms" id="contractTerms" aria-labelledby="contractTerms-heading" hidden>
-    <h3 id="contractTerms-heading">Contract terms — as of <span id="contractTermsDate"></span></h3>
+    <h3 id="contractTerms-heading">Contract terms<span data-switch="contractDateField"> — as of <span id="contractTermsDate"></span></span></h3>
     <dl id="contractTermsList"></dl>
   </section>
 

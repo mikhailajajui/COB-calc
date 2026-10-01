@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyPaymentWaterfall,
   calculatedRate,
+  calculatedRateFor,
   cobAmount,
   cobRatePercent,
   costOfBorrowingRatePercent,
@@ -9,6 +10,7 @@ import {
   daysBetween,
   periodInterest,
   selectCompoundingPeriodsPerYear,
+  selectRateBasis,
   triggerRatePercent,
 } from '../../src/ca/equations.js';
 
@@ -24,7 +26,7 @@ describe('calculatedRate (equation 1)', () => {
     expect(calculatedRate(5, 52, 52)).toBeCloseTo(0.05, 12);
   });
 
-  it('m=12, n=12 (monthly personal loan) reduces to contractRate/12 x 12 == contractRate', () => {
+  it('edge case: m=12, n=12 (equation 1 at m=n, monthly) reduces to contractRate/12 x 12 == contractRate', () => {
     expect(calculatedRate(8, 12, 12)).toBeCloseTo(0.08, 12);
   });
 
@@ -43,27 +45,48 @@ describe('selectCompoundingPeriodsPerYear (equation 2)', () => {
     expect(selectCompoundingPeriodsPerYear('mortgage', 'variable', 12)).toBe(12);
   });
 
-  it('personal loan (either rate type) -> m=12', () => {
-    expect(selectCompoundingPeriodsPerYear('personalLoan', 'fixed', 26)).toBe(12);
-    expect(selectCompoundingPeriodsPerYear('personalLoan', 'variable', 26)).toBe(12);
+  // OQ-C 2026-09-27: MONTHLY rate type = contract rate unconverted
+  it('personal loan (either rate type) -> m=n (no conversion, was m=12)', () => {
+    expect(selectCompoundingPeriodsPerYear('personalLoan', 'fixed', 26)).toBe(26);
+    expect(selectCompoundingPeriodsPerYear('personalLoan', 'variable', 26)).toBe(26);
   });
 });
 
-describe('invariant #5: semi-annual, m=n, and m=12 conversions produce different periodic rates', () => {
-  it('fixed mortgage, variable mortgage, and personal loan diverge at the same nominal rate + non-monthly frequency', () => {
-    const n = 26; // biweekly -- not 2, not 12, so all three branches genuinely differ
-    const fixedMortgage = calculatedRate(6, 2, n);
-    const variableMortgage = calculatedRate(6, n, n);
-    const personalLoan = calculatedRate(6, 12, n);
+// OQ-C 2026-09-27: MONTHLY rate type = contract rate unconverted
+describe('invariant #5: only the semi-annual (fixed mortgage) rate is converted; MONTHLY rate types use the contract rate', () => {
+  it('fixed mortgage differs from the contract rate; variable mortgage and personal loan equal it exactly at a non-monthly frequency', () => {
+    const n = 26; // biweekly -- not 2, not 12
+    const fixedMortgage = calculatedRateFor('mortgage', 'fixed', 6, n);
+    const variableMortgage = calculatedRateFor('mortgage', 'variable', 6, n);
+    const personalLoanFixed = calculatedRateFor('personalLoan', 'fixed', 6, n);
+    const personalLoanVariable = calculatedRateFor('personalLoan', 'variable', 6, n);
 
-    expect(variableMortgage).toBeCloseTo(0.06, 12); // m=n degenerates to the nominal rate exactly
-    expect(fixedMortgage).not.toBeCloseTo(variableMortgage, 6);
-    expect(fixedMortgage).not.toBeCloseTo(personalLoan, 6);
-    expect(personalLoan).not.toBeCloseTo(variableMortgage, 6);
-    // Semi-annual compounding is cheaper than monthly at the same nominal rate --
-    // (1+r/2)^2 < (1+r/12)^12 for r>0 -- so the fixed-mortgage conversion must land
-    // below the personal-loan (m=12) conversion.
-    expect(fixedMortgage).toBeLessThan(personalLoan);
+    expect(variableMortgage).toEqual({ percent: 6, decimal: 0.06 });
+    expect(personalLoanFixed).toEqual({ percent: 6, decimal: 0.06 });
+    expect(personalLoanVariable).toEqual({ percent: 6, decimal: 0.06 });
+    expect(fixedMortgage.decimal).toBe(calculatedRate(6, 2, n));
+    expect(fixedMortgage.decimal).not.toBeCloseTo(0.06, 6);
+    // Semi-annual compounding converted to n = 26 lands below the nominal rate.
+    expect(fixedMortgage.decimal).toBeLessThan(0.06);
+  });
+});
+
+describe('selectRateBasis / calculatedRateFor (OQ-C, workbook D10)', () => {
+  it('fixed mortgage -> SEMI-ANNUAL; everything else -> MONTHLY', () => {
+    expect(selectRateBasis('mortgage', 'fixed')).toBe('SEMI-ANNUAL');
+    expect(selectRateBasis('mortgage', 'variable')).toBe('MONTHLY');
+    expect(selectRateBasis('personalLoan', 'fixed')).toBe('MONTHLY');
+    expect(selectRateBasis('personalLoan', 'variable')).toBe('MONTHLY');
+  });
+
+  it('edge case: a 0% contract rate is 0 on both bases', () => {
+    expect(calculatedRateFor('personalLoan', 'fixed', 0, 52)).toEqual({ percent: 0, decimal: 0 });
+    expect(calculatedRateFor('mortgage', 'fixed', 0, 52).decimal).toBe(0);
+  });
+
+  it('throws RangeError on a negative contract rate or a non-positive frequency', () => {
+    expect(() => calculatedRateFor('personalLoan', 'variable', -1, 12)).toThrow(RangeError);
+    expect(() => calculatedRateFor('mortgage', 'variable', 6, 0)).toThrow(RangeError);
   });
 });
 
@@ -138,12 +161,13 @@ describe('applyPaymentWaterfall (equation 4)', () => {
     expect(result.amountPaid).toBe(120);
   });
 
-  it('payoff (spec 011 DQ-28): principal is capped at principalOutstanding and the row pays only what is owed', () => {
+  // OQ-K/OQ-T 2026-09-27: workbook rule replaces DQ-28
+  it('payoff (OQ-K / OQ-T): principal is capped at principalOutstanding and the row records the principal only', () => {
     const result = applyPaymentWaterfall(10, 0, 50, 1000, 200);
     expect(result.interestPaid).toBe(10);
     expect(result.feesPaid).toBe(50);
     expect(result.principalPortion).toBe(200);
-    expect(result.amountPaid).toBe(260);
+    expect(result.amountPaid).toBe(200);
   });
 
   it('boundary: principalOutstanding exactly equal to the remainder is not a payoff cap', () => {
@@ -152,8 +176,9 @@ describe('applyPaymentWaterfall (equation 4)', () => {
     expect(result.amountPaid).toBe(260);
   });
 
-  it('throws RangeError on a non-positive paymentAmount', () => {
-    expect(() => applyPaymentWaterfall(100, 0, 0, 0, 10000)).toThrow(RangeError);
+  it('negative payment rejected', () => {
+    // OQ-Y 2026-09-27: $0 payment allowed; negative still rejected
+    expect(() => applyPaymentWaterfall(100, 0, 0, -1, 10000)).toThrow(RangeError);
   });
 
   it('throws RangeError on a NaN principalOutstanding', () => {

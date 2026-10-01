@@ -1,0 +1,356 @@
+{
+ "source": "COB-architecture.md \u00a75 B11 (rev 6); macro lines 387, 471-511, 541",
+ "generated_by": "generate_b11_waterfall_vectors.py (transliterated macro oracle; E1 via archived COB-py macro_oracle.calculate_all). Self-check: reproduces d9 P1 (11 rows) exactly.",
+ "waterfall": [
+  {
+   "id": "W1",
+   "args": [
+    10542.892225726024,
+    231328.09997504807,
+    859377.58,
+    0,
+    -8.731149137020111e-11
+   ],
+   "macro_curr_principle": 0.0,
+   "expected": {
+    "interestPaid": 0,
+    "feesPaid": 0,
+    "principalPortion": 0,
+    "amountPaid": 0
+   }
+  },
+  {
+   "id": "W2",
+   "args": [
+    0.5,
+    0,
+    0,
+    0.26,
+    -1e-12
+   ],
+   "macro_curr_principle": 0.0,
+   "expected": {
+    "interestPaid": 0.26,
+    "feesPaid": 0,
+    "principalPortion": 0,
+    "amountPaid": 0.26
+   }
+  },
+  {
+   "id": "W3",
+   "args": [
+    0.1,
+    0,
+    0,
+    0.26,
+    -1e-12
+   ],
+   "macro_curr_principle": 0.0,
+   "expected": {
+    "interestPaid": 0.1,
+    "feesPaid": 0,
+    "principalPortion": 0.0,
+    "amountPaid": 0.0
+   }
+  },
+  {
+   "id": "W4a",
+   "args": [
+    0.1,
+    0,
+    0,
+    0.26,
+    0
+   ],
+   "macro_curr_principle": 0.0,
+   "expected": {
+    "interestPaid": 0.1,
+    "feesPaid": 0,
+    "principalPortion": 0.0,
+    "amountPaid": 0.0
+   }
+  },
+  {
+   "id": "W4b",
+   "args": [
+    0.1,
+    0,
+    0,
+    0.26,
+    5
+   ],
+   "macro_curr_principle": 5.0,
+   "expected": {
+    "interestPaid": 0.1,
+    "feesPaid": 0,
+    "principalPortion": 0.16,
+    "amountPaid": 0.26
+   }
+  },
+  {
+   "id": "W5",
+   "args": [
+    0.1,
+    0,
+    0,
+    0.26,
+    -0.0
+   ],
+   "macro_curr_principle": 0.0,
+   "expected": {
+    "interestPaid": 0.1,
+    "feesPaid": 0,
+    "principalPortion": 0.0,
+    "amountPaid": 0.0
+   }
+  }
+ ],
+ "e1": {
+  "request": {
+   "flow": "newMortgageOrLoan",
+   "productType": "mortgage",
+   "rateType": "variable",
+   "contractRatePercent": 5.19,
+   "paymentFrequency": "biweekly",
+   "paymentAmount": 0.25,
+   "loanAmount": 2000.0000000000002,
+   "fees": {
+    "fees": [
+     {
+      "name": "F",
+      "amount": 2000,
+      "financed": true,
+      "includedInCob": true
+     }
+    ]
+   },
+   "disbursalDate": "2026-12-22",
+   "firstPaymentDate": "2027-01-01",
+   "endDate": "2028-01-01",
+   "termYears": 1,
+   "termMonths": 0
+  },
+  "oracle_inputs_note": "calculatedRatePercent 5.19 (variable mortgage, engine output) fed as the macro's aRate",
+  "n": 27,
+  "total_payment": 6.75,
+  "min_open_principal": 2.2737367544323206e-13,
+  "rows": [
+   {
+    "n": 1,
+    "date": "2027-01-01",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 2,
+    "date": "2027-01-15",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 3,
+    "date": "2027-01-29",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 4,
+    "date": "2027-02-12",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 5,
+    "date": "2027-02-26",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 6,
+    "date": "2027-03-12",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 7,
+    "date": "2027-03-26",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 8,
+    "date": "2027-04-09",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 9,
+    "date": "2027-04-23",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 10,
+    "date": "2027-05-07",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 11,
+    "date": "2027-05-21",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 12,
+    "date": "2027-06-04",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 13,
+    "date": "2027-06-18",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 14,
+    "date": "2027-07-02",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 15,
+    "date": "2027-07-16",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 16,
+    "date": "2027-07-30",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 17,
+    "date": "2027-08-13",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 18,
+    "date": "2027-08-27",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 19,
+    "date": "2027-09-10",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 20,
+    "date": "2027-09-24",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 21,
+    "date": "2027-10-08",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 22,
+    "date": "2027-10-22",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 23,
+    "date": "2027-11-05",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 24,
+    "date": "2027-11-19",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 25,
+    "date": "2027-12-03",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 26,
+    "date": "2027-12-17",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   },
+   {
+    "n": 27,
+    "date": "2027-12-31",
+    "payment": 0.25,
+    "interest_paid": 0.25,
+    "fees_paid": 0,
+    "principal_paid": 0
+   }
+  ]
+ }
+}

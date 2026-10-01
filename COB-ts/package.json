@@ -1,18 +1,22 @@
 {
   "name": "cob-calculator",
   "version": "0.1.0",
-  "description": "Cost of borrowing / segmented mortgage amortization calculator engine",
+  "description": "Cost of Borrowing (COB) calculator engine (Canada)",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.test.json",
+    "test:tz": "TZ=America/Toronto vitest run tests/ca/golden tests/architecture tests/ca/calendar-a4.test.ts tests/ca/b3b-date-validation.test.ts tests/ca/monthlyDates-t3.test.ts tests/ca/monthlyMonthEnd-oqx.test.ts tests/ca/semiMonthlyDates-t4.test.ts tests/ca/b15-semimonthly-time-of-day.test.ts tests/ca/b8-accelerated-frequencies.test.ts tests/ca/b24-term-rule.test.ts && TZ=Pacific/Kiritimati vitest run tests/ca/golden tests/architecture tests/ca/calendar-a4.test.ts tests/ca/b3b-date-validation.test.ts tests/ca/monthlyDates-t3.test.ts tests/ca/monthlyMonthEnd-oqx.test.ts tests/ca/semiMonthlyDates-t4.test.ts tests/ca/b15-semimonthly-time-of-day.test.ts tests/ca/b8-accelerated-frequencies.test.ts tests/ca/b24-term-rule.test.ts",
     "ui": "npm run build && node ui/serve.mjs"
   },
   "devDependencies": {
+    "@types/node": "~22.12.0",
     "typescript": "^5.9.0",
     "vitest": "^2.1.0"
   }

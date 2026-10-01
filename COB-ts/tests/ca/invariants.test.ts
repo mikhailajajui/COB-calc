@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateCobCanada } from '../../src/ca/cobCanada.js';
+import { calculateCobCanada } from '../../src/ca/index.js';
 import { triggerRatePercent } from '../../src/ca/equations.js';
 import type { CobCanadaInput, FeeSchedule } from '../../src/index.js';
 
@@ -21,7 +21,7 @@ function fixedMortgageInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaI
     disbursalDate: new Date('2024-01-01'),
     semiAnnualCompoundingDate: new Date('2024-01-01'),
     ...overrides,
-  };
+  } as CobCanadaInput;
 }
 
 function personalLoanInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
@@ -40,7 +40,7 @@ function personalLoanInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaIn
     endDate: new Date('2027-01-01'),
     disbursalDate: new Date('2024-01-01'),
     ...overrides,
-  };
+  } as CobCanadaInput;
 }
 
 describe('invariant #1: fixed-rate mortgage / any personal loan -> trigger rate is N/A', () => {
@@ -54,7 +54,7 @@ describe('invariant #1: fixed-rate mortgage / any personal loan -> trigger rate 
   });
 });
 
-describe('invariant #2: total_payment == total_interest + fees_recovered + principal_payment', () => {
+describe('invariant #2: total_payment == total_interest + fees_recovered + principal_payment, less the payoff row\'s interest and fees (OQ-K/OQ-T)', () => {
   function withFees(financed: number, cash: number): FeeSchedule {
     return {
       fees: [
@@ -72,7 +72,12 @@ describe('invariant #2: total_payment == total_interest + fees_recovered + princ
     ['fixed mortgage with fees (fees_recovered > 0)', fixedMortgageInput({ fees: withFees(3000, 500) })],
   ] as const)('reconciles for %s', (_label, input) => {
     const result = calculateCobCanada(input);
-    expect(result.totalInterest + result.feesRecovered + result.principalPayment).toBeCloseTo(
+    // OQ-K/OQ-T 2026-09-27: workbook rule replaces DQ-28 -- a payoff row's Payment is
+    // its principal only, so that row's interest and fees are not in total_payment.
+    // The personal-loan inputs pay off; the mortgage inputs don't (payoffRowExtra 0).
+    const last = result.amortizationSchedule.at(-1)!;
+    const payoffRowExtra = last.closingBalance <= 0 ? last.interestPaid + last.feesPaid : 0;
+    expect(result.totalInterest + result.feesRecovered + result.principalPayment - payoffRowExtra).toBeCloseTo(
       result.totalPayment,
       6,
     );
@@ -145,7 +150,7 @@ describe('term_days tracks the same day-count basis as cob_rate_percent\'s T (no
   });
 });
 
-describe('invariant #5: semi-annual, m=n, and m=12 conversions produce different calculated rates', () => {
+describe('invariant #5: the semi-annual (fixed mortgage) rate is converted, the MONTHLY rate basis is not, so the calculated rates differ', () => {
   it('a fixed-rate mortgage and a variable-rate mortgage at the same contract rate do not produce the same schedule', () => {
     const fixed = calculateCobCanada(fixedMortgageInput());
     const variable = calculateCobCanada(

@@ -1,9 +1,5 @@
-import type { PaymentFrequency } from '../types.js';
-import type { FeeSchedule } from './fees.js';
-
 /**
- * Canadian Cost of Borrowing (COB) disclosure engine -- a sibling module to the
- * existing US-style engine (src/payment.ts, src/segment.ts, src/mortgage.ts), per
+ * Canadian Cost of Borrowing (COB) disclosure engine, per
  * docs/new-req/006-cost-of-borrowing-disclosure.md (rewritten per doc 007's BRD
  * reconciliation against the real Alterna Savings requirements/workbook). This module
  * does not stitch into segment.ts/mortgage.ts -- that integration is explicitly out of
@@ -23,18 +19,67 @@ export type CobFlow = 'newMortgageOrLoan' | 'renewal' | 'paymentChange' | 'varia
 export type ProductType = 'mortgage' | 'personalLoan';
 export type RateType = 'variable' | 'fixed';
 
+/** Payment frequency -- the same literal union as the US library's PaymentFrequency
+ *  (src/types.ts), declared here so src/ca imports nothing outside src/ca (ADR-05). */
+export type PaymentFrequency =
+  | 'monthly'
+  | 'semiMonthly'
+  | 'biweekly'
+  | 'weekly'
+  | 'acceleratedBiweekly'
+  | 'acceleratedWeekly';
+
 /** Payments/year per payment frequency -- standard counts (12/24/26/52), used
- *  throughout equations 1-8. "Accelerated Weekly" (BR-09) is treated identically to
- *  plain Weekly for rate/day-count purposes, so there is no separate enum value. */
+ *  throughout equations 1-8. Per BR-09, Accelerated Weekly has the same n as Weekly (52)
+ *  and Accelerated Bi-weekly the same n as Bi-weekly (26). */
 export const PAYMENTS_PER_YEAR: Record<PaymentFrequency, number> = {
   monthly: 12,
   semiMonthly: 24,
   biweekly: 26,
   weekly: 52,
+  acceleratedBiweekly: 26,
+  acceleratedWeekly: 52,
 };
 
-export interface CobCanadaInput {
-  flow: CobFlow;
+/** True only for a primitive number that is finite (not NaN / +-Infinity). No
+ *  coercion: numeric strings, booleans, arrays and null are all false (012 D-11). */
+export function isFiniteNumber(x: unknown): x is number {
+  return typeof x === 'number' && Number.isFinite(x);
+}
+
+/**
+ * Loan fees, itemized: name/amount/financed, mirroring COB-py's existing
+ * `cob_calculator/fees.py` (spec 002's Fee/FeeSchedule shape) rather than diverging —
+ * COB-ts has not implemented spec 002 itself (no US fees.ts exists), so this is this
+ * project's first TypeScript Fee/FeeSchedule, defined here for the Canadian module.
+ *
+ * Extended per spec 006 (docs/new-req/006-cost-of-borrowing-disclosure.md) with a
+ * second per-fee `includedInCob` flag. It does not decide what counts toward
+ * cobAmount: under OQ-E every fee, financed or not, is counted in full.
+ *
+ * `includedInCob` is optional. If present it must be a boolean (validateFee in
+ * fees.ts); the engine never reads its value, and C counts every fee in full
+ * (OQ-E, macro line 562; B10, user 2026-09-29).
+ */
+export interface Fee {
+  name: string;
+  amount: number;
+  /** true: already inside loanAmount (reduces disbursal) and recovered through the
+   *  payment waterfall. false: paid separately by the member -- never reduces
+   *  disbursal, never enters principal or the waterfall, counted only in cobAmount
+   *  (BRD IN-07 / BR-04, spec 011). */
+  financed: boolean;
+  /** Optional; if present it must be a boolean. Never read by the engine: every
+   *  fee counts toward cobAmount (OQ-E; B10). */
+  includedInCob?: boolean;
+}
+
+export interface FeeSchedule {
+  fees: Fee[];
+}
+
+/** Fields every flow takes. */
+export interface CobInputCommon {
   productType: ProductType;
   rateType: RateType;
 
@@ -60,27 +105,54 @@ export interface CobCanadaInput {
    *  There is no amortization-horizon concept in this engine (doc 007 finding #2). */
   endDate: Date;
 
-  /** term_years / term_months -- DISPLAY ONLY. Informational contract-term length;
-   *  does not drive the schedule (end_date does) and does not feed any monetary
-   *  output. */
-  termYears: number;
-  termMonths: number;
+  /** @deprecated Never read and never validated (DEV-OQP). The contract term is derived
+   *  from the schedule: see `contractTerm(result)`. */
+  termYears?: number;
+  /** @deprecated Never read and never validated (DEV-OQP). The contract term is derived
+   *  from the schedule: see `contractTerm(result)`. */
+  termMonths?: number;
 
+  /** fixed-rate mortgages only -- display/reference anchor for the semi-annual
+   *  compounding conversion (equation 1); does not change the conversion itself.
+   *  Not a BRD input. Required only while `SEMI_ANNUAL_DATE_REQUIRED` is on (`Q-SACD`). */
+  semiAnnualCompoundingDate?: Date;
+}
+
+export interface NewLoanInput extends CobInputCommon {
+  flow: 'newMortgageOrLoan';
   /** newMortgageOrLoan ONLY -- start of interest accrual and this flow's start_date
    *  for the cob_rate_percent equation's T. */
-  disbursalDate?: Date;
+  disbursalDate: Date;
+  /** Not taken by this flow; a JS caller's value is ignored. */
+  renewalDate?: undefined;
+  /** Not taken by this flow (FLOWS.newMortgageOrLoan.accruedInterest = 'hidden'). */
+  accruedInterest?: undefined;
+}
+
+export interface ExistingLoanInput extends CobInputCommon {
+  flow: 'renewal' | 'paymentChange' | 'variableRatePaymentChange';
   /** renewal / paymentChange / variableRatePaymentChange ONLY -- this flow's
-   *  start_date, same role as disbursalDate for a new flow. */
-  renewalDate?: Date;
+   *  start_date, same role as disbursalDate for a new flow. The field name is kept
+   *  for all three flows; each flow's screen label comes from flows.ts (`@pending OQ-A`). */
+  renewalDate: Date;
+  /** Not taken by these flows; a JS caller's value is ignored. */
+  disbursalDate?: undefined;
   /** renewal/paymentChange/variableRatePaymentChange flows: interest accrued since
    *  the last payment, carried into this calculation as the schedule's initial
    *  carriedAccruedInterest (equation 4) -- NOT added to loanAmount or the schedule's
-   *  opening balance (doc 007 finding #5). Defaults to 0 when omitted, and is ignored
-   *  entirely for newMortgageOrLoan (always starts at 0 for that flow). */
-  accruedInterest?: number;
-  /** fixed-rate mortgages only -- display/reference anchor for the semi-annual
-   *  compounding conversion (equation 1); does not change the conversion itself. */
-  semiAnnualCompoundingDate?: Date;
+   *  opening balance (doc 007 finding #5). Required since B20 (decision 4):
+   *  omitting it throws; 0 is valid. A newMortgageOrLoan input declares it
+   *  `?: undefined` (NewLoanInput); the engine starts that flow at 0. */
+  accruedInterest: number;
+}
+
+export type CobCanadaInput = NewLoanInput | ExistingLoanInput;
+
+/** A calendar span as whole years, months and leftover days (all non-negative integers). */
+export interface ContractTerm {
+  years: number;
+  months: number;
+  days: number;
 }
 
 export interface CobScheduleRow {
@@ -95,13 +167,16 @@ export interface CobScheduleRow {
   /** openingBalance x calculated_rate x (days_in_period / 365), split across a
    *  leap-year boundary if the period straddles one (equation 3). */
   periodInterest: number;
-  /** Unrecovered accrued interest entering this row (0 once fully recovered, always
-   *  0 for newMortgageOrLoan flows). */
+  /** Unpaid interest entering this row: the bucket of all unpaid interest (IN-11 and
+   *  period shortfalls), outside openingBalance and earning nothing (DEV-OQL). In the
+   *  workbook branch (UNPAID_INTEREST_CAPITALISED true) it is either unpaid period
+   *  interest, which is inside openingBalance (OQ-L), or, while any is outstanding,
+   *  IN-11 past accrued interest, which is not (OQ-W interim). */
   carriedAccruedInterestOpening: number;
   /** feesToRecover balance entering this row (financed fees only, spec 011). */
   feesOpening: number;
-  /** The amount actually paid on this row (the input payment, except on a payoff
-   *  row, where it is interestPaid + feesPaid + principalPortion -- spec 011 DQ-28). */
+  /** The row's Payment: the input payment, except on a payoff row, where it is the
+   *  remaining principal only (principalPortion), as in the workbook (OQ-K / OQ-T). */
   paymentAmount: number;
   /** Portion of the payment applied to period_interest + carried accrued interest
    *  (waterfall step 1, equation 4). */
@@ -109,10 +184,15 @@ export interface CobScheduleRow {
   /** Portion applied to feesOpening (waterfall step 2). */
   feesPaid: number;
   /** Remainder, applied to openingBalance, capped at openingBalance - feesOpening
-   *  (waterfall step 3, spec 011 DQ-28). */
+   *  (waterfall step 3). */
   principalPortion: number;
+  /** Unpaid interest leaving this row; same two sources as carriedAccruedInterestOpening. */
   carriedAccruedInterestClosing: number;
   feesClosing: number;
+  /** The Loan balance: principal + unrecovered financed fees; unpaid interest is not in
+   *  it (DEV-OQL). Workbook branch (UNPAID_INTEREST_CAPITALISED true): also unpaid period
+   *  interest (OQ-L; CalculateAll `newBalance = newFees + newPrinciple + intAccrued -
+   *  totalInterestPaid`); IN-11 is never included. */
   closingBalance: number;
 }
 
@@ -132,11 +212,12 @@ export interface CobCanadaResult {
   /** Total count of scheduled payments actually generated (bounded by end_date --
    *  see "Schedule generation"). */
   numberOfPayments: number;
-  /** Sum of interest_paid across every row -- includes any recovered accrued
-   *  interest, per equation 4. */
+  /** Interest charged over the term (DEV-OQL; CalculateAll `TOTALINTERESTCELL =
+   *  intAccrued`): period interest as charged (sum of interest_paid plus the period
+   *  interest still unpaid after the last row) plus IN-11 as far as it is paid (W2). */
   totalInterest: number;
   /** Sum of principal_portion across every row. principal_payment ==
-   *  total_payment - total_interest - fees_recovered (invariant #2). */
+   *  total_payment - sum(interest_paid) - fees_recovered (invariant #2). */
   principalPayment: number;
   /** Sum of fees_paid across every row -- new in this rewrite (invariant #2's
    *  three-bucket reconciliation). */

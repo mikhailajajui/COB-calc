@@ -1,4 +1,6 @@
+import { dayCountFraction } from './calendar.js';
 import type { ProductType, RateType } from './types.js';
+import { isFiniteNumber } from './types.js';
 
 /**
  * The equations from docs/new-req/006-cost-of-borrowing-disclosure.md's "## Equations"
@@ -24,10 +26,10 @@ import type { ProductType, RateType } from './types.js';
  * the m=2 case; docx Appendix A for the general shape):
  *   calculated_rate = n x [(1 + contract_rate/m)^(m/n) - 1]
  * Returned as a DECIMAL (e.g. 0.03706781471105014), not a percent -- period_interest
- * (equation 3) multiplies this directly against a dollar balance. `m` is selected by
- * product/rate type (equation 2 / selectCompoundingPeriodsPerYear below); when m==n
- * this reduces to contractRate/100 exactly (the algebraic basis for the variable-rate
- * mortgage's "no conversion" case).
+ * (equation 3) multiplies this directly against a dollar balance. Only the
+ * SEMI-ANNUAL rate basis (fixed-rate mortgage, m = 2) is converted; the MONTHLY basis
+ * uses the contract rate as entered (selectRateBasis below). When m==n this reduces
+ * algebraically to contractRate/100, but not exactly in floating point.
  */
 export function calculatedRate(
   contractRatePercent: number,
@@ -51,16 +53,30 @@ export function calculatedRate(
 }
 
 /**
- * Equation 2 -- selecting `m` (the compounding-periods-per-year parameter equation 1
- * needs) by product/rate type (docx section 4.2's explicit three-case table, doc 007
- * finding #10):
- *   - Fixed-rate mortgage: m = 2 (semi-annual) -- CONFIRMED, Interest Act s. 6.
- *   - Variable-rate mortgage: m = n (paymentsPerYear) -- reduces equation 1 to
- *     calculated_rate = contract_rate exactly (no conversion). This-BRD-specific
- *     convention, not a claim about Canadian lending generally.
- *   - Personal loan (either rate type): m = 12 -- applied via the SAME equation-1
- *     formula, not a flat contract_rate/n. Reduces to contract_rate/12 exactly when
- *     paymentFrequency is itself monthly (m=12, n=12).
+ * The workbook's rate basis (Calculator!G10, list "MONTHLY,SEMI-ANNUAL"), which decides
+ * the Calculated Rate cell (OQ-C, settled 2026-09-27 from the workbook):
+ *   D10 = IF(RateType="MONTHLY", MonthlyRate, XLOOKUP(Freq, r_Freq, r_EquivalentRate))
+ *   - Fixed-rate mortgage: SEMI-ANNUAL -- converted by equation 1 at m = 2
+ *     (Interest Act s. 6).
+ *   - Variable-rate mortgage and personal loan (either rate type): MONTHLY -- the
+ *     contract rate itself, unconverted, at every payment frequency.
+ *   A personal loan is Monthly only in the engine (B27, DEV-FB24), so for it this applies
+ *   at n = 12; a variable mortgage still uses it at every frequency.
+ */
+export type RateBasis = 'MONTHLY' | 'SEMI-ANNUAL';
+
+export function selectRateBasis(productType: ProductType, rateType: RateType): RateBasis {
+  return productType === 'mortgage' && rateType === 'fixed' ? 'SEMI-ANNUAL' : 'MONTHLY';
+}
+
+/**
+ * Equation 2 -- `m` (the compounding-periods-per-year parameter of equation 1) for the
+ * product/rate type:
+ *   - SEMI-ANNUAL basis (fixed-rate mortgage): m = 2.
+ *   - MONTHLY basis (variable-rate mortgage, personal loan of either rate type):
+ *     m = n (paymentsPerYear), i.e. no conversion. The engine does not evaluate
+ *     equation 1 for this basis; it uses the contract rate directly so the result is
+ *     exact (see calculatedRateFor).
  */
 export function selectCompoundingPeriodsPerYear(
   productType: ProductType,
@@ -70,70 +86,36 @@ export function selectCompoundingPeriodsPerYear(
   if (!(paymentsPerYear > 0)) {
     throw new RangeError(`paymentsPerYear must be > 0, got ${paymentsPerYear}`);
   }
-  if (productType === 'mortgage') {
-    return rateType === 'fixed' ? 2 : paymentsPerYear;
-  }
-  // personalLoan, either rate type.
-  return 12;
-}
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-function isLeapYear(year: number): boolean {
-  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
-}
-
-/** UTC-midnight timestamp for a Date's calendar-date components. Extracted via UTC
- *  getters (not local getters) because this module's Dates are constructed from
- *  'YYYY-MM-DD'-style ISO strings, which parse to UTC midnight -- using local getters
- *  would silently shift the calendar date by a day in any timezone west of UTC (e.g.
- *  this repo's own dev/CI environment, America/Toronto). All date arithmetic in this
- *  module stays in UTC space for exactly this reason. */
-function utcDateOnly(date: Date): number {
-  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  return selectRateBasis(productType, rateType) === 'SEMI-ANNUAL' ? 2 : paymentsPerYear;
 }
 
 /**
- * Actual calendar days between two dates (no leap-year splitting -- a plain integer
- * day count). Feeds ScheduleRow.days_in_period and term_days.
+ * The Calculated Rate (workbook D10, app OUT-01) for a product/rate type and payment
+ * frequency, as a percent and as the decimal fed to period interest (the macro's
+ * getRate reads aRate = D10 / 100). MONTHLY basis: percent === contractRatePercent
+ * exactly. SEMI-ANNUAL basis: equation 1 at m = 2.
  */
-export function daysBetween(start: Date, end: Date): number {
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    throw new RangeError('start/end must be valid Dates');
+export function calculatedRateFor(
+  productType: ProductType,
+  rateType: RateType,
+  contractRatePercent: number,
+  paymentsPerYear: number,
+): { percent: number; decimal: number } {
+  if (!(contractRatePercent >= 0)) {
+    throw new RangeError(`contractRatePercent must be >= 0, got ${contractRatePercent}`);
   }
-  return Math.round((utcDateOnly(end) - utcDateOnly(start)) / MS_PER_DAY);
+  if (!(paymentsPerYear > 0)) {
+    throw new RangeError(`paymentsPerYear must be > 0, got ${paymentsPerYear}`);
+  }
+  if (selectRateBasis(productType, rateType) === 'MONTHLY') {
+    return { percent: contractRatePercent, decimal: contractRatePercent / 100 };
+  }
+  const m = selectCompoundingPeriodsPerYear(productType, rateType, paymentsPerYear);
+  const decimal = calculatedRate(contractRatePercent, m, paymentsPerYear);
+  return { percent: decimal * 100, decimal };
 }
 
-/**
- * Equation 3's day-count-fraction step -- docx section 4.4 / Appendix B.3: the actual
- * number of calendar days in [start, end), divided by 365, EXCEPT that any days
- * falling in a leap calendar year are divided by 366 instead, with the (possibly
- * several) partial results summed. This is additive across contiguous sub-ranges --
- * calling it once over a whole span gives the same result as summing it over each
- * row-length sub-period of that span (verified against doc 007's worked vector; see
- * cobCanada.ts's cob_rate_percent T for where this additivity is relied on).
- */
-export function dayCountFraction(start: Date, end: Date): number {
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    throw new RangeError('start/end must be valid Dates');
-  }
-  const endUtc = utcDateOnly(end);
-  let cursor = utcDateOnly(start);
-  if (cursor > endUtc) {
-    throw new RangeError('start must be on or before end');
-  }
-  let fraction = 0;
-  while (cursor < endUtc) {
-    const year = new Date(cursor).getUTCFullYear();
-    const nextYearStart = Date.UTC(year + 1, 0, 1);
-    const segmentEnd = Math.min(nextYearStart, endUtc);
-    const daysInSegment = Math.round((segmentEnd - cursor) / MS_PER_DAY);
-    const daysInYear = isLeapYear(year) ? 366 : 365;
-    fraction += daysInSegment / daysInYear;
-    cursor = segmentEnd;
-  }
-  return fraction;
-}
+export { daysBetween, dayCountFraction } from './calendar.js';
 
 /**
  * Equation 3 -- period interest, day-count proration:
@@ -164,8 +146,9 @@ export interface PaymentWaterfallResult {
   feesPaid: number;
   feesClosing: number;
   principalPortion: number;
-  /** What the row actually pays: `paymentAmount` itself unless the principal step was
-   *  capped (a payoff row), then interestPaid + feesPaid + principalPortion. */
+  /** The row's Payment: `paymentAmount` itself unless the principal step was capped
+   *  (a payoff row), then the remaining principal only -- the macro's
+   *  `pymtAmnt = currPrinciple` (OQ-K / OQ-T). */
   amountPaid: number;
 }
 
@@ -177,8 +160,10 @@ export interface PaymentWaterfallResult {
  * inlined into the loop.
  *
  * `principalOutstanding` (= the row's openingBalance - feesOpening) caps the
- * principal step, so a payoff row pays only what is owed (spec 011 DQ-28):
- * principalPortion = min(paymentAmount - interestPaid - feesPaid, principalOutstanding).
+ * principal step: principalPortion = min(paymentAmount - interestPaid - feesPaid,
+ * max(principalOutstanding, 0)). The cap is never negative, as the macro's running
+ * `currPrinciple` can't go negative (B11). On a payoff row (the cap applies) the row's
+ * Payment is the remaining principal only, as in the workbook (OQ-K / OQ-T).
  */
 export function applyPaymentWaterfall(
   periodInterestAmount: number,
@@ -187,20 +172,32 @@ export function applyPaymentWaterfall(
   paymentAmount: number,
   principalOutstanding: number,
 ): PaymentWaterfallResult {
+  if (!isFiniteNumber(periodInterestAmount)) {
+    throw new RangeError(`periodInterestAmount must be a finite number, got ${String(periodInterestAmount)}`);
+  }
   if (!(periodInterestAmount >= 0)) {
     throw new RangeError(`periodInterestAmount must be >= 0, got ${periodInterestAmount}`);
+  }
+  if (!isFiniteNumber(carriedAccruedInterestOpening)) {
+    throw new RangeError(`carriedAccruedInterestOpening must be a finite number, got ${String(carriedAccruedInterestOpening)}`);
   }
   if (!(carriedAccruedInterestOpening >= 0)) {
     throw new RangeError(`carriedAccruedInterestOpening must be >= 0, got ${carriedAccruedInterestOpening}`);
   }
+  if (!isFiniteNumber(feesOpening)) {
+    throw new RangeError(`feesOpening must be a finite number, got ${String(feesOpening)}`);
+  }
   if (!(feesOpening >= 0)) {
     throw new RangeError(`feesOpening must be >= 0, got ${feesOpening}`);
   }
-  if (!(paymentAmount > 0)) {
-    throw new RangeError(`paymentAmount must be > 0, got ${paymentAmount}`);
+  if (!isFiniteNumber(paymentAmount)) {
+    throw new RangeError(`paymentAmount must be a finite number, got ${String(paymentAmount)}`);
   }
-  if (Number.isNaN(principalOutstanding)) {
-    throw new RangeError(`principalOutstanding must be a number, got ${principalOutstanding}`);
+  if (!(paymentAmount >= 0)) {
+    throw new RangeError(`paymentAmount must be >= 0, got ${paymentAmount}`);
+  }
+  if (!isFiniteNumber(principalOutstanding)) {
+    throw new RangeError(`principalOutstanding must be a finite number, got ${String(principalOutstanding)}`);
   }
 
   const totalInterestDue = periodInterestAmount + carriedAccruedInterestOpening;
@@ -212,9 +209,10 @@ export function applyPaymentWaterfall(
   const feesClosing = feesOpening - feesPaid;
 
   const remainingAfterFees = remainingAfterInterest - feesPaid;
-  const isPayoff = principalOutstanding < remainingAfterFees;
-  const principalPortion = isPayoff ? principalOutstanding : remainingAfterFees;
-  const amountPaid = isPayoff ? interestPaid + feesPaid + principalPortion : paymentAmount;
+  const principalCap = principalOutstanding > 0 ? principalOutstanding : 0;
+  const isPayoff = principalCap < remainingAfterFees;
+  const principalPortion = isPayoff ? principalCap : remainingAfterFees;
+  const amountPaid = isPayoff ? principalPortion : paymentAmount;
 
   return {
     totalInterestDue,
@@ -235,11 +233,20 @@ export function applyPaymentWaterfall(
  * unrounded (a ratio, per this project's rounding policy).
  */
 export function triggerRatePercent(paymentAmount: number, paymentsPerYear: number, loanAmount: number): number {
-  if (!(paymentAmount > 0)) {
-    throw new RangeError(`paymentAmount must be > 0, got ${paymentAmount}`);
+  if (!isFiniteNumber(paymentAmount)) {
+    throw new RangeError(`paymentAmount must be a finite number, got ${String(paymentAmount)}`);
+  }
+  if (!(paymentAmount >= 0)) {
+    throw new RangeError(`paymentAmount must be >= 0, got ${paymentAmount}`);
+  }
+  if (!isFiniteNumber(paymentsPerYear)) {
+    throw new RangeError(`paymentsPerYear must be a finite number, got ${String(paymentsPerYear)}`);
   }
   if (!(paymentsPerYear > 0)) {
     throw new RangeError(`paymentsPerYear must be > 0, got ${paymentsPerYear}`);
+  }
+  if (!isFiniteNumber(loanAmount)) {
+    throw new RangeError(`loanAmount must be a finite number, got ${String(loanAmount)}`);
   }
   if (!(loanAmount > 0)) {
     throw new RangeError(`loanAmount must be > 0, got ${loanAmount}`);

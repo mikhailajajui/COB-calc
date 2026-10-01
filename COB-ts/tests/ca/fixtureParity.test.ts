@@ -1,9 +1,11 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { calculateCobCanada } from '../../src/ca/cobCanada.js';
 import { calculatedRate } from '../../src/ca/equations.js';
-import type { CobCanadaInput, CobCanadaResult } from '../../src/ca/types.js';
+import type { CobCanadaInput, CobCanadaResult } from '../../src/ca/index.js';
+import { isoDay, wireToInput } from './support/builders.js';
+import { withinRel } from './support/compare.js';
+import { loadFixture as load } from './support/fixtures.js';
+import { SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
+import type { Switches } from './support/switches.js';
 
 /**
  * Full-row parity against the shared JSON fixtures (COB-py/tests/fixtures), at the
@@ -15,9 +17,13 @@ import type { CobCanadaInput, CobCanadaResult } from '../../src/ca/types.js';
  * cells (V007_live). Vectors with `known_divergence` are expected failures tied to
  * 008 items; `it.fails` turns red when the engine starts matching, so the list can't
  * go stale silently.
+ *
+ * B19 (DEV-OQL, 2026-09-29): the oracle is the workbook, which capitalises unpaid interest.
+ * S6_underpay (the one vector with a shortfall) therefore runs against the workbook branch
+ * (`WORKBOOK`); every other vector runs against the shipped branch (`SHIPPED`; it has no
+ * shortfall, so both branches agree). One `known_divergence DEV-OQL S6_underpay` test pins that
+ * the shipped branch differs from the workbook there.
  */
-const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url));
-const load = (name: string) => JSON.parse(readFileSync(FIXTURES + name, 'utf8'));
 
 interface WireVector {
   id: string;
@@ -46,26 +52,10 @@ const appendixA = load('ca_appendix_a.json') as {
   rows: { n: number; converted_rate_pct: number }[];
 };
 
-const DATE_FIELDS = ['firstPaymentDate', 'endDate', 'disbursalDate', 'renewalDate', 'semiAnnualCompoundingDate'];
-
 /** Wire (YYYY-MM-DD) -> engine input, the same conversion spec 010's wire.ts makes. */
-function toEngineInput(request: WireVector['request']): CobCanadaInput {
-  const out: Record<string, unknown> = { ...request };
-  for (const f of DATE_FIELDS) {
-    if (typeof request[f] === 'string') out[f] = new Date(`${request[f] as string}T00:00:00Z`);
-  }
-  return out as unknown as CobCanadaInput;
-}
+const toEngineInput = (request: WireVector['request']): CobCanadaInput => wireToInput(request);
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
-
-/** Relative error, with exact zero only equal to (near) zero. */
-function withinRel(actual: number, expected: number, tol: number): boolean {
-  if (Object.is(actual, expected)) return true;
-  const scale = Math.max(Math.abs(actual), Math.abs(expected));
-  if (scale < 1e-9) return true; // both effectively zero (e.g. 0 vs 1e-12 residue)
-  return Math.abs(actual - expected) / scale <= tol;
-}
+const iso = isoDay;
 
 function mismatches(
   result: CobCanadaResult,
@@ -105,8 +95,8 @@ function mismatches(
 
 describe('fixture parity (shared JSON fixtures, 1e-9 relative, every row)', () => {
   for (const v of wire.vectors) {
-    const run = () => {
-      const result = calculateCobCanada(toEngineInput(v.request));
+    const run = (switches: Switches = v.id === 'S6_underpay' ? WORKBOOK : SHIPPED) => {
+      const result = calculateWith(toEngineInput(v.request), switches);
       if (v.id === 'V007_live') return mismatches(result, live007.totals, live007.rows);
       const sc = oracle.scenarios.find((s) => s.inputs.id === v.id);
       if (!sc) throw new Error(`no oracle scenario ${v.id}`);
@@ -117,11 +107,22 @@ describe('fixture parity (shared JSON fixtures, 1e-9 relative, every row)', () =
         expect(run()).toEqual([]);
       });
     } else {
+      // known_divergence: expected failure tied to the vector's 008 items (see header).
       it.fails(`${v.id} diverges from ${v.source} (known: ${v.known_divergence.join(', ')})`, () => {
         expect(run()).toEqual([]);
       });
     }
   }
+});
+
+// known_divergence DEV-OQL (B19, decision 1): the workbook capitalises S6's unpaid interest; the shipped engine does not.
+describe('fixture parity, shipped branch divergence (B19)', () => {
+  it('known_divergence DEV-OQL S6_underpay: shipped does not match the workbook oracle', () => {
+    const v = wire.vectors.find((x) => x.id === 'S6_underpay')!;
+    const sc = oracle.scenarios.find((s) => s.inputs.id === 'S6_underpay')!;
+    const result = calculateWith(toEngineInput(v.request), SHIPPED);
+    expect(mismatches(result, sc.totals, sc.rows, sc.converted_rate_pct).length).toBeGreaterThan(0);
+  });
 });
 
 describe('BRD Appendix A (3.74% at m=2), 1e-12 absolute', () => {

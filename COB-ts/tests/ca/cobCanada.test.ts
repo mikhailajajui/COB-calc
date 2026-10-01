@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { calculateCobCanada } from '../../src/ca/cobCanada.js';
-import type { CobCanadaInput } from '../../src/ca/types.js';
+import { calculateCobCanada } from '../../src/ca/index.js';
+import type { CobCanadaInput } from '../../src/ca/index.js';
 
 /** A well-formed new fixed-rate mortgage, overridable per test. */
 function fixedMortgageInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
@@ -20,7 +20,7 @@ function fixedMortgageInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaI
     disbursalDate: new Date('2024-01-01'),
     semiAnnualCompoundingDate: new Date('2024-01-01'),
     ...overrides,
-  };
+  } as CobCanadaInput;
 }
 
 describe('calculateCobCanada -- doc 007 worked validation vector (permanent regression test)', () => {
@@ -200,8 +200,8 @@ describe('calculateCobCanada', () => {
     // exactly on 2024-03-21 (7 weeks later); endDate is set to exactly that date.
     const input: CobCanadaInput = {
       flow: 'newMortgageOrLoan',
-      productType: 'personalLoan',
-      rateType: 'fixed',
+      productType: 'mortgage', // B27: DEV-FB24 class A (weekly is vehicle only; twin of the personal loan)
+      rateType: 'variable', // B27: DEV-FB24 class A
       loanAmount: 10000,
       fees: { fees: [] },
       contractRatePercent: 6,
@@ -268,14 +268,22 @@ describe('calculateCobCanada', () => {
   });
 
   it('a schedule that straddles a leap-year boundary (Dec 31 / Jan 1 into 2028) prorates interest with a split 365/366 day count', () => {
-    // 50,000 personal loan (fixed, m=12), weekly, 6% nominal -- period #5 runs
+    // 50,000 personal loan (fixed), weekly, 6% nominal -- period #5 runs
     // 2027-12-29 -> 2028-01-05 (7 actual days: 3 in 2027, 4 in 2028, a leap year).
-    // Hand-computed via the same independent script (dayCountFraction cross-checked
-    // directly in equations.test.ts).
+    // OQ-C 2026-09-27: MONTHLY rate type = contract rate unconverted
+    // Hand-computed at the unconverted 6% (was 53.0034672709 / 46223.195571 at m=12):
+    //   rows 1-4 are 7 days in 2027: f = 0.06 x 7/365 = 0.42/365, g = 1 + f = 18271/18250
+    //   B_k = B_(k-1) x g - 1000 (payment 1000 > interest, no fees):
+    //     I1 = 50000 x 0.42/365 = 57.534246575  B1 = 49057.534246575
+    //     I2 = 56.449765434                     B2 = 48113.984012010
+    //     I3 = 55.364036397                     B3 = 47169.348048407
+    //     I4 = 54.277058028                     B4 = 46223.625106435
+    //   row 5 opening = B4 = 46223.625106435
+    //   row 5 interest = B4 x 0.06 x (3/365 + 4/366) = 53.105786222
     const input: CobCanadaInput = {
       flow: 'newMortgageOrLoan',
-      productType: 'personalLoan',
-      rateType: 'fixed',
+      productType: 'mortgage', // B27: DEV-FB24 class A (weekly is vehicle only; twin of the personal loan)
+      rateType: 'variable', // B27: DEV-FB24 class A
       loanAmount: 50000,
       fees: { fees: [] },
       contractRatePercent: 6,
@@ -295,8 +303,8 @@ describe('calculateCobCanada', () => {
     expect(row5.date.getTime()).toBe(new Date('2028-01-05').getTime());
     expect(row5.daysInPeriod).toBe(7); // plain calendar days, NOT leap-split
     // periodInterest DOES reflect the leap split: 3/365 + 4/366, not a flat 7/365.
-    expect(row5.periodInterest).toBeCloseTo(53.0034672709, 4);
-    expect(row5.openingBalance).toBeCloseTo(46223.195571, 3);
+    expect(row5.periodInterest).toBeCloseTo(53.1057862215, 4);
+    expect(row5.openingBalance).toBeCloseTo(46223.625106, 3);
   });
 
   describe('invariant #3: amortized_principal never changes with the financed/cash fee split', () => {

@@ -1,0 +1,39 @@
+{
+  "recorded": "2026-09-30 (QA, B29 red step; baseline 66 files, 2173 tests; Help not yet built). Refresh when a later item legitimately changes one of these files (B25 changes src/ and the first golden).",
+  "files": {
+    "package.json": "f0cec99d66f2e98225de7d9489e3f9add546b627e63ae5643d20db5c7f947347",
+    "package-lock.json": "839d4c597fd8183d0ac20b742edfb3756065ac4ee0111f9e18674c2f613b52ec",
+    "ui/ca.html": "322202ed8a9db6af0a3b78ee5c96457caffc8f6e0897c905f7d6ef006a07683b",
+    "ui/ca.js": "e7e67b200104f6bca59e3de09190ece4ed8246389f6f86d5fd0483cab93fbdb2",
+    "ui/ca-view.js": "4d3f6694cfe888b573021cbc0c49b4dfe22fcd20afe24ec78c8632b268205d0c",
+    "ui/ca-view.d.ts": "9879ac5810d49ed212b45434b0fe142d4a325784342ccf95a30797047eaebdd7",
+    "tests/ca/fixtures/golden_engine_v1.json": "b7c36e65a859c956e2341c316f64b165265945bad3b148654ef64b0279c98235",
+    "tests/ca/fixtures/golden_engine_pc_v1.json": "acfe374c6def2cea5bb723c8c639a72e0088aed7f8c952b561d724bd8d26d23e",
+    "tests/ca/fixtures/a10_ui_capture_v1.json": "5a314af06f17a54d33454c0b28acefc8d76534682ce026ef05782a98aa151ae7",
+    "tests/ca/fixtures/b23_on_state_pins.json": "b8a945dc281fdd3e4e0906a72d86fa24ca430b5f87bccff8aa1111d48f1b85c4",
+    "tsconfig.json": "a460097705ea065d2e79026d56339f2d5e65d3dac08f6dc408c1fc6ae0d6926a",
+    "tsconfig.test.json": "96e443cf16ad445f3bca3563aef701a389d94bb7bc15b4a38a7ba9338db8b56e",
+    ".gitignore": "64093e8f76ce9bfaac73e2a6113615fcef8aa98231c10d3bdd60767f33b983b9"
+  },
+  "trees": {
+    "src": "1b36e4068c4e999465dbc3496ae4795a91ffbf957717322e81b0bb4960ea28f9"
+  },
+  "noTraceTokens": [
+    "help.html",
+    "help-link",
+    "build-help",
+    "markdown-it",
+    "mermaid",
+    "HELP:BEGIN",
+    "HELP:END"
+  ],
+  "baselineTests": {
+    "files": 66,
+    "passed": 2173,
+    "genericServeTestsAdded": 6,
+    "afterRemovalFiles": 66,
+    "afterRemovalPassed": 2179,
+    "testTzPerZone": 604,
+    "note": "afterRemoval = baseline + the 6 generic serve cases QA appended to tests/tooling/a13-serve.test.ts (S1-generic, S2a-c, S4a-b); they stay after Help is removed"
+  }
+}

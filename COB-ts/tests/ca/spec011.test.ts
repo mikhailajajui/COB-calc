@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { calculateCobCanada } from '../../src/ca/cobCanada.js';
+import { calculateCobCanada } from '../../src/ca/index.js';
 import type { CobCanadaInput, CobCanadaResult, Fee } from '../../src/index.js';
+import { expectRelFloor1 } from './support/compare.js';
+import { BOTH_SEMI, loadValidate } from './support/semiSwitch.js';
 
 /**
  * Spec 011 (docs/new-req/011-app-engine-brd-changes.md) invariants I-011-1 ... I-011-9.
@@ -14,10 +16,7 @@ import type { CobCanadaInput, CobCanadaResult, Fee } from '../../src/index.js';
 
 const REL_TOL = 1e-9;
 
-function expectRel(actual: number, expected: number): void {
-  const scale = Math.max(Math.abs(expected), 1);
-  expect(Math.abs(actual - expected) / scale).toBeLessThanOrEqual(REL_TOL);
-}
+const expectRel = (actual: number, expected: number): void => expectRelFloor1(actual, expected, REL_TOL);
 
 /** 011 base input P0. */
 function p0(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
@@ -36,7 +35,7 @@ function p0(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
     termMonths: 0,
     fees: { fees: [] },
     ...overrides,
-  };
+  } as CobCanadaInput;
 }
 
 const ADMIN_FINANCED: Fee = { name: 'Admin', amount: 300, financed: true, includedInCob: true };
@@ -57,11 +56,12 @@ function p2(): CobCanadaInput {
   return p0({ fees: { fees: [APPRAISAL_NON_FINANCED] } });
 }
 
-/** 011 renewal input R (used by the provisional I-011-8 / I-011-9). */
+/** 011 renewal input R (used by the provisional I-011-8 / I-011-9). B21 (decision 9): Renewal is
+ *  mortgage-only and p0 is a personal loan, so R is a paymentChange input (same engine path; I-011-9). */
 function r(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
-  const base = p0({ flow: 'renewal', renewalDate: new Date('2026-01-01') });
+  const base = p0({ flow: 'paymentChange', renewalDate: new Date('2026-01-01') });
   delete base.disbursalDate;
-  return { ...base, ...overrides };
+  return { ...base, ...overrides } as CobCanadaInput;
 }
 
 function averageOpeningBalance(result: CobCanadaResult): number {
@@ -174,12 +174,22 @@ describe('I-011-5 INCLUDEDINCOB-VALUE-IGNORED (DQ-02, B.7)', () => {
   });
 });
 
-describe('I-011-6 INCLUDEDINCOB-REQUIRED (DQ-02, 010 wire)', () => {
-  it('a fee without includedInCob is rejected', () => {
+// B10 (COB-architecture.md §5 B10; OQ-E; user 2026-09-29): the flag is optional and never read.
+// A flagless fee is accepted and counted in full in C; a present non-boolean flag is still rejected.
+describe('I-011-6 INCLUDEDINCOB-OPTIONAL (B10, OQ-E, user 2026-09-29)', () => {
+  it('a fee without includedInCob is accepted and equals its includedInCob: true twin', () => {
     const fee = { name: 'X', amount: 1, financed: false } as Fee;
+    expect(() => calculateCobCanada(p0({ fees: { fees: [fee] } }))).not.toThrow();
+    expect(calculateCobCanada(p0({ fees: { fees: [fee] } }))).toEqual(
+      calculateCobCanada(p0({ fees: { fees: [{ ...fee, includedInCob: true }] } })),
+    );
+  });
+
+  it('a present non-boolean includedInCob is rejected', () => {
+    const fee = { name: 'X', amount: 1, financed: false, includedInCob: 'yes' } as unknown as Fee;
     expect(() => calculateCobCanada(p0({ fees: { fees: [fee] } }))).toThrow(RangeError);
     expect(() => calculateCobCanada(p0({ fees: { fees: [fee] } }))).toThrow(
-      /X\.includedInCob must be explicitly true or false/,
+      'X.includedInCob must be a boolean if present, got yes',
     );
   });
 
@@ -191,22 +201,8 @@ describe('I-011-6 INCLUDEDINCOB-REQUIRED (DQ-02, 010 wire)', () => {
 });
 
 describe('I-011-7 REQUIRED-INPUTS (DQ-03)', () => {
-  it('termYears 0 and termMonths 0 together are rejected', () => {
-    expect(() => calculateCobCanada(p0({ termYears: 0, termMonths: 0 }))).toThrow(RangeError);
-    expect(() => calculateCobCanada(p0({ termYears: 0, termMonths: 0 }))).toThrow(/must not both be 0/);
-  });
-
-  it('termMonths 12 is rejected', () => {
-    expect(() => calculateCobCanada(p0({ termMonths: 12 }))).toThrow(/must be an integer in \[0, 11\]/);
-  });
-
-  it('missing termYears is rejected', () => {
-    const input = p0() as Partial<CobCanadaInput>;
-    delete input.termYears;
-    expect(() => calculateCobCanada(input as CobCanadaInput)).toThrow(
-      /must be a non-negative integer, got undefined/,
-    );
-  });
+  // B24 (user 2026-09-30): the three term tests (0 and 0, month 12, missing termYears) are retired; the term fields are
+  // optional, deprecated and never validated (see b24-term-rule T4).
 
   it('missing endDate is rejected', () => {
     const input = p0() as Partial<CobCanadaInput>;
@@ -214,8 +210,11 @@ describe('I-011-7 REQUIRED-INPUTS (DQ-03)', () => {
     expect(() => calculateCobCanada(input as CobCanadaInput)).toThrow(/endDate must be a valid Date/);
   });
 
-  it('a fixed mortgage without semiAnnualCompoundingDate is rejected', () => {
-    expect(() => calculateCobCanada(p0({ productType: 'mortgage' }))).toThrow(/requires semiAnnualCompoundingDate/);
+  it.each(BOTH_SEMI)('%s: a fixed mortgage without semiAnnualCompoundingDate is rejected when on (Q-SACD) and accepted when off', async (_l, required) => {
+    const api = await loadValidate(required);
+    const call = () => api.calculateCobCanada(p0({ productType: 'mortgage' }));
+    if (required) expect(call).toThrow(/requires semiAnnualCompoundingDate/);
+    else expect(call).not.toThrow();
   });
 
   it('a variable mortgage without semiAnnualCompoundingDate passes validation', () => {
@@ -223,9 +222,11 @@ describe('I-011-7 REQUIRED-INPUTS (DQ-03)', () => {
   });
 });
 
-describe('I-011-8 ACCRUED-DEFAULT [PROVISIONAL: DQ-04 / OQ-011-2]', () => {
-  it('renewal without accruedInterest equals renewal with accruedInterest 0', () => {
-    expect(calculateCobCanada(r())).toEqual(calculateCobCanada(r({ accruedInterest: 0 })));
+describe('I-011-8 ACCRUED-DEFAULT [settled by B20, decision 4: accrued interest is required, 0 allowed]', () => {
+  it('renewal without accruedInterest is rejected since B20 (decision 4; was: equals accruedInterest 0)', () => {
+    expect(() => calculateCobCanada(r())).toThrow(RangeError);
+    expect(() => calculateCobCanada(r())).toThrow(/requires accruedInterest/);
+    expect(() => calculateCobCanada(r({ accruedInterest: 0 }))).not.toThrow();
   });
 
   it('renewal with accruedInterest 50 matches the values recorded in 011', () => {
@@ -248,8 +249,10 @@ describe('I-011-8 ACCRUED-DEFAULT [PROVISIONAL: DQ-04 / OQ-011-2]', () => {
 
 describe('I-011-9 PC-START-DATE [PROVISIONAL: DQ-05 / OQ-011-3]', () => {
   it('paymentChange starts at renewalDate, exactly like renewal', () => {
-    expect(calculateCobCanada(r({ flow: 'paymentChange', accruedInterest: 50 }))).toEqual(
-      calculateCobCanada(r({ accruedInterest: 50 })),
+    // B21: the Renewal side is a mortgage input (Renewal + personal loan is rejected).
+    const mortgage = { productType: 'mortgage', rateType: 'variable', accruedInterest: 50 } as const;
+    expect(calculateCobCanada(r({ flow: 'paymentChange', ...mortgage }))).toEqual(
+      calculateCobCanada(r({ flow: 'renewal', ...mortgage })),
     );
   });
 

@@ -1,13 +1,17 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { calculateCobCanada } from '../../src/ca/cobCanada.js';
+import { calculateCobCanada } from '../../src/ca/index.js';
 import type { CobCanadaInput, CobCanadaResult, CobScheduleRow } from '../../src/index.js';
+import { wireToInput } from './support/builders.js';
+import { relDiffFloor1 } from './support/compare.js';
+import { loadFixture as load } from './support/fixtures.js';
+import { BOTH, SHIPPED, calculateWith } from './support/switches.js';
+import type { Switches } from './support/switches.js';
 
 /**
  * Spec 011 (docs/new-req/011-app-engine-brd-changes.md) "D9 / D8" (financed fees reduce
- * the balance when paid, DEV-011-2) and "DQ-28" (the final payment pays only what is
- * owed, DEV-011-3): invariants I-011-10 ... I-011-14. Tolerance 1e-9 relative.
+ * the balance when paid, DEV-011-2) and the payoff row (I-011-13, now the workbook
+ * rule of OQ-K / OQ-T 2026-09-27, which replaces DQ-28 / DEV-011-3): invariants
+ * I-011-10 ... I-011-14. Tolerance 1e-9 relative.
  *
  * I-011-12's expected rows come from the macro oracle (COB-py/tests/fixtures/
  * macro_oracle.py, run with non_fin_fee = 0) via fixtures/d9_oracle_vectors.json; that
@@ -15,27 +19,16 @@ import type { CobCanadaInput, CobCanadaResult, CobScheduleRow } from '../../src/
  */
 
 const REL_TOL = 1e-9;
-const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url));
-const load = (name: string) => JSON.parse(readFileSync(FIXTURES + name, 'utf8'));
 
-function relDiff(actual: number, expected: number): number {
-  return Math.abs(actual - expected) / Math.max(Math.abs(expected), 1);
-}
+const relDiff = relDiffFloor1;
 
 function expectRel(actual: number, expected: number): void {
   expect(relDiff(actual, expected)).toBeLessThanOrEqual(REL_TOL);
 }
 
 type WireRequest = Record<string, unknown> & { fees: CobCanadaInput['fees'] };
-const DATE_FIELDS = ['firstPaymentDate', 'endDate', 'disbursalDate', 'renewalDate', 'semiAnnualCompoundingDate'];
 
-function toEngineInput(request: WireRequest): CobCanadaInput {
-  const out: Record<string, unknown> = { ...request };
-  for (const f of DATE_FIELDS) {
-    if (typeof request[f] === 'string') out[f] = new Date(`${request[f] as string}T00:00:00Z`);
-  }
-  return out as unknown as CobCanadaInput;
-}
+const toEngineInput = (request: WireRequest): CobCanadaInput => wireToInput(request);
 
 const wire = load('ca_app_wire_vectors.json') as { vectors: { id: string; request: WireRequest }[] };
 const wireInput = (id: string): CobCanadaInput => toEngineInput(wire.vectors.find((v) => v.id === id)!.request);
@@ -81,16 +74,18 @@ function p0(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
     termMonths: 0,
     fees: { fees: [] },
     ...overrides,
-  };
+  } as CobCanadaInput;
 }
 
 const financed = (amount: number) => ({ name: 'Admin', amount, financed: true, includedInCob: true });
 const nonFinanced = (amount: number) => ({ name: 'Appraisal', amount, financed: false, includedInCob: true });
 
+// B21 (decision 9): p0 is a personal loan and Renewal is mortgage-only, so these inputs use
+// paymentChange (same engine path as renewal; B18-INV-flow-equivalence). Values unchanged.
 function renewal(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
-  const base = p0({ flow: 'renewal', renewalDate: new Date('2026-01-01'), accruedInterest: 50 });
+  const base = p0({ flow: 'paymentChange', renewalDate: new Date('2026-01-01'), accruedInterest: 50 });
   delete base.disbursalDate;
-  return { ...base, ...overrides };
+  return { ...base, ...overrides } as CobCanadaInput;
 }
 
 /** Inputs the "for every valid input" invariants are checked over: every wire vector,
@@ -106,21 +101,68 @@ const PROPERTY_INPUTS: [string, CobCanadaInput][] = [
   ['fees larger than a payment', p0({ paymentAmount: 200, fees: { fees: [financed(700)] } })],
   ['underpayment with fees', p0({ paymentAmount: 30, fees: { fees: [financed(300)] } })],
   ['renewal, accrued interest, fees, payoff', renewal({ paymentAmount: 1500, fees: { fees: [financed(400)] } })],
+  // OQ-W interim: shortfall while IN-11 is outstanding stays outside the balance.
+  ['OQ-W interim: renewal, IN-11 outstanding, underpayment, fees', renewal({ accruedInterest: 200, paymentAmount: 30, fees: { fees: [financed(300)] } })],
+  // IN-11 cleared on row 1 (28 days), then 31-day months underpay: OQ-L applies.
+  [
+    'renewal, IN-11 cleared then underpayment',
+    renewal({ loanAmount: 100000, contractRatePercent: 12, paymentAmount: 926, accruedInterest: 5, renewalDate: new Date('2026-01-04'), endDate: new Date('2026-06-01') }),
+  ],
 ];
+
+/** PROPERTY_INPUTS x both switch states (B19): `[label, input, switches]`. */
+const PROPERTY_CASES: [string, CobCanadaInput, Switches][] = BOTH.flatMap(([switchLabel, switches]) =>
+  PROPERTY_INPUTS.map(([label, input]) => [`${switchLabel}: ${label}`, input, switches] as [string, CobCanadaInput, Switches]),
+);
 
 function rowsOf(result: CobCanadaResult): CobScheduleRow[] {
   return result.amortizationSchedule;
 }
 
+/**
+ * The unpaid PERIOD interest inside the Loan balance at the opening and closing of each
+ * row (OQ-L, settled 2026-09-27: CalculateAll `newBalance = newFees + newPrinciple +
+ * intAccrued - totalInterestPaid`). A row's carriedAccruedInterest* holds either that or
+ * IN-11 past accrued interest, which is NOT in the balance. OQ-W interim (§7.5): while
+ * IN-11 is outstanding the whole carried amount stays outside the balance; once it is
+ * cleared (carried closing 0), OQ-L applies. New loans have no IN-11.
+ * B19 (DEV-OQL): that is the workbook branch. In the shipped branch (`false`) nothing unpaid is
+ * ever in the balance, so the result is all zeros.
+ */
+function inBalanceUnpaidInterest(
+  input: CobCanadaInput,
+  rows: CobScheduleRow[],
+  switches: Switches,
+): { open: number; close: number }[] {
+  if (switches === SHIPPED) return rows.map(() => ({ open: 0, close: 0 }));
+  let pastOutstanding = input.flow !== 'newMortgageOrLoan' && (input.accruedInterest ?? 0) > 0;
+  return rows.map((row) => {
+    const u = pastOutstanding
+      ? { open: 0, close: 0 }
+      : { open: row.carriedAccruedInterestOpening, close: row.carriedAccruedInterestClosing };
+    pastOutstanding = pastOutstanding && row.carriedAccruedInterestClosing > 0;
+    return u;
+  });
+}
+
 describe('I-011-10 FEES-REDUCE-BALANCE (D9/D8)', () => {
-  it.each(PROPERTY_INPUTS)(
-    '%s: closingBalance == openingBalance - feesPaid - principalPortion, and rows chain',
-    (_label, input) => {
-      const rows = rowsOf(calculateCobCanada(input));
+  it.each(PROPERTY_CASES)(
+    '%s: closingBalance == openingBalance - feesPaid - principalPortion - unpaidInterestOpening + unpaidInterestClosing (OQ-L), and rows chain',
+    (_label, input, switches) => {
+      const rows = rowsOf(calculateWith(input, switches));
+      const unpaid = inBalanceUnpaidInterest(input, rows, switches);
       rows.forEach((row, i) => {
-        expect(row.closingBalance).toBe(row.openingBalance - row.feesPaid - row.principalPortion);
-        if (i > 0) expect(row.openingBalance).toBe(rows[i - 1]!.closingBalance);
+        expect(row.closingBalance).toBe(
+          row.openingBalance - row.feesPaid - row.principalPortion - unpaid[i]!.open + unpaid[i]!.close,
+        );
+        if (i > 0) {
+          expect(row.openingBalance).toBe(rows[i - 1]!.closingBalance);
+          expect(row.carriedAccruedInterestOpening).toBe(rows[i - 1]!.carriedAccruedInterestClosing);
+        }
       });
+      expect(rows[0]!.carriedAccruedInterestOpening).toBe(
+        input.flow === 'newMortgageOrLoan' ? 0 : (input.accruedInterest ?? 0),
+      );
       expect(rows[0]!.openingBalance).toBe(input.loanAmount);
     },
   );
@@ -144,12 +186,19 @@ describe('I-011-10 FEES-REDUCE-BALANCE (D9/D8)', () => {
 });
 
 describe('I-011-11 FEES-COUNTED-ONCE (D9/D8)', () => {
-  it.each(PROPERTY_INPUTS)('%s: sum(principalPortion) + sum(feesPaid) == loanAmount - endingBalance', (_label, input) => {
-    const res = calculateCobCanada(input);
-    const paidDown = rowsOf(res).reduce((s, r) => s + r.principalPortion + r.feesPaid, 0);
-    expect(Math.abs(paidDown - (input.loanAmount - res.endingBalance)) / input.loanAmount).toBeLessThanOrEqual(REL_TOL);
-    expectRel(res.principalPayment + res.feesRecovered, input.loanAmount - res.endingBalance);
-  });
+  it.each(PROPERTY_CASES)(
+    '%s: sum(principalPortion) + sum(feesPaid) == loanAmount - endingBalance + unpaid interest in the ending balance (OQ-L)',
+    (_label, input, switches) => {
+      const res = calculateWith(input, switches);
+      const rows = rowsOf(res);
+      const unpaidAtEnd = inBalanceUnpaidInterest(input, rows, switches)[rows.length - 1]!.close;
+      const paidDown = rows.reduce((s, r) => s + r.principalPortion + r.feesPaid, 0);
+      expect(
+        Math.abs(paidDown - (input.loanAmount - res.endingBalance + unpaidAtEnd)) / input.loanAmount,
+      ).toBeLessThanOrEqual(REL_TOL);
+      expectRel(res.principalPayment + res.feesRecovered, input.loanAmount - res.endingBalance + unpaidAtEnd);
+    },
+  );
 
   it('S1 with only its financed fee: the member pays back loan + interest, not loan + interest + fees', () => {
     const input = toEngineInput(d9.cases.find((c) => c.id === 'S1_financed_only')!.request);
@@ -204,15 +253,21 @@ describe('I-011-12 MACRO-MATCH, FINANCED FEES ONLY (D9/D8)', () => {
   });
 });
 
-describe('I-011-13 PAYOFF (DQ-28)', () => {
-  it.each(PROPERTY_INPUTS)('%s: no overshoot; paymentAmount is what the row actually paid', (_label, input) => {
+// OQ-K/OQ-T 2026-09-27: workbook rule replaces DQ-28 -- the payoff row's paymentAmount
+// is its principal only (macro `pymtAmnt = currPrinciple`), not interest + fees + principal.
+describe('I-011-13 PAYOFF (OQ-K / OQ-T workbook rule)', () => {
+  it.each(PROPERTY_INPUTS)('%s: no overshoot; a payoff row records its principal only as paymentAmount', (_label, input) => {
     const rows = rowsOf(calculateCobCanada(input));
     rows.forEach((row, i) => {
       expect(row.closingBalance).toBeGreaterThanOrEqual(-1e-9 * input.loanAmount);
       expect(row.principalPortion).toBeLessThanOrEqual(row.openingBalance - row.feesOpening + 1e-9 * input.loanAmount);
-      expectRel(row.paymentAmount, row.interestPaid + row.feesPaid + row.principalPortion);
       expect(row.paymentAmount).toBeLessThanOrEqual(input.paymentAmount);
-      if (i < rows.length - 1) expect(row.paymentAmount).toBe(input.paymentAmount);
+      if (i === rows.length - 1 && row.closingBalance === 0) {
+        expect(row.paymentAmount).toBe(row.principalPortion);
+      } else {
+        expect(row.paymentAmount).toBe(input.paymentAmount);
+        expectRel(row.paymentAmount, row.interestPaid + row.feesPaid + row.principalPortion);
+      }
     });
   });
 
@@ -223,18 +278,22 @@ describe('I-011-13 PAYOFF (DQ-28)', () => {
     expect(Math.abs(last.closingBalance)).toBeLessThanOrEqual(1e-9 * input.loanAmount);
     expect(Math.abs(res.endingBalance)).toBeLessThanOrEqual(1e-9 * input.loanAmount);
     expect(last.paymentAmount).toBeLessThan(input.paymentAmount);
-    expectRel(res.totalPayment, res.totalInterest + res.feesRecovered + res.principalPayment);
+    expectRel(
+      res.totalPayment,
+      res.totalInterest + res.feesRecovered + res.principalPayment - last.interestPaid - last.feesPaid,
+    );
   });
 
-  it('S5 (DEV-011-3): the payoff row records interest + principal, where the macro records principal only', () => {
+  it('S5: the payoff row records principal only, as the macro does', () => {
     const res = calculateCobCanada(wireInput('S5_payoff'));
     const last = rowsOf(res).at(-1)!;
     expect(res.numberOfPayments).toBe(6);
-    // Oracle S5 last row: principal_paid 74.19280222397538, interest_paid 0.36139088970696776.
+    // Oracle S5 last row: principal_paid 74.19280222397538, interest_paid 0.36139088970696776,
+    // payment 74.19280222397538; total_payment 5074.192802223975.
     expectRel(last.principalPortion, 74.19280222397538);
     expectRel(last.interestPaid, 0.36139088970696776);
-    expectRel(last.paymentAmount, 74.19280222397538 + 0.36139088970696776);
-    expectRel(res.totalPayment, 5000 + res.totalInterest);
+    expectRel(last.paymentAmount, 74.19280222397538);
+    expectRel(res.totalPayment, 5074.192802223975);
   });
 
   it('boundary: a payoff on row 1 with a financed fee stops after one row, fee and principal both paid', () => {
@@ -245,11 +304,12 @@ describe('I-011-13 PAYOFF (DQ-28)', () => {
     expect(row!.feesPaid).toBe(100);
     expect(row!.principalPortion).toBe(900);
     expect(row!.closingBalance).toBe(0);
-    expectRel(row!.paymentAmount, row!.interestPaid + 1000);
+    expect(row!.paymentAmount).toBe(900);
   });
 
-  it('invalid input: a zero payment is still rejected', () => {
-    expect(() => calculateCobCanada(p0({ paymentAmount: 0 }))).toThrow(RangeError);
+  it('negative payment rejected', () => {
+    // OQ-Y 2026-09-27: $0 payment allowed; negative still rejected
+    expect(() => calculateCobCanada(p0({ paymentAmount: -1 }))).toThrow(RangeError);
   });
 });
 
