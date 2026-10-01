@@ -98,8 +98,10 @@ describe('A4 characterisation through the public engine (green before and after 
     expect(leap.amortizationSchedule.slice(0, 6).map((r) => iso(r.date))).toEqual(
       ['2028-01-31', '2028-02-15', '2028-02-29', '2028-03-15', '2028-03-31', '2028-04-15'].map(mid),
     );
+    // known_divergence DEV-OQZ (B25): a typed 14th is moved to the 15th; the macro would run 14th / 28th / 14th / 29th ...
+    // (workbook), the shipped schedule runs 15th / month-end from the moved date.
     expect(rowDates('semiMonthly', d('2027-02-14'), 6)).toEqual(
-      ['2027-02-14', '2027-02-28', '2027-03-14', '2027-03-29', '2027-04-14', '2027-04-29'].map(mid),
+      ['2027-02-15', '2027-02-28', '2027-03-15', '2027-03-31', '2027-04-15', '2027-04-30'].map(mid),
     );
   });
 
@@ -120,8 +122,8 @@ describe('A4 characterisation through the public engine (green before and after 
 // ---------------------------------------------------------------------------------------
 
 const EXPORTS = [
-  'addMonthsClamped', 'addUtcDays', 'dayCountFraction', 'daysBetween', 'daysInUtcMonth', 'endOfUtcMonth',
-  'isLastDayOfMonth', 'isLeapYear', 'nextSemiMonthlyDate', 'periodDateFor', 'termBetween', 'utcDateOnly', // B24-R1 adds termBetween
+  'addMonthsClamped', 'addUtcDays', 'dayCountFraction', 'daysBetween', 'daysInUtcMonth', 'effectiveFirstPaymentDate', 'endOfUtcMonth',
+  'isLastDayOfMonth', 'isLeapYear', 'nextSemiMonthlyDate', 'periodDateFor', 'termBetween', 'utcDateOnly', // B24-R1 adds termBetween; B25-R2 adds effectiveFirstPaymentDate
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -144,7 +146,7 @@ function cal(): Cal {
 }
 
 describe('A4 calendar.ts module', () => {
-  it('a. exports exactly the 11 functions of Goal 4 plus termBetween (B24-R1) (MS_PER_DAY stays private)', () => {
+  it('a. exports exactly the 11 functions of Goal 4 plus termBetween (B24-R1) and effectiveFirstPaymentDate (B25-R2) (MS_PER_DAY stays private)', () => {
     const c = cal();
     expect(Object.keys(c).sort()).toEqual(EXPORTS);
     for (const k of EXPORTS) expect(typeof c[k], k).toBe('function');

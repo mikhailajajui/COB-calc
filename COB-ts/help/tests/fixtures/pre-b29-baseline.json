@@ -1,39 +1,39 @@
 {
-  "recorded": "2026-09-30 (QA, B29 red step; baseline 66 files, 2173 tests; Help not yet built). Refresh when a later item legitimately changes one of these files (B25 changes src/ and the first golden).",
-  "files": {
-    "package.json": "f0cec99d66f2e98225de7d9489e3f9add546b627e63ae5643d20db5c7f947347",
-    "package-lock.json": "839d4c597fd8183d0ac20b742edfb3756065ac4ee0111f9e18674c2f613b52ec",
-    "ui/ca.html": "322202ed8a9db6af0a3b78ee5c96457caffc8f6e0897c905f7d6ef006a07683b",
-    "ui/ca.js": "e7e67b200104f6bca59e3de09190ece4ed8246389f6f86d5fd0483cab93fbdb2",
-    "ui/ca-view.js": "4d3f6694cfe888b573021cbc0c49b4dfe22fcd20afe24ec78c8632b268205d0c",
-    "ui/ca-view.d.ts": "9879ac5810d49ed212b45434b0fe142d4a325784342ccf95a30797047eaebdd7",
-    "tests/ca/fixtures/golden_engine_v1.json": "b7c36e65a859c956e2341c316f64b165265945bad3b148654ef64b0279c98235",
-    "tests/ca/fixtures/golden_engine_pc_v1.json": "acfe374c6def2cea5bb723c8c639a72e0088aed7f8c952b561d724bd8d26d23e",
-    "tests/ca/fixtures/a10_ui_capture_v1.json": "5a314af06f17a54d33454c0b28acefc8d76534682ce026ef05782a98aa151ae7",
-    "tests/ca/fixtures/b23_on_state_pins.json": "b8a945dc281fdd3e4e0906a72d86fa24ca430b5f87bccff8aa1111d48f1b85c4",
-    "tsconfig.json": "a460097705ea065d2e79026d56339f2d5e65d3dac08f6dc408c1fc6ae0d6926a",
-    "tsconfig.test.json": "96e443cf16ad445f3bca3563aef701a389d94bb7bc15b4a38a7ba9338db8b56e",
-    ".gitignore": "64093e8f76ce9bfaac73e2a6113615fcef8aa98231c10d3bdd60767f33b983b9"
-  },
-  "trees": {
-    "src": "1b36e4068c4e999465dbc3496ae4795a91ffbf957717322e81b0bb4960ea28f9"
-  },
-  "noTraceTokens": [
-    "help.html",
-    "help-link",
-    "build-help",
-    "markdown-it",
-    "mermaid",
-    "HELP:BEGIN",
-    "HELP:END"
-  ],
-  "baselineTests": {
-    "files": 66,
-    "passed": 2173,
-    "genericServeTestsAdded": 6,
-    "afterRemovalFiles": 66,
-    "afterRemovalPassed": 2179,
-    "testTzPerZone": 604,
-    "note": "afterRemoval = baseline + the 6 generic serve cases QA appended to tests/tooling/a13-serve.test.ts (S1-generic, S2a-c, S4a-b); they stay after Help is removed"
-  }
+ "recorded": "2026-09-30; ui/ca.js re-pinned 2026-10-01 by QA after A11 scope B (ensurePrintSchedule: print table built on demand; sha b69aacc7...); full suite then 81 files / 3001 tests (Help adds 10 files / 465 tests, so afterRemoval measured by check_help_removal.mjs: 72 / 2542, refreshed from the stale 70 / 2509); ui/ca-view.d.ts re-pinned 2026-10-01 for the optional variableRatePaymentChangeFlow key (VRPC-hide); ui/ca-view.js, ui/ca.html (HELP blocks stripped) and ui/ca.js re-pinned 2026-10-01 by QA after sr-dev delivered the variableRatePaymentChangeFlow switch (shipped false); trees.src refreshed 2026-10-01 for the Renewal personal-loan and Date-of-change flows.ts change (QA, B29 red step; Help not yet built). Re-pinned 2026-10-01 by QA after the B25 engine step: golden_engine_v1.json and trees.src (src/ca/calendar.ts, cobCanada.ts, validate.ts changed), package.json (b25-semimonthly-move added to test:tz); counts now baseline 69 files / 2478 tests, afterRemoval 70 / 2509, test:tz 880 per zone. Refresh when a later item legitimately changes one of these files. ui/ca-view.d.ts re-pinned 2026-10-01 by QA for the B25 UI step (firstDateMoveNote, printInputRows moveNote); ui/ca.html (stripped), ui/ca.js and ui/ca-view.js re-pinned 2026-10-01 by QA after the B25 UI step (first-date note, contract-terms note, Moved first date print row, CSV name from the moved date). trees.src re-pinned 2026-10-01 by QA after A14 (comment-only edits in src/ca/cobCanada.ts, equations.ts, types.ts, validate.ts; token stream and emitted JS verified identical).",
+ "files": {
+  "package.json": "b8680e37f5f0be1182ae3ea84894ae1209f354d5a564ce21fdf4024a87e2b54e",
+  "package-lock.json": "839d4c597fd8183d0ac20b742edfb3756065ac4ee0111f9e18674c2f613b52ec",
+  "ui/ca.html": "4f4d7da9aaf88ee634fbd8581dde73911d12c43dd8dadb321ce649f7dc37a321",
+  "ui/ca.js": "b69aacc79eecb32e139c5c4064605c4ab43af685e66809374d9e25d17d890928",
+  "ui/ca-view.js": "a6212701e9488061c595eded8d0b7fee71a525d6cf7e250c11b1263cc3c2f2ee",
+  "ui/ca-view.d.ts": "2820b0978ebba092129428686c56fda6fe2f3f758474dae9a64608973040515c",
+  "tests/ca/fixtures/golden_engine_v1.json": "249651b25b33cb9c1b5480d2ee1a26404d64f3321ea980de2bd3e23193e6cf11",
+  "tests/ca/fixtures/golden_engine_pc_v1.json": "acfe374c6def2cea5bb723c8c639a72e0088aed7f8c952b561d724bd8d26d23e",
+  "tests/ca/fixtures/a10_ui_capture_v1.json": "381af9d13e3aa76ed23357ad1b31867367ae4f4f7ac3cab138daeaed8e8a8c1b",
+  "tests/ca/fixtures/b23_on_state_pins.json": "b8a945dc281fdd3e4e0906a72d86fa24ca430b5f87bccff8aa1111d48f1b85c4",
+  "tsconfig.json": "a460097705ea065d2e79026d56339f2d5e65d3dac08f6dc408c1fc6ae0d6926a",
+  "tsconfig.test.json": "96e443cf16ad445f3bca3563aef701a389d94bb7bc15b4a38a7ba9338db8b56e",
+  ".gitignore": "64093e8f76ce9bfaac73e2a6113615fcef8aa98231c10d3bdd60767f33b983b9"
+ },
+ "trees": {
+  "src": "1a56b01680d897535026752287cbb12e86ae5ca803226869e381a8bd0d9d8fa5"
+ },
+ "noTraceTokens": [
+  "help.html",
+  "help-link",
+  "build-help",
+  "markdown-it",
+  "mermaid",
+  "HELP:BEGIN",
+  "HELP:END"
+ ],
+ "baselineTests": {
+  "files": 69,
+  "passed": 2478,
+  "genericServeTestsAdded": 6,
+  "afterRemovalFiles": 72,
+  "afterRemovalPassed": 2542,
+  "testTzPerZone": 880,
+  "note": "afterRemoval = baseline + the 6 generic serve cases QA appended to tests/tooling/a13-serve.test.ts (S1-generic, S2a-c, S4a-b); they stay after Help is removed; plus tests/tooling/b29-serve-hardening.test.ts (25 tests, security fixes, generic, stays): 67 files, 2204 (QA verify, 2026-10-01); B25 engine step adds 3 files (b25-semimonthly-move, b25-golden and one more) and 305 tests: 70 / 2509"
+ }
 }

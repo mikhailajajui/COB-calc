@@ -1,0 +1,14 @@
+import type { ContractTerm, PaymentFrequency } from './types.js';
+export declare function isLeapYear(year: number): boolean;
+export declare function utcDateOnly(date: Date): number;
+export declare function daysBetween(start: Date, end: Date): number;
+export declare function dayCountFraction(start: Date, end: Date): number;
+export declare function addUtcDays(date: Date, days: number): Date;
+export declare function daysInUtcMonth(year: number, monthIndex: number): number;
+export declare function isLastDayOfMonth(date: Date): boolean;
+export declare function addMonthsClamped(date: Date, months: number): Date;
+export declare function termBetween(from: Date, to: Date): ContractTerm;
+export declare function endOfUtcMonth(date: Date): Date;
+export declare function nextSemiMonthlyDate(firstPaymentDate: Date, currentDate: Date): Date;
+export declare function effectiveFirstPaymentDate(frequency: PaymentFrequency, first: Date): Date;
+export declare function periodDateFor(frequency: PaymentFrequency, firstPaymentDate: Date, index: number, previousPaymentDate: Date): Date;

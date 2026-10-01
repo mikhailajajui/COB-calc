@@ -6,7 +6,7 @@
  *
  * Decisions settled since A6 (the table below pins them):
  * - OQ-A (Start Date label per use case) settled by B22, stakeholder decisions 2 and 5: Payment
- *   Change and VRPC start at the "Last payment date" and pay next on the "Next payment date"; the
+ *   Change and VRPC start at the "Date of change" and pay next on the "Next payment date"; the
  *   form, the contract-terms tiles and the print record read these labels (closes finding F1).
  * - (OQ-B / BR-05 settled by B20, stakeholder decision 4: `accruedInterest` is 'required' for
  *   renewal, paymentChange and VRPC, 'hidden' for the new flow; see B20-1 / B20-2 below.)
@@ -70,7 +70,7 @@ const FLOWS_EXPECTED: Record<CobFlow, FlowSpecShape> = {
   renewal: {
     startDateField: 'renewalDate',
     accruedInterest: 'required', // decision 4 (B20)
-    forcedProductType: 'mortgage', // decision 9 (B21): Renewal is mortgage-only
+    forcedProductType: null, // 2026-10-01: Renewal allows a personal loan again (reverses decision 9 / B21)
     forcedRateType: null,
     startDateLabel: 'Renewal date', // decision 5 (B22)
     firstPaymentDateLabel: 'First payment date', // decision 5 (B22)
@@ -80,7 +80,7 @@ const FLOWS_EXPECTED: Record<CobFlow, FlowSpecShape> = {
     accruedInterest: 'required', // decision 4 (B20)
     forcedProductType: null,
     forcedRateType: null,
-    startDateLabel: 'Last payment date', // decisions 2 and 5 (B22; was 'Payment change date')
+    startDateLabel: 'Date of change', // 2026-10-01 (was 'Last payment date' B22, 'Payment change date' before)
     firstPaymentDateLabel: 'Next payment date', // decision 5 (B22)
   },
   variableRatePaymentChange: {
@@ -88,7 +88,7 @@ const FLOWS_EXPECTED: Record<CobFlow, FlowSpecShape> = {
     accruedInterest: 'required', // decision 4 (B20)
     forcedProductType: 'mortgage',
     forcedRateType: 'variable',
-    startDateLabel: 'Last payment date', // decisions 2 and 5 (B22; was 'Payment change date')
+    startDateLabel: 'Date of change', // 2026-10-01 (was 'Last payment date' B22, 'Payment change date' before)
     firstPaymentDateLabel: 'Next payment date', // decision 5 (B22)
   },
 };
@@ -157,7 +157,6 @@ const FLOW_MSG = (got: string) =>
 // B21 (R3): one message built from the catalogue; VRPC's old parenthesis is dropped.
 const VRPC_LOCK = (p: string, r: string) =>
   `flow 'variableRatePaymentChange' is mortgage + variable-rate only, got productType='${p}', rateType='${r}'`;
-const RENEWAL_LOCK = (p: string, r: string) => `flow 'renewal' is mortgage only, got productType='${p}', rateType='${r}'`;
 const SEMI_MSG =
   "productType 'mortgage' with rateType 'fixed' requires semiAnnualCompoundingDate " +
   '(the semi-annual compounding reference anchor -- equation 1)';
@@ -345,10 +344,9 @@ describe('A6-5 green (characterisation): exact RangeError messages and their ord
       );
     });
 
-    it(`A6-5: ${flow}: personalLoan/fixed with no semiAnnualCompoundingDate is ${flow === 'renewal' ? 'rejected by the Renewal lock (B21)' : 'accepted'}`, () => {
+    it(`A6-5: ${flow}: personalLoan/fixed with no semiAnnualCompoundingDate is accepted (Renewal too since 2026-10-01)`, () => {
       const input = base({ flow, productType: 'personalLoan', rateType: 'fixed' });
-      if (flow === 'renewal') expectBothThrow(input, RENEWAL_LOCK('personalLoan', 'fixed'));
-      else expectAccepted(input);
+      expectAccepted(input);
     });
 
     it(`A6-5: ${flow}: mortgage/fixed with a valid semiAnnualCompoundingDate is accepted (non-vacuity)`, () => {
@@ -405,12 +403,11 @@ describe('A6-6 green (characterisation): which inputs the engine reads per flow 
     });
   }
 
-  it('A6-6: triggerRatePercent !== null iff mortgage/variable, over the 11 flow/pair combinations that validate (B21: Renewal + personal loan is locked out)', () => {
+  it('A6-6: triggerRatePercent !== null iff mortgage/variable, over the 13 flow/pair combinations that validate (VRPC only mortgage/variable; Renewal + personal loan allowed since 2026-10-01)', () => {
     let n = 0;
     for (const flow of FLOW_IDS_EXPECTED) {
       for (const [p, r] of PAIRS) {
         if (flow === 'variableRatePaymentChange' && !(p === 'mortgage' && r === 'variable')) continue;
-        if (flow === 'renewal' && p === 'personalLoan') continue; // B21 (decision 9)
         const semi = p === 'mortgage' && r === 'fixed' ? { semiAnnualCompoundingDate: d('2026-12-15') } : {};
         const res = calculateCobCanada(base({ flow, productType: p, rateType: r, ...semi }));
         expect(res.triggerRatePercent !== null, `${flow} ${p}/${r}`).toBe(p === 'mortgage' && r === 'variable');
@@ -418,7 +415,7 @@ describe('A6-6 green (characterisation): which inputs the engine reads per flow 
         n++;
       }
     }
-    expect(n).toBe(11);
+    expect(n).toBe(13);
   });
 });
 

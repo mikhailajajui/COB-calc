@@ -33,9 +33,12 @@ const calc = (x: object) => {
 };
 
 describe('B19 switch on = pre-B19 engine, byte for byte', () => {
-  it('B19-ON-v1: workbook branch reproduces golden v1 as of B18 (sha 27a28c35...6519)', () => {
+  // B25 (DEV-OQZ): the pin is re-taken. The workbook branch is still pre-B19 byte for byte EXCEPT that a typed semi-monthly first
+  // date that is not a 15th / month-end is now moved forward first. Pre-B25 value: 27a28c35...6519. New value f2096f62...806e =
+  // the pre-B25 engine on the same corpus with those first dates replaced by the oracle's moved dates (B25-INV-equiv).
+  it('B19-ON-v1: workbook branch reproduces golden v1 as of B18 plus the B25 move (sha f2096f62...806e; pre-B25 27a28c35...6519)', () => {
     expect(sha256(v1.serialise(v1.computeGolden(calc)))).toBe(
-      '27a28c357aec4ebbcc767e6ac2d25f61156d4702f3503750fe579144650c6519',
+      'f2096f62209426f1c773948526ecb289c76be788679d4b9e1711ea2a0459806e',
     );
   }, 60_000);
 

@@ -3,9 +3,12 @@ import type { ProductType, RateType } from './types.js';
 import { isFiniteNumber } from './types.js';
 
 /**
- * The equations from docs/new-req/006-cost-of-borrowing-disclosure.md's "## Equations"
- * section (rewritten per doc 007's BRD reconciliation), implemented as specified --
- * each function below is annotated with that equation's number.
+ * The eight equations, implemented as specified -- each function below is annotated with
+ * that equation's number. The numbering 1 to 8 is the archived spec's own labelling, kept
+ * as the code's labels; the rules are stated in the BRD v2.3: equations 1 and 2 (rate
+ * conversion, m) in BRD §4.2 and Appendix A; equation 3 (period interest, day count) in
+ * §4.4 and B.3; equation 4 (waterfall) in B.5; equation 6 (trigger rate) in §4.3;
+ * equations 7 and 8 (COB rate and amount) in §4.1 and B.7.
  *
  * Rounding note: unlike this project's general convention (round only final currency
  * amounts to cents), this module deliberately does NOT round intermediate or final

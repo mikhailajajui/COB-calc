@@ -82,13 +82,15 @@ try {
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#downloadCsv')]);
   const csv = readFileSync(await dl.path(), 'utf8'); if (csv.split('\n').length < 30) fail('CSV too short');
   await page.emulateMedia({ media: 'print' });
+  // A11: the print table is built when printing; Chrome's print-media change (matchMedia 'change') triggers it asynchronously.
+  await page.waitForFunction(() => document.querySelectorAll('#printScheduleTable tbody tr').length >= 30, null, { timeout: 3000 }).catch(() => {});
   if (await page.locator('#printScheduleTable tbody tr').count() < 30) fail('print schedule has too few rows');
   await page.emulateMedia({ media: 'screen' });
-  // Renewal locks the product
+  // Renewal allows Personal loan again (2026-10-01); product stays enabled
   await page.selectOption('#flow', 'renewal');
   const prod = await page.evaluate(() => ({ v: document.getElementById('productType').value, d: document.getElementById('productType').disabled }));
-  if (prod.v !== 'mortgage' || !prod.d) fail('renewal did not lock product: ' + JSON.stringify(prod));
-  eq(await st(), { disabled: false, value: 'monthly', opts: OPTS, hint: null }, 'renewal');
+  if (prod.v !== 'personalLoan' || prod.d) fail('renewal changed or locked the product: ' + JSON.stringify(prod));
+  eq(await st(), { disabled: true, value: 'monthly', opts: OPTS, hint: 'Personal loans are paid monthly.' }, 'renewal (personal loan)');
 } finally { await browser.close(); child?.kill(); }
 if (problems.length) { console.log('SMOKE FAIL\n' + problems.join('\n')); process.exit(1); }
 console.log('SMOKE PASS: no pageerror/console error; lock, hint, 4 options, REF-01, Contract term (filled, cleared, printed, tile), personal loan calc, CSV, print, renewal');

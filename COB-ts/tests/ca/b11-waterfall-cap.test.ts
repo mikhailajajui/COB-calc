@@ -11,7 +11,7 @@
  * Expected values were derived independently from a transliterated macro oracle
  * (fixtures/generate_b11_waterfall_vectors.py -> fixtures/b11_waterfall_vectors.json; the oracle
  * reproduces d9_oracle_vectors.json P1 exactly before being trusted). E1 uses the archived
- * COB-py macro_oracle.calculate_all, not a live macro run. Each test checks BOTH the spec's
+ * oracle (calculate_all), not a live macro run. Each test checks BOTH the spec's
  * literal value and the oracle fixture.
  *
  * Red before B11: W1, W2, W3, W5, E1, the sweep property. Green before and after: W4.
@@ -192,7 +192,9 @@ describe('B11-INV-sweep: every row has paymentAmount >= 0 and principalPortion >
         }
       }
     }
-    expect(rows).toBe(884665);
+    // B25 (DEV-OQZ): semi-monthly first dates are moved forward, so some schedules start later and have fewer rows. Pin re-taken
+    // (was 884,665); 877,656 = the pre-B25 engine fed the moved first dates (B25-INV-equiv). The invariant itself is unchanged.
+    expect(rows).toBe(877656);
     expect(bad.slice(0, 5)).toEqual([]);
     expect(bad.length).toBe(0);
   });

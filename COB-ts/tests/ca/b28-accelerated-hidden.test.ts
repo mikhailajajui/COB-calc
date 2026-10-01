@@ -59,9 +59,9 @@ const ctxFor = (raw: View.RawForm, switches: TestUiSwitches): View.ViewContext =
 });
 
 describe('B28-PIN: the switch object', () => {
-  it('B28-PIN-1: UI_SWITCHES deep-equals { financedOption: false, acceleratedFrequencies: false, contractDateField: false } and is frozen (value pin; B24 adds contractDateField)', async () => {
+  it('B28-PIN-1: UI_SWITCHES deep-equals { financedOption: false, acceleratedFrequencies: false, contractDateField: false, variableRatePaymentChangeFlow: false } and is frozen (value pin; B24 adds contractDateField)', async () => {
     const v = await loadView();
-    expect(v.UI_SWITCHES).toEqual({ financedOption: false, acceleratedFrequencies: false, contractDateField: false });
+    expect(v.UI_SWITCHES).toEqual({ financedOption: false, acceleratedFrequencies: false, contractDateField: false, variableRatePaymentChangeFlow: false });
     expect(Object.isFrozen(v.UI_SWITCHES)).toBe(true);
   });
 
@@ -72,7 +72,7 @@ describe('B28-PIN: the switch object', () => {
     // B24: a third key joins; order-independent (the brief fixes the key name and shipped value, not the position).
     const body = /export const UI_SWITCHES\s*=\s*Object\.freeze\(\{([^}]*)\}\)/.exec(viewSrc)?.[1] ?? '';
     const keys = [...body.matchAll(/(\w+):\s*(true|false)\b/g)].map((m) => `${m[1]}=${m[2]}`).sort();
-    expect(keys).toEqual(['acceleratedFrequencies=false', 'contractDateField=false', 'financedOption=false']);
+    expect(keys).toEqual(['acceleratedFrequencies=false', 'contractDateField=false', 'financedOption=false', 'variableRatePaymentChangeFlow=false']);
   });
 });
 

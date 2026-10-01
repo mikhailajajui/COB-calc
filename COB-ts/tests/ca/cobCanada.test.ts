@@ -24,9 +24,10 @@ function fixedMortgageInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaI
 }
 
 describe('calculateCobCanada -- doc 007 worked validation vector (permanent regression test)', () => {
-  // docs/new-req/007-cob-canada-brd-reconciliation.md's "Worked validation vector" --
-  // the actual Calculator sheet example saved in the live Alterna workbook. Every
-  // expected value below is quoted directly from that doc.
+  // The worked validation vector (archive: ~/Projects/cob_calculator/docs/new-req/
+  // 007-cob-canada-brd-reconciliation.md; fixtures/ca_007_worked_vector.json) -- the
+  // actual Calculator sheet example saved in the live Alterna workbook. Every
+  // expected value below is quoted directly from that source.
   it('reproduces the live Alterna workbook example exactly (within cent-level tolerance)', () => {
     const input: CobCanadaInput = {
       flow: 'newMortgageOrLoan',

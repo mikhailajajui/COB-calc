@@ -32,7 +32,6 @@ function isInsideReal(realPath) {
 }
 
 const headers = { 'X-Content-Type-Options': 'nosniff' };
-const notFound = (res) => res.writeHead(404, headers).end('Not found');
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -43,7 +42,19 @@ const contentTypes = {
   '.map': 'application/json; charset=utf-8',
 };
 
+const okHosts = new Set(['localhost', '127.0.0.1', `localhost:${port}`, `127.0.0.1:${port}`]);
+
 const server = createServer(async (req, res) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.writeHead(405, { ...headers, Allow: 'GET, HEAD' }).end('Method not allowed');
+    return;
+  }
+  if (!okHosts.has(String(req.headers.host ?? '').toLowerCase())) {
+    res.writeHead(403, headers).end('Forbidden');
+    return;
+  }
+  const head = req.method === 'HEAD';
+  const notFound = (r) => r.writeHead(404, headers).end(head ? undefined : 'Not found');
   let urlPath;
   try {
     urlPath = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
@@ -67,12 +78,12 @@ const server = createServer(async (req, res) => {
     }
     const body = await readFile(realPath);
     const type = contentTypes[extname(filePath)] ?? 'application/octet-stream';
-    res.writeHead(200, { ...headers, 'Content-Type': type }).end(body);
+    res.writeHead(200, { ...headers, 'Content-Type': type }).end(head ? undefined : body);
   } catch {
     notFound(res);
   }
 });
 
-server.listen(port, () => {
-  console.log(`cob-calculator test UI (Canada): http://localhost:${port}`);
+server.listen(port, '127.0.0.1', () => {
+  console.log(`cob-calculator test UI (Canada): http://localhost:${port} (listening on 127.0.0.1:${port} only)`);
 });

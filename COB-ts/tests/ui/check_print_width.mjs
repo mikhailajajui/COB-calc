@@ -89,6 +89,17 @@ async function startServer() {
   return { base: `http://localhost:${port}`, stop: () => child.kill() };
 }
 
+// VRPC-hide (2026-10-01): the shipped page removes the VRPC <option>; put it back in the live page before selecting it.
+const ensureVrpcOption = (page) => page.evaluate(() => {
+  const f = document.getElementById('flow');
+  if (f && ![...f.options].some((o) => o.value === 'variableRatePaymentChange')) {
+    const o = document.createElement('option');
+    o.value = 'variableRatePaymentChange';
+    o.textContent = 'Variable rate payment change';
+    f.appendChild(o);
+  }
+});
+
 const server = process.argv[2] ? { base: process.argv[2].replace(/\/$/, ''), stop: () => {} } : await startServer();
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 let failures = 0;
@@ -99,6 +110,7 @@ try {
     const page = await context.newPage();
     await page.goto(server.base + '/ui/ca.html');
     await page.waitForLoadState('load'); // B23: no default fee rows, so no count to wait on
+    await ensureVrpcOption(page);
     if (sc.selects) {
       for (const [id, v] of Object.entries(sc.selects)) await page.selectOption('#' + id, v);
       for (const [id, v] of Object.entries(sc.fields)) await page.fill('#' + id, v);
@@ -164,6 +176,12 @@ try {
       await page.setViewportSize({ width: 1280, height: 900 });
       await page.check(`#scheduleColumns-${mode}`);
       await page.emulateMedia({ media: 'print' });
+      // A11: the print table is built when printing (matchMedia 'change' fires on the next task).
+      // It must be the table for THIS mode (a stale one from the other mode must not satisfy the wait), so wait for its headings.
+      await page.waitForFunction((leaves) => {
+        const t = document.getElementById('printScheduleTable');
+        return t.tBodies.length > 0 && t.tHead?.rows[1] !== undefined && [...t.tHead.rows[1].cells].map((c) => c.textContent).join('|') === leaves;
+      }, expectedHeads(mode).leaves.join('|'), { timeout: 3000 }).catch(() => {});
       await page.setViewportSize({ width: MAX_WIDTH, height: 700 });
       const m = await page.evaluate(() => {
         const t = document.getElementById('printScheduleTable');

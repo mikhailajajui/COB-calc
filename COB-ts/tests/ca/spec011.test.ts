@@ -5,7 +5,7 @@ import { expectRelFloor1 } from './support/compare.js';
 import { BOTH_SEMI, loadValidate } from './support/semiSwitch.js';
 
 /**
- * Spec 011 (docs/new-req/011-app-engine-brd-changes.md) invariants I-011-1 ... I-011-9.
+ * Spec 011 (archived; the decisions are in COB-user-stories.md) invariants I-011-1 ... I-011-9.
  * Expected values are the ones recorded in 011; tolerance 1e-9 relative (project
  * float tolerance). I-011-1's P1 numbers are recomputed after the D9/D8 and DQ-28
  * changes, as 011 requires: they equal both the engine and the macro oracle

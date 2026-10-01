@@ -378,9 +378,9 @@ describe('B26-STATIC: source facts', () => {
     expect(body).not.toMatch(/Math\.(round|abs|floor|ceil)|toFixed|EPS|epsilon|0\.005|>=\s*0(?![.\d])|!==?\s*0\b/);
   });
 
-  it('no new switch: UI_SWITCHES keeps its two keys (B26-R8); B24 adds contractDateField, the only other key', async () => {
+  it('no new switch: UI_SWITCHES keeps its two keys (B26-R8); B24 adds contractDateField, VRPC-hide adds variableRatePaymentChangeFlow', async () => {
     const v = await loadView();
-    expect(Object.keys(v.UI_SWITCHES).sort()).toEqual(['acceleratedFrequencies', 'contractDateField', 'financedOption']);
+    expect(Object.keys(v.UI_SWITCHES).sort()).toEqual(['acceleratedFrequencies', 'contractDateField', 'financedOption', 'variableRatePaymentChangeFlow']);
   });
 
   it('the page code is not edited for B26: ca.js calls moreFigures and printFigures and builds no unpaid-interest text of its own (B26-R1)', () => {

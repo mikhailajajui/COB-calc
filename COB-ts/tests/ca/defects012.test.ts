@@ -10,11 +10,12 @@ import type { Switches } from './support/switches.js';
 import { ON } from './support/uiSwitches.js';
 
 /**
- * TDD red tests for docs/new-req/012-cob-ts-macro-parity-defects.md (user decision
+ * TDD red tests for the macro-parity defect register (archive:
+ * ~/Projects/cob_calculator/docs/new-req/012-cob-ts-macro-parity-defects.md; user decision
  * 2026-09-25: COB-ts is the macro-parity reference; every divergence is a defect).
  *
- * Every expected number comes from the oracle (COB-py/tests/fixtures/macro_oracle.py,
- * a VBA transliteration, NOT a live macro run), never from this engine:
+ * Every expected number comes from the archived oracle
+ * (a VBA transliteration, NOT a live macro run), never from this engine:
  * - ca_defect_012_vectors.json (generate_defect_012_vectors.py) for the new vectors;
  * - ca_oracle_scenarios.json for the reused S1/S2/S4/S5/S6, with their request from
  *   ca_app_wire_vectors.json.
@@ -139,11 +140,26 @@ const fee = (amount: number, financed: boolean) => ({ name: financed ? 'Financed
 const expectRangeErrorNaming = expectRangeErrorMatching;
 
 describe('012 D-01 semi-monthly dates follow the 15th / month-end calendar (getNextSemiMonthly)', () => {
+  // B25 (DEV-OQZ): a typed first date that is not the 15th / month-end is moved forward first. Those vectors are compared with the
+  // macro CalculateAll run from the MOVED date (b25_semimonthly_move_vectors.json 'vectors', group D-01; known_divergence
+  // DEV-OQZ); the others stay workbook truth from ca_defect_012_vectors.json.
+  const moved = (load('b25_semimonthly_move_vectors.json') as { vectors: (DefectVector & { group: string; typed: string; moved: string })[] }).vectors.filter(
+    (v) => v.group === 'D-01',
+  );
+  const movedIds = new Set(moved.map((v) => v.id));
   const ids = defects.vectors.filter((v) => v.defect === 'D-01').map((v) => v.id);
-  for (const id of ids) {
+  for (const id of ids.filter((x) => !movedIds.has(x))) {
     // T4 2026-09-27: semi-monthly getNextSemiMonthly port (D-01 fixed, .fails removed)
     it(`${id}: dates, rows and totals match the oracle`, () => {
       expect(run(id)).toEqual([]);
+    });
+  }
+  it('the 5 moved D-01 vectors are exactly those whose typed first date is not a 15th / month-end (2026-01-01, -10, -14, -20, -30)', () => {
+    expect([...movedIds].sort()).toEqual(['D01_semi_2026-01-01', 'D01_semi_2026-01-10', 'D01_semi_2026-01-14', 'D01_semi_2026-01-20', 'D01_semi_2026-01-30']);
+  });
+  for (const v of moved) {
+    it(`${v.id} [known_divergence DEV-OQZ]: typed ${v.typed} -> moved ${v.moved}; dates, rows and totals match the macro run from the moved date`, () => {
+      expect(mismatches(calculateCobCanada(toEngineInput(v.request)), v)).toEqual([]);
     });
   }
   // T4 2026-09-27: semi-monthly getNextSemiMonthly port (D-01 fixed, .fails removed)
@@ -244,7 +260,7 @@ describe('012 D-04 COB-rate P averages principal only (openingBalance - feesOpen
  *   test pins WHERE the two differ, so it goes red if the engine drifts back to Excel or starts
  *   differing anywhere else.
  * - BRD behaviour: S1_fees must equal the macro oracle run with the cash fee removed
- *   (d9_oracle_vectors.json S1_financed_only, macro_oracle.calculate_all(non_fin_fee=0)), with
+ *   (d9_oracle_vectors.json S1_financed_only, the archived oracle run with non_fin_fee=0), with
  *   N = 500 added to C only.
  */
 describe('DEV-OQS (OQ-S, was 012 D-05): cash fees stay out of principal and the waterfall', () => {

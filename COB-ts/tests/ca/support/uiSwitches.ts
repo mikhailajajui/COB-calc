@@ -16,6 +16,8 @@ export interface TestUiSwitches {
   readonly acceleratedFrequencies: boolean;
   /** B24-R5: the Contract date field (shipped off). */
   readonly contractDateField: boolean;
+  /** VRPC-hide (user 2026-10-01): the VRPC option of the Flow dropdown (shipped off). Optional: absent counts as off. */
+  readonly variableRatePaymentChangeFlow?: boolean;
 }
 
 const SHIPPED_FINANCED = false;
@@ -46,4 +48,12 @@ export const CONTRACT_DATE_OFF: TestUiSwitches = Object.freeze({ financedOption:
 export const BOTH_CONTRACT_DATE: ReadonlyArray<readonly [string, TestUiSwitches]> = Object.freeze([
   ['contractDateField on', CONTRACT_DATE_ON],
   ['contractDateField off', CONTRACT_DATE_OFF],
+] as const);
+
+/** VRPC-hide: both states of variableRatePaymentChangeFlow; the other three keys stay at their shipped values. */
+export const VRPC_ON: TestUiSwitches = Object.freeze({ financedOption: SHIPPED_FINANCED, acceleratedFrequencies: SHIPPED_ACCELERATED, contractDateField: SHIPPED_CONTRACT_DATE, variableRatePaymentChangeFlow: true });
+export const VRPC_OFF: TestUiSwitches = Object.freeze({ financedOption: SHIPPED_FINANCED, acceleratedFrequencies: SHIPPED_ACCELERATED, contractDateField: SHIPPED_CONTRACT_DATE, variableRatePaymentChangeFlow: false });
+export const BOTH_VRPC: ReadonlyArray<readonly [string, TestUiSwitches]> = Object.freeze([
+  ['variableRatePaymentChangeFlow on', VRPC_ON],
+  ['variableRatePaymentChangeFlow off', VRPC_OFF],
 ] as const);

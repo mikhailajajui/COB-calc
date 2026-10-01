@@ -127,8 +127,12 @@ export function paymentsText(n) {
  * Switch (ADR-14): shipped false; the other branch true is built and tested.
  * contractDateField: show the Contract date field, its print row and the "as of" date in the terms heading.
  * Decision: B24 (user decision 2026-09-30). Contract date hidden; it never changed the calculation.
+ *
+ * Switch (ADR-14): shipped false; the other branch true is built and tested.
+ * variableRatePaymentChangeFlow: offer the Variable rate payment change option in the Flow dropdown.
+ * Decision: user decision 2026-10-01. Variable rate payment change hidden; the engine flow still exists.
  */
-export const UI_SWITCHES = Object.freeze({ financedOption: false, acceleratedFrequencies: false, contractDateField: false });
+export const UI_SWITCHES = Object.freeze({ financedOption: false, acceleratedFrequencies: false, contractDateField: false, variableRatePaymentChangeFlow: false });
 
 export function switchedOut(ctx, name) {
   return ctx.switches[name] !== true;
@@ -232,9 +236,15 @@ export function contractTermHint(firstPaymentLabel) {
   return `Calculated from the ${firstPaymentLabel} to the last scheduled payment date.`;
 }
 
+// Note shown when the engine moved the first payment date (semi-monthly: the 15th and month-end); '' when it did not.
+export function firstDateMoveNote(label, typedIso, firstRowDate) {
+  if (!firstRowDate || isoDay(firstRowDate) === typedIso) return '';
+  return `${label.replace(/ date$/, '')} moved to ${formatInputDate(firstRowDate)} (semi-monthly payments fall on the 15th and month-end)`;
+}
+
 // --- print record ---
 
-export function printInputRows(raw, ctx, termText) {
+export function printInputRows(raw, ctx, termText, moveNote = '') {
   const { spec } = ctx;
   const texts = flowLabels(raw.flow, spec);
   const rows = [
@@ -247,6 +257,7 @@ export function printInputRows(raw, ctx, termText) {
     ['Payment amount *', typedMoney(raw.paymentAmount)],
     ['Payment frequency', label('paymentFrequency', raw.paymentFrequency)],
     [texts.firstPaymentDate, formatIsoDate(raw.firstPaymentDate)],
+    ...(moveNote ? [['Moved first date', moveNote]] : []),
     ['End date', formatIsoDate(raw.endDate)],
     ['Contract term', termText],
     [texts.startDate, formatIsoDate(raw[spec.startDateField])],

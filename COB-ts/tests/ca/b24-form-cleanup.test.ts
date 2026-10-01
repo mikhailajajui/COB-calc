@@ -278,7 +278,7 @@ describe('B24-T7 part A: UI_SWITCHES.contractDateField (shipped off)', () => {
     const v = await loadView();
     expect(v.UI_SWITCHES.contractDateField).toBe(false);
     expect(Object.isFrozen(v.UI_SWITCHES)).toBe(true);
-    expect(Object.keys(v.UI_SWITCHES).sort()).toEqual(['acceleratedFrequencies', 'contractDateField', 'financedOption']);
+    expect(Object.keys(v.UI_SWITCHES).sort()).toEqual(['acceleratedFrequencies', 'contractDateField', 'financedOption', 'variableRatePaymentChangeFlow']);
     expect(readFileSync(`${ROOT}/ui/ca-view.js`, 'utf8')).toContain('contractDateField');
   });
 

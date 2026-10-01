@@ -221,7 +221,8 @@ d('G4 the build refuses a forbidden string (B29-R13, R10, INV-NOPARTIAL)', () =>
 
   it('the exact error format: prefix up to the first colon is docs/<file>, then the line, then the sentence; every refused line is one line', () => {
     const { r } = refuse({ manual: `# T\n\n## A\n\nx ${S2}() y\n` });
-    const hit = r.stderr.split('\n').filter((l) => l.startsWith('docs/') && l.includes('forbidden string'));
+    const hit = r.stderr.split('\n').filter((l) => l.startsWith('docs/'));
+    expect(r.stderr).toContain(SUMMARY(1));
     expect(hit).toEqual([`docs/${MANUAL}:5: forbidden string "${S2}" (UIG-2): a baseline test that scans the UI folder fails on it (fees.test.ts); reword the document`]);
   });
 

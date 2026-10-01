@@ -130,7 +130,9 @@ const CASES: Record<string, Pinned> = {
       contractRatePercent: 7.3, paymentAmount: 97.13, paymentFrequency: 'semiMonthly', disbursalDate: d('2026-01-01'),
       firstPaymentDate: d('2026-02-01'), endDate: d('2027-12-31'), fees: FEE(12.34),
     }),
-    sha: '09d61ad66bbfea3fdf3b77056431c4b3bff7b74c5c3b287ea131bf0708f522e7', rows: 12, lastClosing: 0,
+    // B25 (DEV-OQZ): the typed 2026-02-01 semi-monthly first date is moved to 2026-02-15. Pin re-taken (was 09d61ad6...22e7):
+    // equal to the PRE-B25 engine fed firstPaymentDate 2026-02-15 (B25-INV-equiv), 12 rows, ending balance 0 as before.
+    sha: '63a314c0299f7817ebe329ce4adce332013e1f714406c5e796a718a9fe84256d', rows: 12, lastClosing: 0,
   },
   // IN-11 past accrued interest with the minimum $0.01 payment (OQ-W interim rule: flat balance).
   renewalIn11MinPay: {
@@ -240,9 +242,14 @@ describe('A5 equivalence: row.periodInterest === periodInterest(opening, rate, p
       try {
         r = calculateCobCanada(input);
       } catch (e) {
-        // Only the zero-day COB term (B13) may be skipped; anything else (e.g. a B14 rejection
-        // of a generated input) is a sweep bug and must surface, not silently shrink the sweep.
-        if (!(e instanceof RangeError) || !/COB-rate term is 0 days/.test(e.message)) throw e;
+        // Only the zero-day COB term (B13) and, since B25 (DEV-OQZ), an End Date that is not after the MOVED semi-monthly
+        // first date (the draw makes End = first + 1 day at the shortest) may be skipped; anything else (e.g. a B14
+        // rejection of a generated input) is a sweep bug and must surface, not silently shrink the sweep.
+        const skippable =
+          e instanceof RangeError &&
+          (/COB-rate term is 0 days/.test(e.message) ||
+            (f === 'semiMonthly' && /^endDate must be after firstPaymentDate \(moved to \d{4}-\d{2}-\d{2} for semi-monthly payments/.test(e.message)));
+        if (!skippable) throw e;
         skipped += 1;
         continue;
       }

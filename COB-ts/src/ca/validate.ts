@@ -1,14 +1,13 @@
 import type { CobCanadaInput, ProductType, RateType } from './types.js';
 import { PAYMENTS_PER_YEAR, isFiniteNumber } from './types.js';
-import { utcDateOnly } from './calendar.js';
+import { effectiveFirstPaymentDate, utcDateOnly } from './calendar.js';
 import { totalCashFees, totalFinancedFees, validateFeeSchedule } from './fees.js';
 import { FLOWS, FLOW_IDS, requiresSemiAnnualDate } from './flows.js';
 import { allowedPaymentFrequencies } from './products.js';
 
 /**
- * Validates a CobCanadaInput against docs/new-req/006-cost-of-borrowing-disclosure.md's
- * "Data shapes" and "Presentation layer" sections (rewritten per doc 007's BRD
- * reconciliation): field types (finite numbers, own-key enum values; 012 D-11) and
+ * Validates a CobCanadaInput against BRD §6 (validation and error handling) and UC-05
+ * (COB-user-stories.md), with the input fields of BRD §3.1: field types (finite numbers, own-key enum values; 012 D-11) and
  * ranges, the BRD §6 fee limit (financed + non-financed; OQ-M), the flow-conditional
  * required date fields (each a valid Date by name, ordered on UTC calendar dates;
  * 012 D-12), and the mortgage+variable-only scoping of the variableRatePaymentChange
@@ -16,8 +15,8 @@ import { allowedPaymentFrequencies } from './products.js';
  * convention (plain RangeError, no custom error classes). collectInputIssues runs the
  * same checks and returns every issue instead of throwing at the first (A9).
  *
- * Unlike the pre-rewrite model, flow no longer implies productType (doc 007
- * finding #9 -- newMortgageOrLoan/renewal/paymentChange apply identically to both
+ * Unlike the pre-rewrite model, flow no longer implies productType (BRD §3.1
+ * and UC-01 to UC-04 -- newMortgageOrLoan/renewal/paymentChange apply identically to both
  * mortgages and personal loans; only variableRatePaymentChange is still scoped, by
  * construction, to mortgage+variable), so there is no flow<->productType consistency
  * check left to perform beyond that one case.
@@ -157,8 +156,11 @@ function checkInput(input: CobCanadaInput, report: Report): Date | undefined {
   if (!endOk) {
     report({ field: 'endDate', message: 'endDate must be a valid Date' });
   }
-  if (firstOk && endOk && utcDateOnly(input.endDate) <= utcDateOnly(input.firstPaymentDate)) {
-    report({ field: 'endDate', message: 'endDate must be after firstPaymentDate (compared as UTC calendar dates)' });
+  const effFirst = firstOk && freqOk ? effectiveFirstPaymentDate(input.paymentFrequency, input.firstPaymentDate) : input.firstPaymentDate;
+  const firstMoved = firstOk && utcDateOnly(effFirst) !== utcDateOnly(input.firstPaymentDate);
+  if (firstOk && endOk && utcDateOnly(input.endDate) <= utcDateOnly(effFirst)) {
+    const moved = firstMoved ? ` (moved to ${effFirst.toISOString().slice(0, 10)} for semi-monthly payments; compared as UTC calendar dates)` : ' (compared as UTC calendar dates)';
+    report({ field: 'endDate', message: `endDate must be after firstPaymentDate${moved}` });
   }
 
   // Flow-conditional date fields (spec 006's "Presentation layer" table).
@@ -170,7 +172,7 @@ function checkInput(input: CobCanadaInput, report: Report): Date | undefined {
       report({ field: startField, message: `flow '${input.flow}' requires ${startField}` });
     } else if (!isValidDate(startValue)) {
       report({ field: startField, message: `${startField} must be a valid Date` });
-    } else if (firstOk && utcDateOnly(startValue) > utcDateOnly(input.firstPaymentDate)) {
+    } else if (firstOk && utcDateOnly(startValue) > utcDateOnly(effFirst)) {
       report({ field: startField, message: `${startField} must be on or before firstPaymentDate` });
     } else {
       startDate = startValue;

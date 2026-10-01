@@ -44,7 +44,7 @@ export const FLOWS: Readonly<Record<CobFlow, FlowSpec>> = Object.freeze({
   renewal: Object.freeze({
     startDateField: 'renewalDate',
     accruedInterest: 'required',
-    forcedProductType: 'mortgage',
+    forcedProductType: null,
     forcedRateType: null,
     startDateLabel: 'Renewal date',
     firstPaymentDateLabel: 'First payment date',
@@ -54,7 +54,7 @@ export const FLOWS: Readonly<Record<CobFlow, FlowSpec>> = Object.freeze({
     accruedInterest: 'required',
     forcedProductType: null,
     forcedRateType: null,
-    startDateLabel: 'Last payment date',
+    startDateLabel: 'Date of change',
     firstPaymentDateLabel: 'Next payment date',
   }),
   // Exists specifically to recompute the trigger rate, so it is mortgage + variable only.
@@ -63,7 +63,7 @@ export const FLOWS: Readonly<Record<CobFlow, FlowSpec>> = Object.freeze({
     accruedInterest: 'required',
     forcedProductType: 'mortgage',
     forcedRateType: 'variable',
-    startDateLabel: 'Last payment date',
+    startDateLabel: 'Date of change',
     firstPaymentDateLabel: 'Next payment date',
   }),
 } satisfies Record<CobFlow, FlowSpec>);

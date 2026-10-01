@@ -178,15 +178,17 @@ describe('A0 golden master: extra groups hit their paths', () => {
     }
   });
 
-  it('semiMonthlyMonthEnd (T4): 15th/month-end alternation, 14th -> Feb 28, 16th -> 1st', () => {
+  // B25 (DEV-OQZ, known_divergence): a typed semi-monthly first date that is not the 15th / month-end is moved forward, so
+  // 2027-02-14 starts on 02-15 and 2027-01-16 on 01-31 (the macro would keep 14th / 28th and 1st / 16th). 01-31 is unmoved.
+  it('semiMonthlyMonthEnd (T4 + B25 DEV-OQZ): 15th/month-end alternation; 31st unmoved, 14th -> 15th, 16th -> 31st', () => {
     const cases = groupsDef.find((g) => g.key === 'extra:semiMonthlyMonthEnd')!.cases;
     const dates = (first: string) => {
       const c = cases.find((x) => x.label.startsWith(`first=${first} `))!;
       return calc(corpus.makeInput(c.params)).amortizationSchedule.slice(0, 4).map((r) => r.date.toISOString().slice(0, 10));
     };
     expect(dates('2027-01-31')).toEqual(['2027-01-31', '2027-02-15', '2027-02-28', '2027-03-15']);
-    expect(dates('2027-02-14')).toEqual(['2027-02-14', '2027-02-28', '2027-03-14', '2027-03-29']);
-    expect(dates('2027-01-16')).toEqual(['2027-01-16', '2027-02-01', '2027-02-16', '2027-03-01']);
+    expect(dates('2027-02-14')).toEqual(['2027-02-15', '2027-02-28', '2027-03-15', '2027-03-31']);
+    expect(dates('2027-01-16')).toEqual(['2027-01-31', '2027-02-15', '2027-02-28', '2027-03-15']);
   });
 
   it('monthlyMonthEnd (T3/OQ-X): Feb 28 2027 -> Mar 31 (OQ-X), Jan 30 -> Feb 28 -> Mar 30 (T3 clamp)', () => {

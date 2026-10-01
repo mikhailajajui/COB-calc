@@ -22,6 +22,8 @@
 // not exist, that #semiAnnualCompoundingDate is not visible, that #contractTerm is a readonly text input placed after
 // #endDate, and that its value equals the independent expected text of each successful scenario (EXPECT_TERM, the
 // architect's R1 values), so a wrong page cannot be baked into the fixture.
+// A11 (scope B, Q-A11-FIX = no): the print table is built when printing, not on every keystroke, so before reading the
+// elements the script dispatches `beforeprint` on window, as a print does. a10_ui_capture_v1.json stays byte-identical.
 // B26: after the recorded scenarios one extra step (assertions only, nothing is written to <out.json>) fills a shortfall
 // mortgage (200,000 at 5%, monthly, payment 700, End Date 2028-04-15) and asserts the 'Unpaid interest at end date'
 // figure ($3,015.17, hint 'Unpaid after the last payment; interest since then is not included') on screen and in the printout, with
@@ -148,6 +150,18 @@ async function assertTermField(page, where) {
   for (const k of Object.keys(want)) if (st[k] !== want[k]) throw new Error(`B24 ${where}: ${k} is ${JSON.stringify(st[k])}, expected ${JSON.stringify(want[k])}`);
 }
 
+// VRPC-hide (2026-10-01): the shipped page removes the VRPC <option> (UI_SWITCHES.variableRatePaymentChangeFlow = false).
+// The engine flow still exists, so the script puts the option back in the live page before selecting it. Harmless when present.
+const ensureVrpcOption = (page) => page.evaluate(() => {
+  const f = document.getElementById('flow');
+  if (f && ![...f.options].some((o) => o.value === 'variableRatePaymentChange')) {
+    const o = document.createElement('option');
+    o.value = 'variableRatePaymentChange';
+    o.textContent = 'Variable rate payment change';
+    f.appendChild(o);
+  }
+});
+
 const server = baseArg ? { base: baseArg.replace(/\/$/, ''), stop: () => {} } : await startServer();
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
@@ -158,6 +172,7 @@ try {
     await page.goto(server.base + '/ui/ca.html');
     // B23: there are no default fee rows, so there is no count to wait on; the module runs before `load`.
     await page.waitForLoadState('load');
+    await ensureVrpcOption(page);
     // B27: flow first, then paymentFrequency, then the rest in object order (productType comes after the frequency).
     const selectOrder = (id) => (id === 'flow' ? 0 : id === 'paymentFrequency' ? 1 : 2);
     const selectEntries = Object.entries(sc.selects).sort(([a], [b]) => selectOrder(a) - selectOrder(b));
@@ -227,6 +242,9 @@ try {
     const entry = { id: sc.id, raw, contractTermField, error, modes: {} };
     for (const mode of error === null ? ['all', 'compact'] : []) {
       await page.check(`#scheduleColumns-${mode}`);
+      // A11 (scope B): the print table is built on demand, so ask for it the way a print does (the beforeprint event).
+      // The fixture is unchanged: the captured strings are what the page held before A11 built it on every keystroke.
+      await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
       const html = await page.evaluate((ids) => Object.fromEntries(ids.map((id) => [id, document.getElementById(id).innerHTML])), ELEMENTS);
       const figures = await page.evaluate(() => [...document.querySelectorAll('#printFigures .figure')].map((f) => {
         const dt = f.querySelector('dt');
@@ -297,6 +315,7 @@ try {
   for (const flow of ['newMortgageOrLoan', 'renewal', 'paymentChange', 'variableRatePaymentChange']) {
     const page = await context.newPage();
     await page.goto(server.base + '/ui/ca.html');
+    await ensureVrpcOption(page);
     await page.selectOption('#flow', flow);
     flowScreens[flow] = await page.evaluate(() => {
       const isNew = document.getElementById('newFlowFields').style.display !== 'none';

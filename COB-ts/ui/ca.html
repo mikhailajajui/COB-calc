@@ -618,7 +618,7 @@
           <option value="newMortgageOrLoan">New mortgage / loan</option>
           <option value="renewal">Renewal</option>
           <option value="paymentChange">Payment change</option>
-          <option value="variableRatePaymentChange">Variable rate payment change</option>
+          <option value="variableRatePaymentChange" data-switch="variableRatePaymentChangeFlow">Variable rate payment change</option>
         </select>
       </div>
       <div class="field">
@@ -675,6 +675,7 @@
       <div class="field">
         <label for="firstPaymentDate" id="firstPaymentDate-label">First payment date</label>
         <input type="date" id="firstPaymentDate" value="2026-03-23" />
+        <p class="hint" id="firstDateNote" role="status" hidden></p>
       </div>
       <div class="field">
         <label for="endDate">End date</label>
@@ -766,6 +767,7 @@
   <section class="terms" id="contractTerms" aria-labelledby="contractTerms-heading" hidden>
     <h3 id="contractTerms-heading">Contract terms<span data-switch="contractDateField"> — as of <span id="contractTermsDate"></span></span></h3>
     <dl id="contractTermsList"></dl>
+    <p id="contractTermsNote" hidden></p>
   </section>
 
   <section class="schedule-section" id="scheduleSection" hidden>

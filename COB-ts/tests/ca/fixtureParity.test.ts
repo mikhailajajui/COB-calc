@@ -8,7 +8,7 @@ import { SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
 import type { Switches } from './support/switches.js';
 
 /**
- * Full-row parity against the shared JSON fixtures (COB-py/tests/fixtures), at the
+ * Full-row parity against the shared JSON fixtures (tests/ca/fixtures), at the
  * project tolerance. The request for each vector comes from ca_app_wire_vectors.json
  * (the same wire request the spec 010 API and web suites will send), so this file is
  * the in-process baseline those suites mirror.

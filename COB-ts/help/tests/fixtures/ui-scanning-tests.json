@@ -6,6 +6,8 @@
     { "file": "tests/ca/b10-includedincob-optional.test.ts", "negative": "UIG-1" },
     { "file": "tests/ca/b27-personal-loan-monthly-only.test.ts", "negative": "UIG-3" },
     { "file": "tests/ca/fees.test.ts", "negative": "UIG-2" },
-    { "file": "tests/tooling/a13-serve.test.ts", "negative": null }
+    { "file": "tests/tooling/a13-serve.test.ts", "negative": null },
+    { "file": "tests/tooling/b29-serve-hardening.test.ts", "negative": null },
+    { "file": "tests/ui/a11-print-on-demand.test.ts", "negative": null }
   ]
 }

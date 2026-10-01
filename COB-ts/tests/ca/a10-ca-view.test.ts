@@ -262,7 +262,7 @@ describe('A10-P source guards', () => {
     expect(tableBuilds).toEqual([]);
   });
 
-  it('A10-P3 (A10-R2): ui/ca-view.js exports exactly the 40 names of ui/ca-view.d.ts (B22 adds flowLabels, B23 adds UI_SWITCHES and FEE_KEYS, B28 adds switchedOut, B27 adds frequencyLock and FREQUENCY_LOCK_HINT, B24 adds contractTermParts, contractTermText and contractTermHint), and pins the branches no capture reaches', async () => {
+  it('A10-P3 (A10-R2): ui/ca-view.js exports exactly the 41 names of ui/ca-view.d.ts (B22 adds flowLabels, B23 adds UI_SWITCHES and FEE_KEYS, B28 adds switchedOut, B27 adds frequencyLock and FREQUENCY_LOCK_HINT, B24 adds contractTermParts, contractTermText and contractTermHint, B25 adds firstDateMoveNote), and pins the branches no capture reaches', async () => {
     const v = await loadView();
     // Pre-A10 values (ui/ca.js) for branches the 5 captured scenarios never take; the escaping
     // string is Chrome 154's own outerHTML of the same td (checked 2026-09-29), i.e. A10-R3.
@@ -285,7 +285,7 @@ describe('A10-P source guards', () => {
         'flowLabels', 'formatInputDate', 'formatIsoDate', 'formatRate', 'h', 'headlineFigures', 'html', 'isoDay', 'label',
         'mainFigures', 'moreFigures', 'numOrUndefined', 'parseAmount', 'parseDateInput', 'parseMoney', 'paymentsText',
         'frequencyLock', 'printFeesNodes', 'printFigures', 'printInputNodes', 'printInputRows', 'scheduleCsv', 'scheduleTableNodes',
-        'switchedOut', 'toInput', 'typedMoney', 'contractTermParts', 'contractTermText', 'contractTermHint',
+        'switchedOut', 'toInput', 'typedMoney', 'contractTermParts', 'contractTermText', 'contractTermHint', 'firstDateMoveNote',
       ].sort(),
     );
   });

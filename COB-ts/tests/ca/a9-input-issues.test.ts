@@ -144,12 +144,7 @@ const ROWS: [string, string, Record<string, unknown>, string][] = [
     // B21 (R3): generalised wording; the old parenthesis is dropped.
     "flow 'variableRatePaymentChange' is mortgage + variable-rate only, got productType='personalLoan', rateType='variable'",
   ],
-  [
-    '13b Renewal lock',
-    'flow',
-    { productType: 'personalLoan' }, // base B is a renewal, mortgage / variable
-    "flow 'renewal' is mortgage only, got productType='personalLoan', rateType='variable'",
-  ],
+  // Row 13b (Renewal lock) retired 2026-10-01: Renewal allows a personal loan again (see the test below the table).
   ['14 firstPaymentDate valid', 'firstPaymentDate', { firstPaymentDate: new Date(NaN) }, 'firstPaymentDate must be a valid Date'],
   ['15 endDate valid', 'endDate', { endDate: new Date(NaN) }, 'endDate must be a valid Date'],
   [
@@ -208,9 +203,17 @@ function expectConsistent(x: unknown, issues: Issue[]): void {
   }
 }
 
+describe('A9-1b Renewal has no product lock (2026-10-01; reverses B21 row 13b)', () => {
+  it('renewal + personalLoan (monthly) gives no issue, and validate does not throw', () => {
+    const x = { ...B(), productType: 'personalLoan' };
+    expect(collect(x)).toEqual([]);
+    expect(() => validate(x)).not.toThrow();
+  });
+});
+
 describe('A9-1 characterisation: each check-table branch throws today\'s message (green before and after)', () => {
-  it('has 31 rows covering the 15 table rows that remain (8, 9, 10 retired; 19a is the pair below)', () => {
-    expect(ROWS).toHaveLength(31);
+  it('has 30 rows covering the 15 table rows that remain (8, 9, 10 retired; 19a is the pair below)', () => {
+    expect(ROWS).toHaveLength(30);
     expect(new Set(ROWS.map(([id]) => id.split(/[a-z ]/)[0])).size).toBe(16);
   });
   it.each(ROWS)('row %s (%s)', (_id, _field, override, message) => {

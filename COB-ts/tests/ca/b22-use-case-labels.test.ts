@@ -4,8 +4,8 @@
  *
  * The labels of the date fields and the fieldset legend follow the use case, one pure source
  * (`flowLabels` in ui/ca-view.js) feeds the form, the contract-terms tiles and the print record.
- * Payment Change and VRPC: start field "Last payment date", first-payment field "Next payment date"
- * (decisions 2 and 5). The Accrued interest HINT for Payment Change / VRPC is the interim arrears
+ * Payment Change and VRPC: start field "Date of change" (2026-10-01, user-approved; was "Last payment date"),
+ * first-payment field "Next payment date" (decisions 2 and 5). The Accrued interest HINT for Payment Change / VRPC is the interim arrears
  * text (accepted by the user 2026-09-29; final wording Q-MSG). The field NAME "Accrued interest" is
  * NOT renamed anywhere (user 2026-09-29): form label, tiles and print row keep it for every flow.
  * Labels only: no engine change, no golden change, no switch (B22-R9).
@@ -38,9 +38,9 @@ const ARREARS_HINT =
 const EXPECTED: Record<CobFlow, View.FlowLabels> = {
   newMortgageOrLoan: { legend: 'New mortgage or loan', startDate: 'Disbursal date', firstPaymentDate: 'First payment date', accruedHint: null },
   renewal: { legend: 'Renewal', startDate: 'Renewal date', firstPaymentDate: 'First payment date', accruedHint: RENEWAL_HINT },
-  paymentChange: { legend: 'Payment change', startDate: 'Last payment date', firstPaymentDate: 'Next payment date', accruedHint: ARREARS_HINT },
+  paymentChange: { legend: 'Payment change', startDate: 'Date of change', firstPaymentDate: 'Next payment date', accruedHint: ARREARS_HINT },
   variableRatePaymentChange: {
-    legend: 'Variable rate payment change', startDate: 'Last payment date', firstPaymentDate: 'Next payment date', accruedHint: ARREARS_HINT,
+    legend: 'Variable rate payment change', startDate: 'Date of change', firstPaymentDate: 'Next payment date', accruedHint: ARREARS_HINT,
   },
 };
 
@@ -80,8 +80,8 @@ describe('B22-INV-print: printInputRows names, order and values per flow (B22-R3
   const NAMES: Record<CobFlow, string[]> = {
     newMortgageOrLoan: [...HEAD, 'First payment date', 'End date', 'Contract term', 'Disbursal date'],
     renewal: [...HEAD, 'First payment date', 'End date', 'Contract term', 'Renewal date', 'Accrued interest'],
-    paymentChange: [...HEAD, 'Next payment date', 'End date', 'Contract term', 'Last payment date', 'Accrued interest'],
-    variableRatePaymentChange: [...HEAD, 'Next payment date', 'End date', 'Contract term', 'Last payment date', 'Accrued interest'],
+    paymentChange: [...HEAD, 'Next payment date', 'End date', 'Contract term', 'Date of change', 'Accrued interest'],
+    variableRatePaymentChange: [...HEAD, 'Next payment date', 'End date', 'Contract term', 'Date of change', 'Accrued interest'],
   };
   // Then the semi-annual row when the product is a fixed mortgage (any flow; never VRPC, which is variable).
   const SEMI = 'Semi-annual compounding reference date';
@@ -118,7 +118,7 @@ describe('B22-INV-nolit and the page source (B22-R4, B22-R5)', () => {
   const LABEL_IDS = ['firstPaymentDate-label', 'newFlowLegend', 'disbursalDate-label', 'existingFlowLegend', 'renewalDate-label', 'accruedInterest-hint'];
 
   it('B22-5a: ui/ca.js holds no date-label or legend literal in any quote style, and calls flowLabels(', () => {
-    const LITERALS = ['Disbursal date', 'Renewal date', 'First payment date', 'Next payment date', 'Last payment date', 'Payment change date',
+    const LITERALS = ['Disbursal date', 'Renewal date', 'First payment date', 'Next payment date', 'Last payment date', 'Date of change', 'Payment change date',
       'New mortgage or loan', 'Renewal and payment change'];
     const hits = LITERALS.filter((s) => new RegExp(`['"\`]${s}['"\`]`).test(js));
     expect(hits).toEqual([]);

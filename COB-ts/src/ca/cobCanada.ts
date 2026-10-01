@@ -1,4 +1,4 @@
-import { daysBetween, periodDateFor, termBetween } from './calendar.js';
+import { daysBetween, effectiveFirstPaymentDate, periodDateFor, termBetween } from './calendar.js';
 import { totalCashFees, totalFinancedFees } from './fees.js';
 import { FLOWS, computesTriggerRate } from './flows.js';
 import {
@@ -187,8 +187,7 @@ function averageOutstandingBalance(rows: CobScheduleRow[]): number {
 }
 
 /**
- * Implements docs/new-req/006-cost-of-borrowing-disclosure.md end to end (rewritten
- * per doc 007's BRD reconciliation): a user-entered payment_amount (never solved),
+ * Implements BRD §3.3, §4 and Appendix B end to end: a user-entered payment_amount (never solved),
  * day-count-prorated interest accrual, the interest -> fees -> principal payment
  * waterfall, financed fees already inside loan_amount, and the trigger rate / COB
  * rate outputs.
@@ -244,7 +243,7 @@ export function calculateCobCanadaWith(input: CobCanadaInput, switches: EngineSw
     calculatedRateDecimal,
     paymentAmount: input.paymentAmount,
     startDate,
-    firstPaymentDate: input.firstPaymentDate,
+    firstPaymentDate: effectiveFirstPaymentDate(input.paymentFrequency, input.firstPaymentDate),
     endDate: input.endDate,
     frequency: input.paymentFrequency,
     initialPastAccruedInterest,

@@ -1,14 +1,13 @@
 /**
- * Canadian Cost of Borrowing (COB) disclosure engine, per
- * docs/new-req/006-cost-of-borrowing-disclosure.md (rewritten per doc 007's BRD
- * reconciliation against the real Alterna Savings requirements/workbook). This module
- * does not stitch into segment.ts/mortgage.ts -- that integration is explicitly out of
- * scope for spec 006.
+ * Canadian Cost of Borrowing (COB) disclosure engine, per the BRD v2.3
+ * (COB-business-requirement.md; input fields §3.1) and the four flows of use cases UC-01
+ * to UC-04 (COB-user-stories.md), reconciled against the real Alterna Savings
+ * workbook. This module is standalone: no integration with other systems.
  */
 
 /**
- * The four dropdown-driven flows from spec 006's "Presentation layer" table (docx
- * IN-01, collapsed from an earlier six-value draft per doc 007 finding #9 -- product
+ * The four dropdown-driven flows from BRD §3.1 (docx
+ * IN-01, collapsed from an earlier six-value draft -- product
  * type, IN-03, is already a separate, orthogonal dropdown that applies identically
  * across all four). Determines which date field is required (disbursal vs renewal),
  * whether accrued interest carries forward, and (jointly with productType/rateType)
@@ -48,13 +47,10 @@ export function isFiniteNumber(x: unknown): x is number {
 }
 
 /**
- * Loan fees, itemized: name/amount/financed, mirroring COB-py's existing
- * `cob_calculator/fees.py` (spec 002's Fee/FeeSchedule shape) rather than diverging —
- * COB-ts has not implemented spec 002 itself (no US fees.ts exists), so this is this
- * project's first TypeScript Fee/FeeSchedule, defined here for the Canadian module.
+ * Loan fees, itemized: name, amount and `financed` (a financed fee is already inside
+ * loan_amount; a non-financed fee is paid in cash; BRD §6 fee limit, B10).
  *
- * Extended per spec 006 (docs/new-req/006-cost-of-borrowing-disclosure.md) with a
- * second per-fee `includedInCob` flag. It does not decide what counts toward
+ * Carries a second, optional per-fee `includedInCob` flag. It does not decide what counts toward
  * cobAmount: under OQ-E every fee, financed or not, is counted in full.
  *
  * `includedInCob` is optional. If present it must be a boolean (validateFee in

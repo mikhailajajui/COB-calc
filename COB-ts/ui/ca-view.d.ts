@@ -11,7 +11,9 @@ export interface RawForm {
   fees: RawFee[];
 }
 /** B23-R3 / B28-R1 / B24-R5: the UI switches (ADR-14). financedOption, acceleratedFrequencies and contractDateField are shipped false. */
-export interface UiSwitches { readonly financedOption: boolean; readonly acceleratedFrequencies: boolean; readonly contractDateField: boolean }
+export interface UiSwitches { readonly financedOption: boolean; readonly acceleratedFrequencies: boolean; readonly contractDateField: boolean;
+  /** VRPC-hide (user 2026-10-01): the Variable rate payment change option of the Flow dropdown. Shipped false. Optional so older literals compile; absent counts as off. */
+  readonly variableRatePaymentChangeFlow?: boolean }
 export interface ViewContext { spec: FlowSpec; semiAnnual: boolean; switches: UiSwitches }
 export type Figure = [label: string, value: string] | [label: string, value: string, hint: string];
 export interface ViewNode { tag: string; attrs: [string, string][]; children: (ViewNode | string)[] }
@@ -38,7 +40,7 @@ export function toInput(raw: RawForm, ctx: ViewContext): CobCanadaInput;
 export interface FlowLabels { legend: string; startDate: string; firstPaymentDate: string; accruedHint: string | null }
 export function flowLabels(flow: string, spec: FlowSpec): FlowLabels;
 /** B24-R6: `termText` (required) is the Contract term text, the same string that is in the read-only field (`contractTermText(term)`). */
-export function printInputRows(raw: RawForm, ctx: ViewContext, termText: string): [string, string][];
+export function printInputRows(raw: RawForm, ctx: ViewContext, termText: string, moveNote?: string): [string, string][];
 export function printInputNodes(rows: [string, string][]): ViewNode[];
 export function printFeesNodes(rawFees: RawFee[], ctx: ViewContext): ViewNode[];
 export function headlineFigures(result: CobCanadaResult): Figure[];
@@ -86,3 +88,14 @@ export function contractTermText(term: ContractTermLike): string;
  * label = flowLabels(flow, spec).firstPaymentDate lower-cased.
  */
 export function contractTermHint(firstPaymentLabel: string): string;
+
+/**
+ * B25-R6 (UI step, user decisions 2026-10-01): the note shown when a semi-monthly first payment date was moved.
+ * `label` = the flow's firstPaymentDateLabel ('First payment date' or 'Next payment date'); `typedIso` = the typed
+ * date (YYYY-MM-DD); `firstRowDate` = result.amortizationSchedule[0].date (UTC midnight), or undefined.
+ * Returns '' when firstRowDate is undefined or isoDay(firstRowDate) === typedIso; otherwise
+ * `<label without its trailing " date"> moved to <formatInputDate(firstRowDate)> (semi-monthly payments fall on the 15th and month-end)`,
+ * e.g. 'First payment moved to Jan 15, 2027 (semi-monthly payments fall on the 15th and month-end)'.
+ * No frequency argument (only a semi-monthly schedule can differ). Never throws.
+ */
+export function firstDateMoveNote(label: string, typedIso: string, firstRowDate: Date | undefined): string;

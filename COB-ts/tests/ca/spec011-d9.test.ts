@@ -8,13 +8,13 @@ import { BOTH, SHIPPED, calculateWith } from './support/switches.js';
 import type { Switches } from './support/switches.js';
 
 /**
- * Spec 011 (docs/new-req/011-app-engine-brd-changes.md) "D9 / D8" (financed fees reduce
+ * Spec 011 (archived; the decisions are in COB-user-stories.md) "D9 / D8" (financed fees reduce
  * the balance when paid, DEV-011-2) and the payoff row (I-011-13, now the workbook
  * rule of OQ-K / OQ-T 2026-09-27, which replaces DQ-28 / DEV-011-3): invariants
  * I-011-10 ... I-011-14. Tolerance 1e-9 relative.
  *
- * I-011-12's expected rows come from the macro oracle (COB-py/tests/fixtures/
- * macro_oracle.py, run with non_fin_fee = 0) via fixtures/d9_oracle_vectors.json; that
+ * I-011-12's expected rows come from the macro oracle (the archived oracle,
+ * run with non_fin_fee = 0) via fixtures/d9_oracle_vectors.json; that
  * file records how it was generated. Oracle, not a live macro run.
  */
 

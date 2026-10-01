@@ -164,7 +164,10 @@ ddi('B29 live documents satisfy the build rules (revision 36: zero raw-HTML, rag
 
   it('a dry run of the builder on the live documents with the stub renderer exits 0 and writes a page (every R2 / R5 / R6 rule holds on the live Markdown)', () => {
     const out = join(tmp('b29-live-'), 'help.html');
-    const r = build({ docs: DOCS, out, renderer: STUB 
+    const r = build({ docs: DOCS, out, renderer: STUB });
+    expect(r.status, `stderr: ${r.stderr.slice(0, 600)}`).toBe(0);
+    expect(existsSync(out)).toBe(true);
+  });
 });
 
 dd('B29 live documents in the committed page: Status cells, states and the grey out state (B29-R6, Q-HELP-OUTSCOPE)', () => {
@@ -213,10 +216,6 @@ dd('B29 live documents in the committed page: Status cells, states and the grey 
         for (const c of s) if (/Not covered/.test(textOf(c.inner))) expect(c.attrs['data-state'], textOf(row.inner).slice(0, 80)).toBe('out');
       }
     }
-  });
-});
-    expect(r.status, `stderr: ${r.stderr.slice(0, 600)}`).toBe(0);
-    expect(existsSync(out)).toBe(true);
   });
 });
 

@@ -68,9 +68,8 @@ function input(flow: CobFlow, productType: ProductType, rateType: RateType, paym
   });
 }
 
-/** Independent oracle of the flow locks (renewal: mortgage; VRPC: mortgage + variable). */
+/** Independent oracle of the flow locks (VRPC: mortgage + variable; Renewal has no lock since 2026-10-01). */
 function flowLockOk(flow: CobFlow, productType: ProductType, rateType: RateType): boolean {
-  if (flow === 'renewal') return productType === 'mortgage';
   if (flow === 'variableRatePaymentChange') return productType === 'mortgage' && rateType === 'variable';
   return true;
 }
@@ -100,11 +99,11 @@ describe('B27-T1 catalogue: allowedPaymentFrequencies (src/ca/products.ts, read 
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-describe('B27-T2 rejection matrix: personal loan + a non-monthly frequency (5 frequencies x 2 rate types x 2 flows)', () => {
+describe('B27-T2 rejection matrix: personal loan + a non-monthly frequency (5 frequencies x 2 rate types x 3 flows: new, renewal, paymentChange)', () => {
   const CASES: [PaymentFrequency, RateType, CobFlow][] = NON_MONTHLY.flatMap((f) =>
-    RATES.flatMap((r) => (['newMortgageOrLoan', 'paymentChange'] as const).map((fl) => [f, r, fl] as [PaymentFrequency, RateType, CobFlow])),
+    RATES.flatMap((r) => (['newMortgageOrLoan', 'renewal', 'paymentChange'] as const).map((fl) => [f, r, fl] as [PaymentFrequency, RateType, CobFlow])),
   );
-  it('the matrix has 20 cases', () => expect(CASES).toHaveLength(20));
+  it('the matrix has 30 cases', () => expect(CASES).toHaveLength(30));
 
   it.each(CASES)('%s / %s / %s: one paymentFrequency issue with the exact message; validateCobCanadaInput and calculateCobCanada throw that RangeError', (f, r, fl) => {
     const x = input(fl, 'personalLoan', r, f);
@@ -125,7 +124,7 @@ describe('B27-T2 rejection matrix: personal loan + a non-monthly frequency (5 fr
 
 // ---------------------------------------------------------------------------------------------------------------
 describe('B27-T3 acceptance: personal loan + monthly', () => {
-  const CASES: [RateType, CobFlow][] = RATES.flatMap((r) => (['newMortgageOrLoan', 'paymentChange'] as const).map((fl) => [r, fl] as [RateType, CobFlow]));
+  const CASES: [RateType, CobFlow][] = RATES.flatMap((r) => (['newMortgageOrLoan', 'renewal', 'paymentChange'] as const).map((fl) => [r, fl] as [RateType, CobFlow]));
 
   it.each(CASES)('%s / %s: valid, and the Calculated rate equals the contract rate exactly (MONTHLY basis)', (r, fl) => {
     const x = input(fl, 'personalLoan', r, 'monthly');
@@ -139,11 +138,11 @@ describe('B27-T3 acceptance: personal loan + monthly', () => {
 
 // ---------------------------------------------------------------------------------------------------------------
 describe('B27-T4 check order: flow lock, then payment frequency, then dates; fees first; enum message alone', () => {
-  it('renewal + personal loan + weekly: issues [flow, paymentFrequency]; the thrown message is the flow message (B21 order)', () => {
+  it('renewal + personal loan + weekly (2026-10-01: no Renewal lock): the one issue is paymentFrequency, and it is the thrown message', () => {
     const x = input('renewal', 'personalLoan', 'fixed', 'weekly');
-    expect(collectInputIssues(x).map((i) => i.field)).toEqual(['flow', 'paymentFrequency']);
-    expect(collectInputIssues(x)[1]!.message).toBe(plRejection('weekly'));
-    expect(() => validateCobCanadaInput(x)).toThrow(/^flow 'renewal' is mortgage only, got productType='personalLoan', rateType='fixed'$/);
+    expect(collectInputIssues(x).map((i) => i.field)).toEqual(['paymentFrequency']);
+    expect(collectInputIssues(x)[0]!.message).toBe(plRejection('weekly'));
+    expect(() => validateCobCanadaInput(x)).toThrow(plRejection('weekly'));
   });
 
   it('variable rate payment change + personal loan (fixed) + biweekly: [flow, paymentFrequency]; the flow message is thrown', () => {
@@ -469,7 +468,7 @@ describe('B27-T11 the Chrome scripts do not drive a disabled select and assert t
 
   it('the personal-loan scenario of the capture already sends Monthly (fixture pinned at its B24 regeneration; B27 itself did not change it)', () => {
     const fixture = readFileSync(join(FIXTURES_DIR, 'a10_ui_capture_v1.json'), 'utf8');
-    expect(sha256(fixture)).toBe('5a314af06f17a54d33454c0b28acefc8d76534682ce026ef05782a98aa151ae7');
+    expect(sha256(fixture)).toBe('381af9d13e3aa76ed23357ad1b31867367ae4f4f7ac3cab138daeaed8e8a8c1b');
     expect(capture).toMatch(/productType: 'personalLoan', rateType: 'variable', paymentFrequency: 'monthly'/);
   });
 

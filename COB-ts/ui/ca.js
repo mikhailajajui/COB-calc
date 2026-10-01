@@ -1,6 +1,6 @@
 import { allowedPaymentFrequencies, calculateCobCanada, contractTerm, FLOWS, requiresSemiAnnualDate } from '/dist/ca/index.js';
 import {
-  contractTermHint, contractTermParts, contractTermText, csvFileName, figureNodes, flowLabels, formatAmount, frequencyLock, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures,
+  contractTermHint, contractTermParts, contractTermText, csvFileName, firstDateMoveNote, isoDay, figureNodes, flowLabels, formatAmount, frequencyLock, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures,
   moreFigures, parseDateInput, paymentsText, printFeesNodes, printFigures, printInputNodes, printInputRows, scheduleCsv,
   scheduleTableNodes, toInput, switchedOut, UI_SWITCHES,
 } from './ca-view.js';
@@ -18,6 +18,8 @@ const moreFiguresEl = document.getElementById('moreFigures');
 const contractTermsEl = document.getElementById('contractTerms');
 const contractTermsDateEl = document.getElementById('contractTermsDate');
 const contractTermsListEl = document.getElementById('contractTermsList');
+const contractTermsNoteEl = document.getElementById('contractTermsNote');
+const firstDateNoteEl = document.getElementById('firstDateNote');
 const scheduleSectionEl = document.getElementById('scheduleSection');
 const scheduleCountEl = document.getElementById('scheduleCount');
 const scheduleTableEl = document.getElementById('scheduleTable');
@@ -81,7 +83,7 @@ const printScheduleTableEl = document.getElementById('printScheduleTable');
 // enforces: flow no longer implies productType -- newMortgageOrLoan/renewal/
 // paymentChange apply identically to mortgages and personal loans (doc 007 finding
 // #9). Renewal is scoped to mortgage (decision 9) and variableRatePaymentChange to
-// mortgage + variable, by construction. Locking the dependent dropdown for those
+// mortgage + variable (that Flow option is hidden by UI_SWITCHES.variableRatePaymentChangeFlow). Locking the dependent dropdown for those
 // cases (rather than just letting the calculation throw) keeps the common path
 // error-free while still surfacing a RangeError for any combination the engine
 // itself still rejects. ---
@@ -306,6 +308,22 @@ function renderPrintSchedule(result) {
   printScheduleTableEl.innerHTML = html(scheduleTableNodes(result, 'print', scheduleColumns, scheduleCtx));
 }
 
+// The print table is built only when a print is about to happen, and only if the result or the
+// column set changed since the last build.
+let printBuiltFor = null;
+let printBuiltColumns = null;
+function ensurePrintSchedule() {
+  if (!scheduleResult) return;
+  if (printBuiltFor === scheduleResult && printBuiltColumns === scheduleColumns) return;
+  renderPrintSchedule(scheduleResult);
+  printBuiltFor = scheduleResult;
+  printBuiltColumns = scheduleColumns;
+}
+window.addEventListener('beforeprint', ensurePrintSchedule);
+window.matchMedia('print').addEventListener('change', (event) => {
+  if (event.matches) ensurePrintSchedule();
+});
+
 function el(tag, text, className) {
   const node = document.createElement(tag);
   if (text !== undefined) node.textContent = text;
@@ -313,11 +331,10 @@ function el(tag, text, className) {
   return node;
 }
 
-function renderPrintRecord(raw, ctx, result, termText) {
-  printInputsEl.innerHTML = html(printInputNodes(printInputRows(raw, ctx, termText)));
+function renderPrintRecord(raw, ctx, result, termText, moveNote) {
+  printInputsEl.innerHTML = html(printInputNodes(printInputRows(raw, ctx, termText, moveNote)));
   printFeesEl.innerHTML = html(printFeesNodes(raw.fees, ctx));
   printFiguresEl.innerHTML = html(figureNodes(printFigures(result, ctx)));
-  renderPrintSchedule(result);
 }
 
 // --- on-screen results and schedule: the app's results panel and schedule table ---
@@ -375,7 +392,6 @@ for (const radio of columnRadios) {
     if (!radio.checked) return;
     scheduleColumns = radio.value;
     renderScheduleTable();
-    if (scheduleResult) renderPrintSchedule(scheduleResult);
   });
 }
 
@@ -458,18 +474,28 @@ function recompute() {
     const result = calculateCobCanada(input);
     const calculatedAt = new Date();
     const termText = contractTermText(contractTerm(result));
+    const texts = flowLabels(raw.flow, ctx.spec);
+    const moveNote = firstDateMoveNote(texts.firstPaymentDate, raw.firstPaymentDate, result.amortizationSchedule[0]?.date);
     renderContractTerms(input, parseDateInput(raw.contractDate), ctx, result);
     renderResults(input, result, calculatedAt, ctx);
     scheduleResult = result;
     scheduleCtx = ctx;
     renderScheduleTable();
-    renderPrintRecord(raw, ctx, result, termText);
+    renderPrintRecord(raw, ctx, result, termText, moveNote);
+    firstDateNoteEl.textContent = moveNote;
+    firstDateNoteEl.hidden = !moveNote;
+    contractTermsNoteEl.textContent = moveNote;
+    contractTermsNoteEl.hidden = !moveNote;
     contractTermEl.value = termText;
-    setCurrentResult(result.amortizationSchedule, raw.firstPaymentDate, calculatedAt);
+    setCurrentResult(result.amortizationSchedule, isoDay(result.amortizationSchedule[0].date), calculatedAt);
     showResult(true);
     errorEl.style.display = 'none';
   } catch (err) {
     contractTermEl.value = '';
+    firstDateNoteEl.textContent = '';
+    firstDateNoteEl.hidden = true;
+    contractTermsNoteEl.textContent = '';
+    contractTermsNoteEl.hidden = true;
     setCurrentResult(null);
     scheduleResult = null;
     showResult(false);

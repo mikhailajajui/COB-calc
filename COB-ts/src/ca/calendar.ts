@@ -163,6 +163,23 @@ export function nextSemiMonthlyDate(firstPaymentDate: Date, currentDate: Date): 
   return nextDate.getTime() > currEom.getTime() ? currEom : nextDate;
 }
 
+/** The First Payment Date the schedule starts from (B25, DEV-OQZ). Semi-monthly: a date that is
+ *  neither the 15th nor its month's last day moves forward within the same UTC month to the
+ *  15th (days 1-14) or to the month-end (days 16 to the day before month-end); the result is a
+ *  new Date at UTC midnight. Every other frequency returns `first` itself. An invalid Date is
+ *  returned unchanged (callers check validity first). */
+export function effectiveFirstPaymentDate(frequency: PaymentFrequency, first: Date): Date {
+  if (frequency !== 'semiMonthly' || Number.isNaN(first.getTime())) {
+    return first;
+  }
+  const year = first.getUTCFullYear();
+  const monthIndex = first.getUTCMonth();
+  const day = first.getUTCDate();
+  const last = daysInUtcMonth(year, monthIndex);
+  const movedDay = day === 15 || day === last ? day : day < 15 ? 15 : last;
+  return new Date(Date.UTC(year, monthIndex, movedDay));
+}
+
 /** periodDate for period index i (0-based) at the given payment frequency.
  *  Per BR-09, Accelerated Weekly is treated identically to Weekly and Accelerated
  *  Bi-weekly identically to Bi-weekly. Weekly, bi-weekly and monthly are indexed from the First Payment
