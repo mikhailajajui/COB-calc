@@ -1,6 +1,6 @@
 # COB Calculator: Coverage Report
 
-For business owners, auditors and reviewers. Version of 2026-10-02 (after B30 and CHANGES §68). The history of each change is in `COB-ts/CHANGES.md`, one entry per task with What, Why and Evidence. This report does not repeat it.
+For business owners, auditors and reviewers. Version of 2026-10-02 (after B30 and CHANGES §69). The history of each change is in `COB-ts/CHANGES.md`, one entry per task with What, Why and Evidence. This report does not repeat it.
 
 How to read this report: each claim names the requirement, story or decision it comes from and the evidence for it. A claim without evidence is marked **Not verified**. A decision that is still open is shown as open, with what the calculator does today.
 
@@ -18,7 +18,7 @@ The COB Calculator replaces the Excel workbook "Cost of Borrowing Rate Calc_Curr
 | Use cases covered | 0 Covered, 2 Covered – differs from Excel, 7 Partly covered (9 in all) | section 3.3 |
 | Differences from Excel with a decision ID | 8 delivered (DEV-OQS, DEV-OQX, DEV-OQY, DEV-OQAA, DEV-OQL, DEV-OQP, DEV-OQZ, DEV-FB24); 3 possible ones waiting for a decision | section 4 |
 | Automated tests | 86 test files, 3133 tests passed, 0 failed (run `npx vitest run` in `COB-ts/` on 2026-10-01) | section 7 |
-| Tests in two time zones | 880 passed per zone (as recorded in CHANGES §66 to §68) | section 7 |
+| Tests in two time zones | 880 passed per zone (as recorded in CHANGES §66 to §69) | section 7 |
 | Reference case from the workbook (REF-01) | 156 schedule rows, 2,193 values, largest relative error 1.3e-14 | section 3.1 |
 | Open decisions that change results | OQ-Q (the P basis), OQ-R (principal paid) | section 6 |
 
@@ -39,7 +39,7 @@ Everything the project delivers, with where it lives (paths are inside `COB-ts/`
 | Calculation engine | The rules: rate conversion, dates, interest, payments, fees, totals, validation | `src/ca/` (built to `dist/ca/`) | Delivered | sr-dev, QA | Tests in `tests/ca/`; golden masters; REF-01 |
 | Golden master, first (New, Renewal) | A saved copy of the engine's output for 94 groups of inputs. Any change in results fails a test. | `tests/ca/fixtures/golden_engine_v1.json`, sha256 starts 249651b2; test `tests/ca/golden/engineGolden.test.ts` | Delivered | QA | CHANGES §61 (regenerated once, for B25, with the user's approval: 20 groups changed) |
 | Golden master, Payment change | The same, for Payment change and Variable rate payment change | `tests/ca/fixtures/golden_engine_pc_v1.json`, sha256 starts acfe374c; test `tests/ca/golden/engineGoldenPc.test.ts` | Delivered | QA | CHANGES §47 (B18); unchanged since |
-| Page capture | A Chrome capture of the printout, the CSV and the figures for set scenarios. A script compares the live page with it. | `tests/ca/fixtures/a10_ui_capture_v1.json`, sha256 starts 5c6c69b5; script `tests/ca/fixtures/capture_a10_ui.mjs` | Delivered | QA | CHANGES §44; changed only with the user's approval |
+| Page capture | A Chrome capture of the printout, the CSV and the figures for set scenarios. A script compares the live page with it. | `tests/ca/fixtures/a10_ui_capture_v1.json`, sha256 starts 171f8a33; script `tests/ca/fixtures/capture_a10_ui.mjs` | Delivered | QA | CHANGES §44; changed only with the user's approval |
 | Chrome checks | Scripts that open the real page in Chrome (not part of `npx vitest run`) | `tests/ui/`, `help/tests/`, and the single-file add-on's own tests | Delivered | QA | Section 7 |
 | Project records | Decisions, requirements, task list, architecture, change log | `COB-user-stories.md` (decisions §6–§7.5), `COB-business-requirement.md`, `COB-project-checklist.md`, `COB-architecture.md`, `COB-ts/CHANGES.md` (all in the project root except CHANGES) | Delivered | BA, architect, main session | Section 8 |
 | Field-level error messages in business language | Messages that name the screen field and show all problems at once | Not built | Planned | n/a | Q-MSG open (section 6) |
@@ -231,7 +231,7 @@ Every decision here was taken by the user; the full text is in `COB-user-stories
 | FB-24, accelerated hidden, Contract term refinement | 2026-09-30 | Personal loan Monthly only; hide accelerated options; term in years, months, days | CHANGES §53, §54, §56 |
 | Renewal accepts personal loan; Variable rate payment change hidden; start-date label "Date of change"; Q-SEMI-SHOW answered | 2026-10-01 | As stated | CHANGES §59, §60, §62 |
 | Q-A11-SCOPE = B, Q-A11-FIX = No, Q-A14-GUARD = No | 2026-10-01 | Print table built on demand; no capture change; no guard against dead citations | CHANGES §63, §64 |
-| Payment change "Accrued interest" hint | 2026-10-02 | The hint reads exactly "Interest accrued since the last payment date is already included; enter only earlier unpaid interest (arrears), usually $0.00." It replaces the CHANGES §67 wording ("Interest accrued since the last payment date.", the Renewal text), so the hint and the manual advice agree. The hidden Variable rate payment change flow keeps the original arrears text; Renewal is unchanged. Only one capture string changed, with the user's approval. | CHANGES §68 (supersedes §67); capture fixture sha256 now starts 5c6c69b5 |
+| Payment change "Accrued interest" hint | 2026-10-02 | The hint reads exactly "Interest accrued since the last payment date." (the CHANGES §67 wording, the same as Renewal). It reverses the longer wording tried in §68. The short hint does not repeat the arrears advice, and the schedule already charges interest from the Date of change, so a user who types that interest into Accrued interest is charged twice. This is OPEN again for the hint (F69). The guards left are the Date of change label and the user manual. The hidden Variable rate payment change flow keeps the original arrears text; Renewal is unchanged. Capture fixture sha256 is back to 171f8a33; the UI view logic file hash starts 1e081d1e; the single-file edition hash starts ec6c3075. | CHANGES §69 (reverses §68, restores §67) |
 | Trigger-rate highlight dropped | 2026-10-01 | No highlight; nothing changes | CHANGES §65 |
 | B29 Help page; B30 single-file edition | 2026-10-01 | Removable add-ons, no change to results | CHANGES §58, §66 |
 
@@ -270,7 +270,7 @@ Run from `COB-ts/` unless stated. A pass means the results shown.
 | Types | `npm run typecheck` and `npm run typecheck:tests` | No errors |
 | Two time zones | `npm run test:tz` | 880 passed in each zone |
 | Golden masters | `shasum -a 256 tests/ca/fixtures/golden_engine_v1.json tests/ca/fixtures/golden_engine_pc_v1.json` | Starts 249651b2 and acfe374c |
-| Page capture | `node tests/ca/fixtures/capture_a10_ui.mjs <out.json>`, then compare with `a10_ui_capture_v1.json` (sha256 starts 5c6c69b5) | Equal apart from the provenance block |
+| Page capture | `node tests/ca/fixtures/capture_a10_ui.mjs <out.json>`, then compare with `a10_ui_capture_v1.json` (sha256 starts 171f8a33) | Equal apart from the provenance block |
 | Page loads | `node tests/ui/check_page_smoke.mjs` | PASS, no console errors |
 | Printed schedule fits the page (F12) | `node tests/ui/check_print_width.mjs` | 16 of 16 cases pass |
 | Moved semi-monthly date shown (F17) | `node tests/ui/check_semimonthly_move.mjs` | All checks pass (54 recorded in CHANGES §62) |
@@ -303,8 +303,8 @@ Plain-language list of what is true today and not covered above. Findings that h
 | F39 | Information: the default printout now runs to 5 pages instead of 4, because it prints at full size. | Business owner (OQ-J) |
 | F43 | OQ-W3 and OQ-W5 are not named in any decision. | Business owner |
 | F44 | Hiding the Financed option has no DEV ID; it carries decision 7 instead (section 4.2). | Architect |
-| F51 | Double-count risk: entering the interest since the last payment date into Accrued interest counts it twice (QA probe: +$784.19 in C). The Payment change hint now says the interest since the last payment date is already included and asks for arrears only (CHANGES §68); the risk remains for a user who ignores it. F69 is closed for the hint. | Business owner |
-| F69 | Closed for the hint (CHANGES §68, user decision 2026-10-02). The §67 wording no longer said "arrears only" and could invite a double charge; the new hint tells the user that interest since the last payment date is already included and to enter only arrears. The engine does not guard against a double charge. Related to F51. | Closed |
+| F51 | Double-count risk: entering the interest since the last payment date into Accrued interest counts it twice (QA probe: +$784.19 in C). The Payment change hint no longer warns about arrears (CHANGES §69), so only the Date of change label and the user manual guard against it. The engine does not guard. Related to F69. | Business owner |
+| F69 | Open for the hint (CHANGES §69, user decision 2026-10-02, reversing §68). The short hint "Interest accrued since the last payment date." does not say "arrears only" and can invite a double charge; the manual advises arrears only and notes the disagreement. Needs a business decision on the hint wording. Related to F51. | Open |
 | F52 | Not verified: QA could not compare the capture fixture with its pre-B22 version, and did not check the B22 labels by hand in Chrome beyond the capture. | QA |
 | F55 | Interest between the last payment date and the End Date is in neither "Balance at end date" nor "Unpaid interest at end date" (example: about $380 on $200,000 over 14 days). The hint now says so. | Business owner |
 | F58 | QA notes from B24 for the architect (record the layering edge from flows to policies in the fitness rules). Not re-checked in this version. | Architect |

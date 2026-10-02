@@ -1743,6 +1743,16 @@ and has diverged from it since (decisions T1 to T7 and later). The dated entries
 
 **Evidence (QA).** `npm run build`; `npx vitest run` 86 files, 3133 passed, 0 failed; `typecheck` and `typecheck:tests` clean; `test:tz` 880 passed in both zones; Help `--check` up to date. Chrome (served page and `COB.html`) at 360/768/1280 px: Payment change hint reads exactly the new text, wraps inside its field with no horizontal overflow; Renewal hint unchanged; the form hint is not part of the printout (print media hides it), so print width is unaffected (F12 16/16). Capture equals the fixture minus provenance; `build-share.mjs --date 2026-10-01` reproduces the current `COB.html` byte for byte; `check_share_page` 38 checks PASS, smoke PASS, F12 PASS 16/16, F17 PASS 54, F18 PASS 29. Note: the single unexplained failure seen once after section 67 never reproduced here (full suite green on the run for this section).
 
+### 69. Payment Change "Accrued interest" hint reverted to the short text (2026-10-02, user decision; QA verified)
+
+**What.** `ui/ca-view.js` `ACCRUED_TEXT.paymentChange` is back to "Interest accrued since the last payment date." (the section 67 text). Renewal is unchanged (same words) and the hidden `variableRatePaymentChange` keeps its arrears text. `ui/ca-view.js` sha256 is `1e081d1e...`, equal to the section 67 file. `dist/` and `COB.html` rebuilt (`node share/build-share.mjs --date 2026-10-01`); `COB.html` sha256 is `ec6c3075...`, equal to the section 67 era COB.html. UI fixture `tests/ca/fixtures/a10_ui_capture_v1.json`: one approved string back to the section 67 text, sha `5c6c69b5...` -> `171f8a33...`. Help baseline `help/tests/fixtures/pre-b29-baseline.json`: `ui/ca-view.js` re-pinned `aaed5740...` -> `1e081d1e...`, note in `recorded`.
+
+**Why.** User decision 2026-10-02. It reverses section 68.
+
+**Risk open again.** The double-charge risk recorded at section 67 / F69 is OPEN AGAIN for the hint: the short wording does not repeat the arrears advice, so a user may enter the interest accrued since the last payment in the field and have it charged twice. The remaining guards are the Date of change label and the user manual.
+
+**Evidence (QA).** `npm run build`; `npx vitest run` 86 files, 3133 passed, 0 failed; `typecheck` and `typecheck:tests` clean; `test:tz` 880 passed in both zones; Help `--check` up to date (doc-writer re-run and rebuild still pending for the hint wording). Chrome: capture equals the fixture minus provenance; `share/build-share.mjs --date 2026-10-01` reproduces `COB.html` byte for byte; `check_share_page.mjs` 38 checks PASS; smoke, F12 (16/16), F17 (54), F18 (29) PASS.
+
 ## Known open items that still affect this copy
 
 - OQ-W: how IN-11 past accrued interest is treated (interest on it, in C, in P) is

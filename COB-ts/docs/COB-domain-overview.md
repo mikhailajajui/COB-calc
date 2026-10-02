@@ -1,7 +1,7 @@
 # COB Calculator: domain overview for review
 
 **Audience:** lending and Credit Ops staff reviewing how the Cost of Borrowing (COB) calculator works. It is not a developer document.
-**State:** 2026-10-01, after every planned item (B19 to B28, A11, A14) was delivered. Nothing is planned any more, so every box below is **today** or **open**. How each change came about is in `COB-ts/CHANGES.md`; this page does not repeat it.
+**State:** 2026-10-02, after every planned item (B19 to B28, A11, A14) was delivered. Nothing is planned any more, so every box below is **today** or **open**. How each change came about is in `COB-ts/CHANGES.md`; this page does not repeat it.
 
 ## How to read this
 
@@ -114,7 +114,7 @@ flowchart LR
     classDef wrong fill:#fdecea,stroke:#c62828,color:#111
 ```
 
-Worked example (FB-16, QA's figures, not re-run for this page): variable mortgage, $250,000 at 5.19%, monthly $1,500, one $250 fee, Date of change 2027-01-01, next payment 2027-02-01, accrued $0: C $37,970.45, COB rate 5.2194%. Typing the 19 days already charged ($675.41) as well gives C $38,754.64, the double count. Since 2026-10-02 the Payment change hint reads "Interest accrued since the last payment date is already included; enter only earlier unpaid interest (arrears), usually $0.00." (user decision, CHANGES §68; it replaced the shorter 2026-10-01 wording of §67, which had dropped the arrears explanation). The hint now repeats the arrears advice, so the double-charge risk is closed as far as the hint goes; the Date of change label and the user manual remain further guards.
+Worked example (FB-16, QA's figures, not re-run for this page): variable mortgage, $250,000 at 5.19%, monthly $1,500, one $250 fee, Date of change 2027-01-01, next payment 2027-02-01, accrued $0: C $37,970.45, COB rate 5.2194%. Typing the 19 days already charged ($675.41) as well gives C $38,754.64, the double count. The Payment change hint reads "Interest accrued since the last payment date." (user decision 2026-10-01, CHANGES §67; a 2026-10-02 rewording that repeated the arrears advice, §68, was reverted the same day, §69). The short wording does not warn against the double charge, so the double-charge risk is accepted and open for the hint; the guards left are the Date of change label and the user manual.
 
 ---
 

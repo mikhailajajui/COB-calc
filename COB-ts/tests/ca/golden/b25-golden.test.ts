@@ -156,6 +156,6 @@ describe('B25-T9 G4: the Payment Change golden and the A10 UI capture fixture do
     expect(sha256(text('golden_engine_pc_v1.json'))).toBe('acfe374c6def2cea5bb723c8c639a72e0088aed7f8c952b561d724bd8d26d23e');
   });
   it('a10_ui_capture_v1.json is byte-identical (sha256 5a314af0...1ae7)', () => {
-    expect(sha256(text('a10_ui_capture_v1.json'))).toBe('5c6c69b556cb9471d38031b8b4e99f5bae3615db63ef8d5b9a2c2591b22c2190');
+    expect(sha256(text('a10_ui_capture_v1.json'))).toBe('171f8a33bf02bc0dd21c200945dfb16586bd64121ba631e2f1146b8b62a5f6d5');
   });
 });

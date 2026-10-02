@@ -468,7 +468,7 @@ describe('B27-T11 the Chrome scripts do not drive a disabled select and assert t
 
   it('the personal-loan scenario of the capture already sends Monthly (fixture pinned at its B24 regeneration; B27 itself did not change it)', () => {
     const fixture = readFileSync(join(FIXTURES_DIR, 'a10_ui_capture_v1.json'), 'utf8');
-    expect(sha256(fixture)).toBe('5c6c69b556cb9471d38031b8b4e99f5bae3615db63ef8d5b9a2c2591b22c2190');
+    expect(sha256(fixture)).toBe('171f8a33bf02bc0dd21c200945dfb16586bd64121ba631e2f1146b8b62a5f6d5');
     expect(capture).toMatch(/productType: 'personalLoan', rateType: 'variable', paymentFrequency: 'monthly'/);
   });
 

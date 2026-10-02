@@ -9,7 +9,7 @@
   "ui/serve.mjs": "63a265315fac2668c42832e0088941818f2afeb057f4a42bff8c84b6382fc438",
   "tests/ca/fixtures/golden_engine_v1.json": "249651b25b33cb9c1b5480d2ee1a26404d64f3321ea980de2bd3e23193e6cf11",
   "tests/ca/fixtures/golden_engine_pc_v1.json": "acfe374c6def2cea5bb723c8c639a72e0088aed7f8c952b561d724bd8d26d23e",
-  "tests/ca/fixtures/a10_ui_capture_v1.json": "5c6c69b556cb9471d38031b8b4e99f5bae3615db63ef8d5b9a2c2591b22c2190",
+  "tests/ca/fixtures/a10_ui_capture_v1.json": "171f8a33bf02bc0dd21c200945dfb16586bd64121ba631e2f1146b8b62a5f6d5",
   "tests/ca/fixtures/b23_on_state_pins.json": "b8a945dc281fdd3e4e0906a72d86fa24ca430b5f87bccff8aa1111d48f1b85c4",
   "share/assets/alterna-savings.svg": "0d8b1acc0ae2cb516e560772da5c4f48021299e640c52e14151bcfea82388d7b"
  }
