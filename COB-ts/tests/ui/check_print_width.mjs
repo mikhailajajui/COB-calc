@@ -100,7 +100,10 @@ const ensureVrpcOption = (page) => page.evaluate(() => {
   }
 });
 
-const server = process.argv[2] ? { base: process.argv[2].replace(/\/$/, ''), stop: () => {} } : await startServer();
+// COB_PAGE_URL (optional): a full page URL; when set the page is opened there and no server is started.
+const PAGE_URL = process.env.COB_PAGE_URL || '';
+const server = PAGE_URL ? { base: '', stop: () => {} } : process.argv[2] ? { base: process.argv[2].replace(/\/$/, ''), stop: () => {} } : await startServer();
+const PAGE = PAGE_URL || server.base + '/ui/ca.html';
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 let failures = 0;
 try {
@@ -108,7 +111,7 @@ try {
   console.log(`F12 print width (max ${MAX_WIDTH} px), Chrome ${browser.version()}`);
   for (const sc of SCENARIOS) {
     const page = await context.newPage();
-    await page.goto(server.base + '/ui/ca.html');
+    await page.goto(PAGE);
     await page.waitForLoadState('load'); // B23: no default fee rows, so no count to wait on
     await ensureVrpcOption(page);
     if (sc.selects) {

@@ -34,7 +34,7 @@
    "legend": "Payment change",
    "startDate": "Date of change",
    "firstPaymentDate": "Next payment date",
-   "accruedInterestHint": "Only interest due at earlier payments and not yet paid (arrears), usually $0.00. Interest since the last payment date is already charged.",
+   "accruedInterestHint": "Interest accrued since the last payment date is already included; enter only earlier unpaid interest (arrears), usually $0.00.",
    "termHint": "Calculated from the next payment date to the last scheduled payment date."
   },
   "variableRatePaymentChange": {

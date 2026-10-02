@@ -12,8 +12,10 @@ const req = createRequire(execSync('npm root -g').toString().trim() + '/@playwri
 const { chromium } = req('playwright-core');
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const freePort = () => new Promise((r) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => r(port)); }); });
+// COB_PAGE_URL (optional): a full page URL; when set the page is opened there and no server is started.
+const PAGE_URL = process.env.COB_PAGE_URL || '';
 let child = null; let base = process.argv[2]?.replace(/\/$/, '');
-if (!base) {
+if (!base && !PAGE_URL) {
   const port = await freePort();
   child = spawn(process.execPath, ['ui/serve.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(port) }, stdio: 'ignore' });
   base = `http://127.0.0.1:${port}`;
@@ -27,7 +29,7 @@ try {
   page.on('pageerror', (e) => fail('pageerror: ' + e.message));
   page.on('console', (m) => { if (['error', 'warning'].includes(m.type()) && !/alterna\.ca\/media|\/favicon\.ico/.test(m.location().url)) fail(`console.${m.type()}: ${m.text()} @${m.location().url}`); });
   page.on('requestfailed', (r) => { if (!r.url().includes('alterna.ca/media')) fail('requestfailed: ' + r.url()); }); // external logo is not ours
-  await page.goto(base + '/ui/ca.html'); await page.waitForLoadState('load');
+  await page.goto(PAGE_URL || base + '/ui/ca.html'); await page.waitForLoadState('load');
   const st = () => page.evaluate(() => {
     const s = document.getElementById('paymentFrequency'); const h = document.getElementById(s.getAttribute('aria-describedby') ?? '');
     return { disabled: s.disabled, value: s.value, opts: [...s.options].map((o) => o.value).join(','),

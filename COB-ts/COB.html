@@ -1,0 +1,3036 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-f6yPYCdSkUDYNr/pRzACQr23MBtOJX7K1HkTad+BTO4='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
+<title>Cost of Borrowing Calculator | Alterna Savings</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #ffffff;
+    --paper-raised: #f9f9f9;
+    --ink: #3f3f3f;
+    --ink-muted: #68737a;
+    --accent: #bd5a00;
+    --accent-ink: #ffffff;
+    --accent-hover: #974800;
+    --accent-soft: #f2decc;
+    --heading: #2a2a3e;
+    --focus: #000000;
+    --correction: #d64033;
+    --rule: #d1d4d7;
+    --rule-strong: #898989;
+    --font-display: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-data: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --radius-control: 5px;
+    --radius-pill: 25px;
+    --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.2);
+    --control-bg: #ffffff;
+    --control-border: #898989;
+    --control-height: 44px;
+    --control-pad-x: 12px;
+    --label-size: 14px;
+    --label-weight: 700;
+    --placeholder: #68737a;
+    --invalid: #d64033;
+    --disabled-bg: #f9f9f9;
+    --disabled-ink: #68737a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #17191c;
+      --paper-raised: #202328;
+      --ink: #e8e6e3;
+      --ink-muted: #a3adb3;
+      --accent: #f7931e;
+      --accent-ink: #17191c;
+      --accent-hover: #ffb866;
+      --accent-soft: #3d2a1a;
+      --heading: #f4f2ef;
+      --focus: #ffffff;
+      --correction: #ff8a7a;
+      --rule: #3a4047;
+      --rule-strong: #737c85;
+      --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.5);
+      --control-bg: #202328;
+      --control-border: #737c85;
+      --placeholder: #a3adb3;
+      --invalid: #ff8a7a;
+      --disabled-bg: #17191c;
+      --disabled-ink: #a3adb3;
+    }
+    :root:not([data-theme="light"]) .brand-logo { background: #ffffff; padding: 8px 12px; }
+    :root:not([data-theme="light"]) input:disabled,
+    :root:not([data-theme="light"]) select:disabled { background-color: var(--paper); }
+  }
+
+  * { box-sizing: border-box; }
+  html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 15px/1.55 var(--font-body);
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 40px 16px 80px;
+  }
+
+  h1 {
+    font: 700 32px/1.2 var(--font-display);
+    color: var(--heading);
+    margin: 0 0 4px;
+  }
+  p.sub {
+    color: var(--ink-muted);
+    margin: 0 0 20px;
+    max-width: 68ch;
+  }
+  p.sub strong { color: var(--ink); }
+  p.sub a { color: var(--accent); font-weight: 700; text-decoration: underline; }
+  p.sub a:hover { color: var(--accent-hover); }
+  h2 {
+    font: 700 16px/1.3 var(--font-display);
+    color: var(--heading);
+    margin: 32px 0 12px;
+    padding-left: 10px;
+    border-left: 4px solid var(--accent);
+  }
+  h2:first-of-type { margin-top: 0; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px 24px;
+  }
+  .field label {
+    display: block;
+    font: var(--label-weight) var(--label-size)/1.3 var(--font-body);
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .field .hint { display: block; font-size: 13px; line-height: 1.4; color: var(--ink-muted); margin-top: 6px; }
+  .field .hint[hidden] { display: none; }
+  .field .hint.locked { display: none; }
+  .field select:disabled ~ .hint.locked { display: block; }
+  :where(input:not([type="checkbox"]), select) {
+    width: 100%;
+    height: var(--control-height);
+    padding: 0 var(--control-pad-x);
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-control);
+    background-color: var(--control-bg);
+    color: var(--ink);
+    font: 500 15px var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
+  select {
+    appearance: none;
+    padding-right: 36px;
+    font: 500 15px var(--font-body);
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--accent) 50%),
+      linear-gradient(135deg, var(--accent) 50%, transparent 50%);
+    background-position: calc(100% - 20px) 50%, calc(100% - 13px) 50%;
+    background-size: 7px 7px, 7px 7px;
+    background-repeat: no-repeat;
+  }
+  ::placeholder { color: var(--placeholder); opacity: 1; }
+  :where(input:not([type="checkbox"]), select):hover { border-color: var(--ink-muted); }
+  input:focus-visible, select:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 1px;
+    border-color: var(--accent);
+  }
+  input:disabled, select:disabled {
+    background-color: var(--paper-raised);
+    color: var(--ink-muted);
+    border-style: dashed;
+    cursor: not-allowed;
+  }
+  input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--invalid); }
+  .field .field-error {
+    display: block;
+    font: 500 13px/1.4 var(--font-body);
+    color: var(--invalid);
+    margin-top: 6px;
+  }
+
+  fieldset.conditional {
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-control);
+    padding: 16px 20px 20px;
+    margin: 14px 0 0;
+    background: var(--paper-raised);
+  }
+  fieldset.conditional legend {
+    font: 700 13px var(--font-body);
+    color: var(--ink);
+    padding: 0 6px;
+  }
+
+  button {
+    font: 700 15px/1.2 var(--font-body);
+    padding: 8px 18px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent-hover); color: var(--accent-hover); }
+  button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  button:disabled { background: var(--accent-soft); border-color: var(--accent-soft); pointer-events: none; }
+  button.remove-fee {
+    color: var(--correction);
+    border-color: transparent;
+    padding: 2px 6px;
+  }
+  button.remove-fee:hover { color: var(--correction); border-color: transparent; text-decoration: underline; }
+  button.add-fee { margin-top: 12px; }
+
+  #error {
+    display: none;
+    color: var(--correction);
+    border-left: 4px solid var(--correction);
+    background: var(--paper);
+    padding: 4px 0 4px 12px;
+    margin: 18px 0;
+    font-size: 14px;
+    white-space: pre-wrap;
+  }
+
+  /* Contract terms used for the calculation, as entered: one tile per term, in the
+     headline cards' style. A one-line value (.term-value--fit) is the smaller of the
+     breakpoint size and the size at which it fills its tile (--term-em, its width in
+     ems, set by ca.js), so it never wraps or clips. Other values wrap between words. */
+  .terms { margin: 32px 0 0; }
+  .terms h3 {
+    font: 700 16px/1.3 var(--font-display);
+    color: var(--heading);
+    margin: 0 0 12px;
+  }
+  .terms dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+  }
+  .term {
+    min-width: 0;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--accent);
+    border-radius: var(--radius-control);
+    padding: 12px;
+    container-type: inline-size;
+  }
+  .term--fees { grid-column: 1 / -1; }
+  .term-label { font: 600 13px/1.3 var(--font-body); color: var(--ink-muted); }
+  .term-data { margin: 6px 0 0; }
+  .term-value {
+    --term-size: 22px;
+    display: block;
+    font: 700 var(--term-size)/1.2 var(--font-data);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--heading);
+    overflow-wrap: normal;
+  }
+  .term-value--fit {
+    font-size: min(var(--term-size), calc(100cqi / var(--term-em, 1)));
+    white-space: nowrap;
+  }
+  .term-fees { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .term-value--fees { font-size: 18px; line-height: 1.3; }
+  .fee-amount { white-space: nowrap; }
+  .fee-tag {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 8px;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius-pill);
+    font: 600 12px/1.4 var(--font-body);
+    letter-spacing: 0;
+    color: var(--ink-muted);
+    vertical-align: 2px;
+    white-space: nowrap;
+  }
+  @media (max-width: 480px) {
+    .term { padding: 12px 10px; }
+  }
+  @media (max-width: 374px) {
+    .terms dl { grid-template-columns: minmax(0, 1fr); }
+    .term-value { --term-size: 20px; }
+  }
+  @media (min-width: 481px) {
+    .term-value { --term-size: 24px; }
+  }
+  @media (min-width: 992px) {
+    .terms dl { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+    .term { padding: 14px; }
+    .term--fees { grid-column: span 2; }
+    .term-value { --term-size: 26px; }
+  }
+
+  #feesWrap table {
+    width: 100%;
+    border-collapse: collapse;
+    font: 13px var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
+  #feesWrap th {
+    font: 600 12px var(--font-body);
+    color: var(--ink-muted);
+    text-align: right;
+    padding: 8px;
+    border-bottom: 2px solid var(--accent);
+    position: sticky;
+    top: 0;
+    background: var(--paper);
+  }
+  #feesWrap td {
+    padding: 5px 8px;
+    text-align: right;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  #feesWrap th:first-child, #feesWrap td:first-child { text-align: left; }
+  #feesWrap td input[type="text"], #feesWrap td input[type="number"] { height: 36px; text-align: right; }
+  #feesWrap td:first-child input[type="text"] { text-align: left; }
+  #feesWrap input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
+
+  .brand { margin: 0 0 28px; }
+  .brand-logo { display: inline-block; line-height: 0; border-radius: var(--radius-control); text-decoration: none; }
+  .brand-logo img { display: block; height: 37px; width: auto; }
+  .brand-logo img[hidden] { display: none; }
+  .brand-fallback { font: 700 22px/37px var(--font-display); color: var(--accent); }
+  .brand-logo:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
+  p.sub.disclaimer { margin-top: -8px; font-size: 14px; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* The printout's record and schedule; never shown on screen. */
+  .print-only { display: none; }
+
+  /* On screen, laid out as the app: the form, and beside it (from 992px) the results
+     card; the contract terms and the schedule run full width below. Unlike the app, the
+     two columns are equal, so the headline figures have room. Screen only, so the
+     printout keeps its own rules. */
+  @media screen {
+    .calc-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 32px;
+      align-items: start;
+    }
+    @media (min-width: 992px) {
+      .calc-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; }
+    }
+
+    .results { display: flex; flex-direction: column; gap: 16px; }
+    @media (min-width: 992px) {
+      .results {
+        border: 1px solid var(--rule);
+        border-radius: var(--radius-control);
+        padding: 20px 12px;
+        box-shadow: var(--shadow-card);
+        background: var(--paper);
+      }
+    }
+    .results h2, .schedule-head h2 { margin: 0; }
+    .results p { margin: 0; }
+    #resultBody { display: contents; }
+    #resultBody[hidden] { display: none; }
+    .result-status, .result-context { color: var(--ink-muted); font-size: 13px; }
+
+    .headline { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
+    .kpi {
+      background: var(--paper-raised);
+      border: 1px solid var(--rule);
+      border-top: 3px solid var(--accent);
+      border-radius: var(--radius-control);
+      padding: 14px 10px;
+      min-width: 0;
+      container-type: inline-size;
+    }
+    .kpi-label { font: 600 13px/1.3 var(--font-body); color: var(--ink-muted); }
+    .kpi-data { margin: 6px 0 0; }
+    /* A figure never wraps or clips: the size is the smaller of the breakpoint size and
+       the size at which the longest headline value fills the card (--kpi-em, its width
+       in ems, set by ca.js). */
+    .kpi-value {
+      --kpi-size: 48px;
+      display: block;
+      font: 700 min(var(--kpi-size), calc(100cqi / var(--kpi-em, 8)))/1.1 var(--font-data);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+      white-space: nowrap;
+      color: var(--heading);
+    }
+    .kpi-hint { display: block; margin-top: 6px; font-size: 12px; color: var(--ink-muted); }
+    @media (max-width: 480px) {
+      .headline { grid-template-columns: minmax(0, 1fr); }
+      .kpi-value { --kpi-size: clamp(32px, 9vw, 40px); }
+    }
+
+    .figures { margin: 0; }
+    .figure { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+    .figure-label { color: var(--ink); }
+    .figure-hint { display: block; font-size: 12px; color: var(--ink-muted); }
+    .figure-value {
+      margin: 0;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--heading);
+      white-space: nowrap;
+    }
+    .disclosure-summary {
+      cursor: pointer;
+      color: var(--accent);
+      font-weight: 700;
+      min-height: 24px;
+      padding: 4px 0;
+    }
+    .disclosure-body { padding-top: 8px; }
+
+    .result-actions-buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+    .btn--secondary { min-height: 40px; }
+    .btn--unavailable, .btn--unavailable:hover {
+      background: var(--disabled-bg);
+      color: var(--disabled-ink);
+      border: 1px dashed var(--rule-strong);
+      cursor: not-allowed;
+    }
+    .field-hint { font-size: 13px; line-height: 1.4; color: var(--ink-muted); margin-top: 6px; }
+
+    .schedule-section { margin-top: 32px; }
+    .schedule-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 24px;
+      margin-bottom: 12px;
+    }
+    .schedule-head p { margin: 0; }
+    .schedule-count { color: var(--ink-muted); }
+    .choice-group { border: 0; margin: 0; padding: 0; min-width: 0; }
+    .choice-legend {
+      font: 700 var(--label-size)/1.3 var(--font-body);
+      color: var(--ink);
+      padding: 0;
+      margin-bottom: 8px;
+    }
+    .choice-options { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+    .choice { display: inline-flex; align-items: center; gap: 8px; min-height: var(--control-height); cursor: pointer; }
+    .choice input { width: 20px; height: 20px; margin: 0; padding: 0; accent-color: var(--accent); }
+    .column-toggle { display: flex; align-items: center; gap: 12px; }
+    .column-toggle .choice-legend { float: left; margin: 0 12px 0 0; }
+    .column-toggle .choice-options { flex-direction: row; }
+
+    .schedule-scroll {
+      max-height: 70vh;
+      overflow: auto;
+      border: 1px solid var(--rule-strong);
+      border-radius: var(--radius-control);
+      scroll-padding-top: 64px;
+      scroll-padding-bottom: 40px;
+    }
+    @media (min-width: 992px) {
+      .schedule-scroll { max-height: calc(100vh - 160px); }
+    }
+    .schedule {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font: 400 13px var(--font-data);
+      font-variant-numeric: tabular-nums;
+      background: var(--paper);
+    }
+    .schedule th, .schedule td { padding: 6px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; text-align: left; }
+    .schedule .num { text-align: right; }
+    .schedule thead { position: sticky; top: 0; z-index: 2; }
+    .schedule thead th { background: var(--paper); font: 600 12px/1.3 var(--font-body); color: var(--ink-muted); vertical-align: bottom; }
+    .schedule thead tr:last-child th, .schedule thead th[rowspan] { border-bottom: 2px solid var(--accent); }
+    .schedule thead th[scope="colgroup"] { text-align: center; color: var(--ink); }
+    .schedule tbody th[scope="row"] { font-weight: 400; }
+    .schedule-year { content-visibility: auto; contain-intrinsic-size: auto 1500px; }
+    .year-row th { background: var(--paper-raised); font: 600 12px/1.3 var(--font-body); color: var(--ink); }
+    .schedule tbody tr:not(.year-row):hover { background: var(--accent-soft); }
+    .schedule tfoot { position: sticky; bottom: 0; z-index: 2; }
+    .schedule tfoot th, .schedule tfoot td { background: var(--paper); border-top: 2px solid var(--rule-strong); font-weight: 700; }
+    /* Room for overlay scrollbars: the vertical one sits over the last column and the
+       horizontal one over the sticky totals row, so both get extra inner padding. */
+    .schedule th:last-child, .schedule td:last-child { padding-right: 24px; }
+    .schedule tfoot th, .schedule tfoot td { padding-bottom: 16px; }
+    .schedule--compact .col-extra { display: none; }
+    @media (max-width: 767px) {
+      .schedule .col-period, .schedule .col-date { position: sticky; z-index: 1; background: var(--paper); }
+      .schedule .col-period { left: 0; min-width: 48px; }
+      .schedule .col-date { left: 48px; border-right: 1px solid var(--rule-strong); }
+    }
+  }
+
+  /* The printout is a record of the current result, laid out as the app's printout:
+     title, times, inputs, fees, results and the full schedule. The page's own
+     sections don't print. With no current result it is the title and the guard only. */
+  @page { size: letter landscape; margin: 12mm; }
+  @media print {
+    :root, :root:not([data-theme="light"]) {
+      color-scheme: light;
+      --paper: #ffffff; --paper-raised: #ffffff; --ink: #000000; --ink-muted: #3f3f3f;
+      --heading: #000000; --accent: #bd5a00; --rule: #898989; --rule-strong: #3f3f3f;
+    }
+    body { max-width: none; padding: 0; font-size: 10px; line-height: 1.5; background: var(--paper); color: var(--ink); }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .brand, body > h1, p.sub, .calc-grid, #contractTerms, #scheduleSection { display: none !important; }
+    .print-only { display: block; }
+    .print-record [hidden], .print-schedule-section[hidden] { display: none !important; }
+
+    .print-record p, .print-record dl, .print-record dd, .print-schedule-section p { margin: 0; }
+    .print-record h1 { font: 700 16px/1.2 var(--font-display); color: var(--heading); margin: 0; }
+    .print-record h2 {
+      font: 700 13px/1.3 var(--font-display); color: var(--heading);
+      margin: 12px 0 0; padding-left: 10px; border-left: 4px solid var(--accent);
+    }
+    .print-record h3 { font: 700 11px/1.3 var(--font-display); color: var(--heading); margin: 8px 0 0; }
+    .print-meta { color: var(--ink-muted); }
+
+    .print-record .print-inputs, .print-record .figures {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; margin: 4px 0;
+    }
+    .print-input { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding: 2px 0; }
+    .print-fees { border-collapse: collapse; margin: 4px 0; }
+    .print-fees th, .print-fees td { padding: 2px 12px 2px 0; border-bottom: 1px solid var(--rule); text-align: left; }
+    .print-fees .num { text-align: right; }
+    .fee-subtotals { font-variant-numeric: tabular-nums; }
+    .figure { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+    .figure-label { color: var(--ink); }
+    .figure-hint { display: block; color: var(--ink); }
+    .figure-value { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--heading); white-space: nowrap; }
+
+    .print-schedule-section { margin-top: 12px; }
+    .print-schedule-section .schedule-head {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; margin-bottom: 12px;
+      break-after: avoid;
+    }
+    .print-schedule-section h2 {
+      font: 700 16px/1.3 var(--font-display); color: var(--heading);
+      margin: 0; padding-left: 10px; border-left: 4px solid var(--accent);
+    }
+    .schedule-count { color: var(--ink-muted); }
+    .schedule {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      font: 400 9px var(--font-data); font-variant-numeric: tabular-nums; background: var(--paper);
+    }
+    .schedule th, .schedule td { padding: 2px 4px; border-bottom: 1px solid var(--rule); white-space: nowrap; text-align: left; }
+    .schedule .num { text-align: right; }
+    .schedule thead { display: table-header-group; }
+    .schedule thead th { background: var(--paper); font: 600 12px/1.3 var(--font-body); color: var(--ink-muted); vertical-align: bottom; }
+    .schedule thead tr:last-child th, .schedule thead th[rowspan] { border-bottom: 2px solid var(--accent); }
+    .schedule thead th[scope="colgroup"] { text-align: center; color: var(--ink); }
+    .schedule tbody th[scope="row"] { font-weight: 400; }
+    .schedule .year-row th { background: var(--paper-raised); font: 600 12px/1.3 var(--font-body); color: var(--ink); }
+    .schedule tbody tr:not(.year-row):hover { background: var(--accent-soft); }
+    .schedule tfoot { display: table-row-group; }
+    .schedule tfoot th, .schedule tfoot td { background: var(--paper); border-top: 2px solid var(--rule-strong); font-weight: 700; }
+    .schedule tr { break-inside: avoid; }
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 28px 16px 64px; }
+    h1 { font-size: 24px; }
+  }
+  #shareFooter { margin: 24px 0 0; text-align: center; font: 12px/1.4 var(--font-body); color: var(--ink-muted); }
+  @media print { #shareFooter { display: none; } }
+</style>
+</head>
+<body>
+  <header class="brand">
+    <span class="brand-logo">
+      <img id="brandLogo" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMiIgZGF0YS1uYW1lPSJMYXllciAyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMzUuODQiIGhlaWdodD0iMzYuNjgiIHZpZXdCb3g9IjAgMCAyMzUuODQgMzYuNjgiPgogIDxkZWZzPgogICAgPHN0eWxlPgogICAgICAuY2xzLTEgewogICAgICAgIGZpbGw6ICNlZjhiMjE7CiAgICAgIH0KCiAgICAgIC5jbHMtMiB7CiAgICAgICAgZmlsbDogIzViNjg3MTsKICAgICAgfQogICAgPC9zdHlsZT4KICA8L2RlZnM+CiAgPGcgaWQ9IkFkIj4KICAgIDxnPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yLjQ0LDEzLjQxYy0uMzYuMTYtLjYuMTYtLjcyLS4xNmwtLjg4LTEuOTZjLS4xNi0uMjgtLjEyLS40NC4yLS42NCwxLjg0LTEuMiw0LjQ4LTEuOTIsNy4xNy0xLjkyLDEuOCwwLDQuMDQuMzIsNS41NywyLC45NiwxLjA4LDEuNTIsMi41NiwxLjUyLDQuODh2MTEuMTdjMCwuMjgtLjIuNDgtLjQ4LjQ4aC0yLjcyYy0uMjQsMC0uNDgtLjItLjQ4LS40OHYtLjQ4aC0uMTZjLTEuNzIsMS4wOC0zLjI0LDEuMzYtNS4xNywxLjM2LTEuNjQsMC0zLjItLjQ0LTQuMzYtMS4zNnMtMS45Mi0yLjMyLTEuOTItNC4xMmMwLTIuNDQsMS40NC0zLjg0LDMuNTItNC42OSwyLjMyLS45Miw1LjM3LTEuMiw3LjY1LTEuMzZ2LS40OGMwLTEuMzItLjItMi4xNi0uNzItMi44LS42NC0uOC0xLjY4LTEuMDQtMi43Ni0xLjA0LTEuOTYsMC0zLjguNzItNS4yNSwxLjZaTTExLjE3LDIzLjc0di00Ljk3Yy0xLjEyLjA0LTMuMjguMTYtNC43Ni42LTEuNC40NC0yLjQ4LDEuMjQtMi40OCwyLjY4LDAsLjk2LjQ0LDEuNjQsMS4xMiwyLjA4LjY4LjQsMS42LjYsMi41Mi42LDEuMjQsMCwyLjQ4LS4yOCwzLjYtMVoiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0yIiBkPSJNMTkuNzIsMGgzLjEyYy4yOCwwLC40OC4yNC40OC41MnYyNi4yN2MwLC4yOC0uMi40OC0uNDguNDhoLTMuMTJjLS4yOCwwLS41Mi0uMi0uNTItLjQ4Vi41MmMwLS4yOC4yNC0uNTIuNTItLjUyWiIvPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0zMi4yLDIwLjVjMCwxLjA0LjE2LDEuODguNDgsMi40OC40NC43NiwxLjE2LDEuMTYsMi4zNiwxLjE2LjkyLDAsMS44OC0uMjgsMi45Mi0xLjA4LjMyLS4yNC42LS4yLjc2LjA4bDEuMDQsMi4yNGMuMTIuMjQuMDQuNDgtLjIuNjQtMS40NCwxLjA0LTMuNDQsMS42NC01LjU3LDEuNjQtMi4yNCwwLTMuNjgtLjY4LTQuNTYtMS43Ni0xLjA0LTEuMjQtMS4zNi0zLjA0LTEuMzYtNC44OHYtOC43M2gtMi4wNGMtLjI4LDAtLjUyLS4yNC0uNTItLjQ4di0yLjI4YzAtLjI0LjI0LS40OC41Mi0uNDhoMi4wNHYtMy41NmMwLS4yNC4yNC0uNDguNTItLjQ4aDMuMTJjLjI0LDAsLjQ4LjI0LjQ4LjQ4djMuNTZoNS42OWMuMjQsMCwuNDguMjQuNDguNDh2Mi4yOGMwLC4yNC0uMjQuNDgtLjQ4LjQ4aC01LjY5djguMjFaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTU0Ljk2LDIzLjAyYy4zNi0uMi42LS4wOC43Mi4xMmwxLjA0LDEuOTZjLjE2LjI0LjA0LjQ4LS4yLjY0LTEuNDgsMS4wNC00LjEyLDEuOTItNi44OSwxLjkyLTMuMDQsMC01LjUzLTEtNy4yMS0yLjgtMS42LTEuNjgtMi41Mi00LjA4LTIuNTItNi45MywwLTIuNjQuOTYtNC45NiwyLjU2LTYuNjUsMS41Mi0xLjYsMy43Ni0yLjU2LDYuNjUtMi41NiwzLjEyLDAsNS40MSwxLjIsNi44NSwzLDEuMjgsMS43NiwxLjg4LDQuMDgsMS43Miw2Ljg1LS4wNC4zMi0uMjQuNTYtLjU2LjU2aC0xMi44OWMuMTIsMS40NC42LDIuNjQsMS4zNiwzLjUyLDEsMS4xNiwyLjUyLDEuOCw0LjM2LDEuOCwxLjk2LDAsMy42LS42LDUuMDEtMS40NFpNNTMuNzYsMTYuNThjLS4wOC0xLjMyLS40NC0yLjQtMS4yLTMuMjQtLjc2LS44OC0xLjkyLTEuNDQtMy40NC0xLjQ0LTEuNiwwLTIuODguNTYtMy42OCwxLjUyLS42OC44LTEuMTIsMS45Ni0xLjIsMy4xNmg5LjUzWiIvPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik02NS45NSwxMy42MWMtLjkyLDEuMjgtMS4xMiwzLTEuMTIsNC42djguNTdjMCwuMjgtLjIuNDgtLjQ4LjQ4aC0zLjEyYy0uMjgsMC0uNTItLjItLjUyLS40OFY5LjUzYzAtLjI0LjI0LS40OC41Mi0uNDhoMi45NmMuMjgsMCwuNTIuMjQuNTIuNDh2Mi4xNmguMTJjLjM2LS42OC44OC0xLjMyLDEuNDgtMS44NC44OC0uNjgsMS45Mi0xLjEyLDMuMjgtMS4xMiwxLjA0LDAsMS45Ni4yLDIuNzIuNTIuNjguMzYsMS4yNC43MiwxLjcyLDEuMi4yOC4zMi4yOC41Ni4wNC44NGwtMS43MiwyLjA0Yy0uMTYuMTYtLjQuMzItLjY4LDAtLjQtLjMyLS44LS42LTEuMjQtLjgtLjQ4LS4yNC0xLS4zNi0xLjU2LS4zNi0xLjM2LDAtMi4zMi42LTIuOTIsMS40NFoiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0yIiBkPSJNODAuOTIsMTQuMjVjLS42OCwxLjEyLS45NiwyLjYtLjk2LDR2OC41M2MwLC4yOC0uMi40OC0uNDguNDhoLTMuMTJjLS4yOCwwLS41Mi0uMi0uNTItLjQ4VjkuNTNjMC0uMjQuMjQtLjQ4LjUyLS40OGgyLjk2Yy4yOCwwLC41Mi4yNC41Mi40OHYyLjI0aC4xMmMuNC0uNjgsMS4xNi0xLjQ4LDItMi4wNCwxLS42NCwyLjMyLTEsMy44OC0xLDIuMDgsMCwzLjk2LjUyLDUuMjksMS42OCwxLjM2LDEuMjQsMi4xMiwzLjE2LDIuMTIsNS45M3YxMC40NWMwLC4yOC0uMi40OC0uNDguNDhoLTMuMTJjLS4yOCwwLS40OC0uMi0uNDgtLjQ4di05LjU3YzAtMS42OC0uMjQtMy4xMi0xLjE2LTQuMDgtLjY4LS42NC0xLjY0LTEuMDQtMy4wNC0xLjA0LTEuODQsMC0zLjIuNzYtNC4wNCwyLjE2WiIvPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik05OC40MSwxMy40MWMtLjM2LjE2LS42LjE2LS43Mi0uMTZsLS44OC0xLjk2Yy0uMTYtLjI4LS4xMi0uNDQuMi0uNjQsMS44NC0xLjIsNC40OC0xLjkyLDcuMTctMS45MiwxLjgsMCw0LjA0LjMyLDUuNTcsMiwuOTYsMS4wOCwxLjUyLDIuNTYsMS41Miw0Ljg4djExLjE3YzAsLjI4LS4yLjQ4LS40OC40OGgtMi43MmMtLjI0LDAtLjQ4LS4yLS40OC0uNDh2LS40OGgtLjE2Yy0xLjcyLDEuMDgtMy4yNCwxLjM2LTUuMTcsMS4zNi0xLjY0LDAtMy4yLS40NC00LjM2LTEuMzZzLTEuOTItMi4zMi0xLjkyLTQuMTJjMC0yLjQ0LDEuNDQtMy44NCwzLjUyLTQuNjksMi4zMi0uOTIsNS4zNy0xLjIsNy42NS0xLjM2di0uNDhjMC0xLjMyLS4yLTIuMTYtLjcyLTIuOC0uNjQtLjgtMS42OC0xLjA0LTIuNzYtMS4wNC0xLjk2LDAtMy44LjcyLTUuMjUsMS42Wk0xMDcuMTMsMjMuNzR2LTQuOTdjLTEuMTIuMDQtMy4yOC4xNi00Ljc2LjYtMS40LjQ0LTIuNDgsMS4yNC0yLjQ4LDIuNjgsMCwuOTYuNDQsMS42NCwxLjEyLDIuMDguNjguNCwxLjYuNiwyLjUyLjYsMS4yNCwwLDIuNDgtLjI4LDMuNi0xWiIvPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjkuMzMsMjQuMTRjLjYtLjQuOTItMS4wNC45Mi0xLjgsMC0xLjItLjg0LTEuNzYtMi4wOC0yLjI4LTEuMi0uNTItMi44LS45Ni00LjI0LTEuNi0xLjg4LS44NC0zLjEyLTIuMzItMy4xMi00LjYsMC0xLjUyLjU2LTIuOCwxLjY4LTMuNjgsMS4xNi0uOTIsMi45Ni0xLjQ4LDUuMjUtMS40OCwyLjY4LDAsNC40OC42NCw1LjgxLDEuMzYuMzIuMTYuMzIuNC4yNC42NGwtMS4wNCwyLjE2Yy0uMTYuMjgtLjM2LjMyLS42NC4xNi0xLjQ4LS44LTIuODgtMS4xNi00LjItMS4xNi0xLDAtMS43Mi4yLTIuMjguNTYtLjQ4LjM2LS43Ni44LS43NiwxLjQ0LDAsMS4wOC44LDEuNiwxLjkyLDIuMDgsMS4yOC41MiwyLjkyLjk2LDQuMiwxLjU2LDIuMiwxLDMuMzYsMi40LDMuMzYsNC41NywwLDEuOC0uOCwzLjI4LTIuMiw0LjI4LTEuMjQuODQtMi45NiwxLjMyLTUuMDUsMS4zMi0zLjA4LDAtNS4wNC0uNzYtNi4zNy0xLjUyLS4yOC0uMTYtLjMyLS4zNi0uMi0uNmwxLjA0LTIuMTZjLjEyLS4yOC4zNi0uMzYuNjQtLjIsMS40NC45MiwzLDEuNDgsNC44MSwxLjQ4Ljk2LDAsMS43Ni0uMTYsMi4zMi0uNTJaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEzOC42LDEzLjQxYy0uMzYuMTYtLjYuMTYtLjcyLS4xNmwtLjg4LTEuOTZjLS4xNi0uMjgtLjEyLS40NC4yLS42NCwxLjg0LTEuMiw0LjQ4LTEuOTIsNy4xNy0xLjkyLDEuOCwwLDQuMDQuMzIsNS41NywyLC45NiwxLjA4LDEuNTIsMi41NiwxLjUyLDQuODh2MTEuMTdjMCwuMjgtLjIuNDgtLjQ4LjQ4aC0yLjcyYy0uMjQsMC0uNDgtLjItLjQ4LS40OHYtLjQ4aC0uMTZjLTEuNzIsMS4wOC0zLjI0LDEuMzYtNS4xNiwxLjM2LTEuNjQsMC0zLjItLjQ0LTQuMzYtMS4zNnMtMS45Mi0yLjMyLTEuOTItNC4xMmMwLTIuNDQsMS40NC0zLjg0LDMuNTItNC42OSwyLjMyLS45Miw1LjM3LTEuMiw3LjY1LTEuMzZ2LS40OGMwLTEuMzItLjItMi4xNi0uNzItMi44LS42NC0uOC0xLjY4LTEuMDQtMi43Ni0xLjA0LTEuOTYsMC0zLjguNzItNS4yNSwxLjZaTTE0Ny4zMywyMy43NHYtNC45N2MtMS4xMi4wNC0zLjI4LjE2LTQuNzYuNi0xLjQuNDQtMi40OCwxLjI0LTIuNDgsMi42OCwwLC45Ni40NCwxLjY0LDEuMTIsMi4wOC42OC40LDEuNi42LDIuNTIuNiwxLjI0LDAsMi40OC0uMjgsMy42LTFaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTE2NC4yOSwyNi44N2MtLjE2LjQtLjM2LjUyLS44LjUyaC0zLjZjLS40LDAtLjY0LS4xMi0uNzYtLjUybC02LjYxLTE3LjE0Yy0uMTYtLjI4LS4xMi0uNjguMzYtLjY4aDMuMzJjLjQ0LDAsLjY4LjE2LjguNTZsNC44NCwxMy43M2guMDhsNC44LTEzLjczYy4xMi0uNC4zNi0uNTYuOC0uNTZoMy4yOGMuNDgsMCwuNDguNC4zNi42OGwtNi44OSwxNy4xNFoiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTczLjU0LDkuMDVoMy4xMmMuMjgsMCwuNDguMjQuNDguNDh2MTcuMjZjMCwuMjgtLjIuNDgtLjQ4LjQ4aC0zLjEyYy0uMjgsMC0uNTItLjItLjUyLS40OFY5LjUzYzAtLjI0LjI0LS40OC41Mi0uNDhaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTE4Ni4yOSwxNC4yNWMtLjY4LDEuMTItLjk2LDIuNi0uOTYsNHY4LjUzYzAsLjI4LS4yLjQ4LS40OC40OGgtMy4xMmMtLjI4LDAtLjUyLS4yLS41Mi0uNDhWOS41M2MwLS4yNC4yNC0uNDguNTItLjQ4aDIuOTZjLjI4LDAsLjUyLjI0LjUyLjQ4djIuMjRoLjEyYy40LS42OCwxLjE2LTEuNDgsMi0yLjA0LDEtLjY0LDIuMzItMSwzLjg4LTEsMi4wOCwwLDMuOTYuNTIsNS4yOSwxLjY4LDEuMzYsMS4yNCwyLjEyLDMuMTYsMi4xMiw1LjkzdjEwLjQ1YzAsLjI4LS4yLjQ4LS40OC40OGgtMy4xMmMtLjI4LDAtLjQ4LS4yLS40OC0uNDh2LTkuNTdjMC0xLjY4LS4yNC0zLjEyLTEuMTYtNC4wOC0uNjgtLjY0LTEuNjQtMS4wNC0zLjA0LTEuMDQtMS44NCwwLTMuMi43Ni00LjA0LDIuMTZaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTIxMy43NCwzMi4wN2MuOC0uODgsMS4yLTIuMTYsMS4yLTMuOHYtMi4wOGMtMS40OCwxLjA0LTMsMS40NC00LjkyLDEuNDQtMi41NiwwLTQuNTItLjkyLTUuOTMtMi40NC0xLjY4LTEuNzItMi41Ni00LjI0LTIuNTYtNy4wNSwwLTIuNTYuNzYtNS4xMywyLjQtNi45MywxLjQtMS41MiwzLjQtMi40OCw2LjA1LTIuNDgsMi4zMiwwLDMuODguODQsNC45NiwxLjY4aC4xMnYtLjg4YzAtLjI0LjItLjQ4LjQ4LS40OGgzYy4yOCwwLC41Mi4yNC41Mi40OHYxOC4yMmMwLDMtLjgsNS4zNy0yLjUyLDYuODktMS41MiwxLjQtMy43MiwyLjA0LTYuNDksMi4wNHMtNS4yLS44NC02Ljg5LTEuOTZjLS4yNC0uMTYtLjMyLS40LS4yLS42NGwxLjItMi4yOGMuMTItLjI0LjQtLjM2LjcyLS4xMiwxLjQ0Ljk2LDMuMTIsMS42OCw1LjI1LDEuNjgsMS42LDAsMi44NC0uNDQsMy42LTEuMjhaTTIxNC45NSwyMi42NnYtOC44OWMtLjkyLS42OC0yLjI4LTEuNjgtNC40LTEuNjgtMS41MiwwLTIuNjQuNi0zLjQ0LDEuNTItLjk2LDEuMTItMS4zNiwyLjc2LTEuMzYsNC41MnMuNCwzLjQ4LDEuMzYsNC42Yy43Ni45MiwxLjg0LDEuNDQsMy4zNiwxLjQ0LDEuODgsMCwzLjI4LS41Miw0LjQ4LTEuNTJaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTIzMC44NCwyNC4xNGMuNi0uNC45Mi0xLjA0LjkyLTEuOCwwLTEuMi0uODQtMS43Ni0yLjA4LTIuMjgtMS4yLS41Mi0yLjgtLjk2LTQuMjQtMS42LTEuODgtLjg0LTMuMTItMi4zMi0zLjEyLTQuNiwwLTEuNTIuNTYtMi44LDEuNjgtMy42OCwxLjE2LS45MiwyLjk2LTEuNDgsNS4yNS0xLjQ4LDIuNjgsMCw0LjQ4LjY0LDUuODEsMS4zNi4zMi4xNi4zMi40LjI0LjY0bC0xLjA0LDIuMTZjLS4xNi4yOC0uMzYuMzItLjY0LjE2LTEuNDgtLjgtMi44OC0xLjE2LTQuMi0xLjE2LTEsMC0xLjcyLjItMi4yOC41Ni0uNDguMzYtLjc2LjgtLjc2LDEuNDQsMCwxLjA4LjgsMS42LDEuOTIsMi4wOCwxLjI4LjUyLDIuOTIuOTYsNC4yLDEuNTYsMi4yLDEsMy4zNiwyLjQsMy4zNiw0LjU3LDAsMS44LS44LDMuMjgtMi4yLDQuMjgtMS4yNC44NC0yLjk2LDEuMzItNS4wNCwxLjMyLTMuMDgsMC01LjA0LS43Ni02LjM3LTEuNTItLjI4LS4xNi0uMzItLjM2LS4yLS42bDEuMDQtMi4xNmMuMTItLjI4LjM2LS4zNi42NC0uMiwxLjQ0LjkyLDMsMS40OCw0LjgsMS40OC45NiwwLDEuNzYtLjE2LDIuMzItLjUyWiIvPgogICAgPC9nPgogIDwvZz4KPC9zdmc+" alt="Alterna Savings" width="236" height="37" />
+      <span class="brand-fallback" hidden>Alterna Savings</span>
+    </span>
+  </header>
+
+  <h1>Cost of Borrowing Calculator</h1>
+  <p class="sub">
+    Calculate the cost of borrowing for a mortgage or personal loan over its current
+    term: the COB amount and rate, total interest, and a full payment schedule. For
+    variable-rate mortgages it also shows the trigger rate. Fixed-rate mortgage rates
+    are compounded semi-annually.
+  </p>
+  <p class="sub disclaimer">
+    <strong>Note:</strong> results are estimates. They don't replace the cost of
+    borrowing disclosure in the loan documents.
+  </p>
+
+  <div class="print-only print-record" id="printRecord">
+    <h1 class="print-title">Alterna Savings — Cost of borrowing calculation</h1>
+    <p class="print-meta" id="printedLine">Printed <span id="printedAt"></span><span id="printEngine"></span></p>
+    <p class="print-meta" id="calculatedLine">Calculated <span id="calculatedAt"></span></p>
+    <p class="print-guard" id="printGuard">No current result. The inputs changed after the last calculation, or nothing was calculated. Calculate, then print.</p>
+    <div id="printBody">
+      <h2>Inputs</h2>
+      <dl class="print-inputs" id="printInputs"></dl>
+      <h3>Fees</h3>
+      <div id="printFees"></div>
+      <p class="print-taxes">* Payment amount does not include taxes.</p>
+      <h2>Results</h2>
+      <dl class="figures" id="printFigures"></dl>
+    </div>
+  </div>
+  <section class="print-only print-schedule-section" id="printScheduleSection">
+    <div class="schedule-head">
+      <h2>Amortization schedule</h2>
+      <p class="schedule-count" id="printScheduleCount"></p>
+    </div>
+    <table class="schedule" id="printScheduleTable"></table>
+  </section>
+
+  <div class="calc-grid">
+  <div class="pane pane-form">
+  <form id="form">
+    <h2>Flow</h2>
+    <div class="grid">
+      <div class="field">
+        <label for="flow">Flow</label>
+        <select id="flow">
+          <option value="newMortgageOrLoan">New mortgage / loan</option>
+          <option value="renewal">Renewal</option>
+          <option value="paymentChange">Payment change</option>
+          <option value="variableRatePaymentChange" data-switch="variableRatePaymentChangeFlow">Variable rate payment change</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="productType">Product type</label>
+        <select id="productType">
+          <option value="mortgage">Mortgage</option>
+          <option value="personalLoan">Personal loan</option>
+        </select>
+        <span class="hint locked">Set by the selected flow.</span>
+      </div>
+      <div class="field">
+        <label for="rateType">Rate type</label>
+        <select id="rateType">
+          <option value="variable">Variable</option>
+          <option value="fixed" selected>Fixed</option>
+        </select>
+        <span class="hint locked">Set by the selected flow.</span>
+      </div>
+    </div>
+
+    <h2>Loan / mortgage details</h2>
+    <div class="grid">
+      <div class="field" data-switch="contractDateField">
+        <label for="contractDate">Contract date</label>
+        <input type="date" id="contractDate" aria-describedby="contractDate-hint" />
+        <span class="hint" id="contractDate-hint">The date these terms are quoted as of. Shown on the results; doesn't change the calculation.</span>
+      </div>
+      <div class="field">
+        <label for="loanAmount">Loan amount ($)</label>
+        <input type="text" inputmode="decimal" autocomplete="off" data-money id="loanAmount" value="227,829.65" aria-describedby="loanAmount-hint" />
+        <span class="hint" id="loanAmount-hint">Face amount, or current outstanding balance for existing/renewal flows.</span>
+      </div>
+      <div class="field">
+        <label for="contractRatePercent">Contract rate (%)</label>
+        <input type="number" step="0.001" id="contractRatePercent" value="3.74" />
+      </div>
+      <div class="field">
+        <label for="paymentAmount">Payment amount ($)</label>
+        <input type="text" inputmode="decimal" autocomplete="off" data-money id="paymentAmount" value="465.46" aria-describedby="paymentAmount-hint" />
+        <span class="hint" id="paymentAmount-hint">The scheduled payment. It isn't calculated here.</span>
+      </div>
+      <div class="field">
+        <label for="paymentFrequency">Payment frequency</label>
+        <select id="paymentFrequency" aria-describedby="paymentFrequencyHint">
+          <option value="weekly" selected>Weekly (52/yr)</option>
+          <option value="acceleratedWeekly" data-switch="acceleratedFrequencies">Accelerated Weekly (52/yr)</option>
+          <option value="biweekly">Bi-weekly (26/yr)</option>
+          <option value="acceleratedBiweekly" data-switch="acceleratedFrequencies">Accelerated Bi-weekly (26/yr)</option>
+          <option value="semiMonthly">Semi-monthly (24/yr)</option>
+          <option value="monthly">Monthly (12/yr)</option>
+        </select>
+        <span class="hint" id="paymentFrequencyHint" hidden></span>
+      </div>
+      <div class="field">
+        <label for="firstPaymentDate" id="firstPaymentDate-label">First payment date</label>
+        <input type="date" id="firstPaymentDate" value="2026-03-23" />
+        <p class="hint" id="firstDateNote" role="status" hidden></p>
+      </div>
+      <div class="field">
+        <label for="endDate">End date</label>
+        <input type="date" id="endDate" value="2029-03-17" aria-describedby="endDate-hint" />
+        <span class="hint" id="endDate-hint">Payments are scheduled up to and including this date, or until the loan is paid off.</span>
+      </div>
+      <div class="field">
+        <label for="contractTerm">Contract term</label>
+        <input type="text" id="contractTerm" readonly aria-describedby="contractTerm-hint" />
+        <span class="hint" id="contractTerm-hint"></span>
+      </div>
+    </div>
+
+    <fieldset class="conditional" id="newFlowFields">
+      <legend id="newFlowLegend">New mortgage or loan</legend>
+      <div class="grid">
+        <div class="field">
+          <label for="disbursalDate" id="disbursalDate-label">Disbursal date</label>
+          <input type="date" id="disbursalDate" value="2026-03-17" />
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="conditional" id="existingFlowFields">
+      <legend id="existingFlowLegend">Renewal</legend>
+      <div class="grid">
+        <div class="field">
+          <label for="renewalDate" id="renewalDate-label">Renewal date</label>
+          <input type="date" id="renewalDate" value="2026-01-01" />
+        </div>
+        <div class="field">
+          <label for="accruedInterest">Accrued interest ($)</label>
+          <input type="text" inputmode="decimal" autocomplete="off" data-money id="accruedInterest" value="" aria-describedby="accruedInterest-hint" />
+          <span class="hint" id="accruedInterest-hint">Interest accrued since the last payment date.</span>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="conditional" id="semiAnnualField">
+      <legend>Fixed-rate mortgage</legend>
+      <div class="grid">
+        <div class="field">
+          <label for="semiAnnualCompoundingDate">Semi-annual compounding reference date</label>
+          <input type="date" id="semiAnnualCompoundingDate" value="2025-12-15" aria-describedby="semiAnnualCompoundingDate-hint" />
+          <span class="hint" id="semiAnnualCompoundingDate-hint">For reference only. It doesn't change the calculation.</span>
+        </div>
+      </div>
+    </fieldset>
+
+    <h2>Fees</h2>
+    <div id="feesWrap">
+      <table>
+        <thead>
+          <tr><th style="text-align:left">Name</th><th>Amount ($)</th><th data-switch="financedOption">Financed?</th><th><span class="visually-hidden">Actions</span></th></tr>
+        </thead>
+        <tbody id="feesBody"></tbody>
+      </table>
+    </div>
+    <button type="button" id="addFee" class="add-fee">Add fee</button>
+  </form>
+
+  <div id="error" role="alert"></div>
+  </div>
+
+  <div class="pane pane-results">
+    <section class="results" id="results" aria-labelledby="results-h">
+      <h2 id="results-h" tabindex="-1">Results</h2>
+      <p class="result-status" id="resultStatus">Results appear here after you calculate.</p>
+      <div id="resultBody" hidden>
+        <p class="result-context" id="resultContext"></p>
+        <dl class="headline" id="headlineFigures"></dl>
+        <dl class="figures" id="mainFigures"></dl>
+        <details class="disclosure more-figures">
+          <summary class="disclosure-summary">More figures</summary>
+          <div class="disclosure-body"><dl class="figures" id="moreFigures"></dl></div>
+        </details>
+      </div>
+      <div class="result-actions">
+        <div class="result-actions-buttons">
+          <button type="button" id="printSchedule" class="btn btn--secondary btn--unavailable" aria-disabled="true" aria-describedby="result-actions-hint">Print or save as PDF</button>
+          <button type="button" id="downloadCsv" class="btn btn--secondary btn--unavailable" aria-disabled="true" aria-describedby="result-actions-hint">Download CSV</button>
+        </div>
+        <p id="result-actions-hint" class="field-hint">Calculate first. Print and download need a current result.</p>
+      </div>
+    </section>
+  </div>
+  </div>
+
+  <section class="terms" id="contractTerms" aria-labelledby="contractTerms-heading" hidden>
+    <h3 id="contractTerms-heading">Contract terms<span data-switch="contractDateField"> — as of <span id="contractTermsDate"></span></span></h3>
+    <dl id="contractTermsList"></dl>
+    <p id="contractTermsNote" hidden></p>
+  </section>
+
+  <section class="schedule-section" id="scheduleSection" hidden>
+    <div class="schedule-head">
+      <h2 id="schedule-h">Amortization schedule</h2>
+      <p class="schedule-count" id="scheduleCount"></p>
+      <fieldset class="choice-group choice-group--plain column-toggle">
+        <legend class="choice-legend">Columns</legend>
+        <div class="choice-options">
+          <label for="scheduleColumns-all" class="choice choice--plain">
+            <input type="radio" id="scheduleColumns-all" name="scheduleColumns" value="all" />
+            <span class="choice-label">All</span>
+          </label>
+          <label for="scheduleColumns-compact" class="choice choice--plain">
+            <input type="radio" id="scheduleColumns-compact" name="scheduleColumns" value="compact" />
+            <span class="choice-label">Compact</span>
+          </label>
+        </div>
+      </fieldset>
+    </div>
+    <div class="schedule-scroll" role="region" aria-labelledby="schedule-h" tabindex="0">
+      <table class="schedule" id="scheduleTable"></table>
+    </div>
+  </section>
+
+  <footer id="shareFooter">COB Calculator v0.1.0 · built 2026-10-01 · single-file edition, works offline</footer>
+
+  <script type="module">
+const __cobModules = {};
+__cobModules["dist/ca/calendar.js"] = (() => {
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+function isLeapYear(year) {
+    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+}
+/** UTC-midnight timestamp for a Date's calendar-date components. Extracted via UTC
+ *  getters (not local getters) because this module's Dates are constructed from
+ *  'YYYY-MM-DD'-style ISO strings, which parse to UTC midnight -- using local getters
+ *  would silently shift the calendar date by a day in any timezone west of UTC (e.g.
+ *  this repo's own dev/CI environment, America/Toronto). All date arithmetic in this
+ *  module stays in UTC space for exactly this reason. */
+function utcDateOnly(date) {
+    return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+/**
+ * Actual calendar days between two dates (no leap-year splitting -- a plain integer
+ * day count). Feeds ScheduleRow.days_in_period and term_days.
+ */
+function daysBetween(start, end) {
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        throw new RangeError('start/end must be valid Dates');
+    }
+    return Math.round((utcDateOnly(end) - utcDateOnly(start)) / MS_PER_DAY); // fitness:day-count
+}
+/**
+ * Equation 3's day-count-fraction step -- docx section 4.4 / Appendix B.3: the actual
+ * number of calendar days in [start, end), divided by 365, EXCEPT that any days
+ * falling in a leap calendar year are divided by 366 instead, with the (possibly
+ * several) partial results summed. This is additive across contiguous sub-ranges --
+ * calling it once over a whole span gives the same result as summing it over each
+ * row-length sub-period of that span (verified against doc 007's worked vector; see
+ * cobCanada.ts's cob_rate_percent T for where this additivity is relied on).
+ */
+function dayCountFraction(start, end) {
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        throw new RangeError('start/end must be valid Dates');
+    }
+    const endUtc = utcDateOnly(end);
+    let cursor = utcDateOnly(start);
+    if (cursor > endUtc) {
+        throw new RangeError('start must be on or before end');
+    }
+    let fraction = 0;
+    while (cursor < endUtc) {
+        const year = new Date(cursor).getUTCFullYear();
+        const nextYearStart = Date.UTC(year + 1, 0, 1);
+        const segmentEnd = Math.min(nextYearStart, endUtc);
+        const daysInSegment = Math.round((segmentEnd - cursor) / MS_PER_DAY); // fitness:day-count
+        const daysInYear = isLeapYear(year) ? 366 : 365;
+        fraction += daysInSegment / daysInYear;
+        cursor = segmentEnd;
+    }
+    return fraction;
+}
+/** UTC-safe day/month stepping -- see utcDateOnly's doc comment above for why
+ *  this module avoids local-timezone Date getters/setters entirely. */
+function addUtcDays(date, days) {
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days));
+}
+/** Day count of the given UTC month (0-based monthIndex; Date.UTC normalises an
+ *  out-of-range monthIndex into the right year). */
+function daysInUtcMonth(year, monthIndex) {
+    return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+}
+/** True when `date` is the last day of its UTC month (Feb 28 2027, Feb 29 2028, Apr 30;
+ *  Feb 28 2028 is not, as 2028 is a leap year). */
+function isLastDayOfMonth(date) {
+    return date.getUTCDate() === daysInUtcMonth(date.getUTCFullYear(), date.getUTCMonth());
+}
+/** Steps `months` calendar months from `date` (callers index every monthly date from
+ *  the First Payment Date). Two steps:
+ *  1. Month-end rule OQ-X (COB-user-stories.md §7.3, business decision 2026-09-27): if
+ *     `date` is the last day of its month, the result is the last day of the target
+ *     month (Apr 30 -> May 31 -> Jun 30; Feb 28 2027 -> Mar 31). This is an intentional
+ *     difference from the workbook, whose DateAdd keeps the day number (Feb 28 ->
+ *     Mar 28).
+ *  2. Otherwise the day number is kept and clamped to the last day of the target
+ *     month, as VBA `DateAdd("m", months, date)` does in the macro's getNextMonthly:
+ *     Jan 31 + 1 month is Feb 28 (Feb 29 in a leap year), and Jan 30 -> Feb 28 ->
+ *     Mar 30.
+ *  T3 2026-09-27: monthly DateAdd month-end clamp; OQ-X 2026-09-27: month-end rule. */
+function addMonthsClamped(date, months) {
+    const year = date.getUTCFullYear();
+    const monthIndex = date.getUTCMonth() + months;
+    const lastDay = daysInUtcMonth(year, monthIndex);
+    const day = isLastDayOfMonth(date) ? lastDay : Math.min(date.getUTCDate(), lastDay);
+    return new Date(Date.UTC(year, monthIndex, day));
+}
+/** The whole years, months and leftover days from `from` to `to` (B24-R1). Both are read as
+ *  UTC calendar dates. The month count is anchored on the schedule's own stepper
+ *  `addMonthsClamped` (so a month-end start anchors on month-ends, OQ-X), and the leftover
+ *  days run from that anchor to `to`. */
+function termBetween(from, to) {
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+        throw new RangeError('from/to must be valid Dates');
+    }
+    const start = new Date(utcDateOnly(from));
+    const end = new Date(utcDateOnly(to));
+    if (start.getTime() > end.getTime()) {
+        throw new RangeError('from must be on or before to');
+    }
+    let totalMonths = (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + (end.getUTCMonth() - start.getUTCMonth());
+    if (addMonthsClamped(start, totalMonths).getTime() > end.getTime()) {
+        totalMonths -= 1;
+    }
+    const months = totalMonths % 12;
+    const years = (totalMonths - months) / 12;
+    const days = daysBetween(addMonthsClamped(start, totalMonths), end);
+    return { years, months, days };
+}
+/** Last day of `date`'s UTC month. Equivalent to the macro's
+ *  `getNextEOM(DateAdd("d", -1, date))`, the only way getNextSemiMonthly calls it. */
+function endOfUtcMonth(date) {
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
+}
+/** Exact port of the workbook's `getNextSemiMonthly(firstPymtDate, currentDate)` and
+ *  the `getNextEOM` it calls (reference/workbook-macro-source.txt ~lines 844-905),
+ *  quirks kept. Returns the payment date after `currentDate` (the previous payment).
+ *  Both arguments are read as their UTC calendar dates (any time of day is dropped).
+ *  - isEOM: the first date is the 15th or the last day of its month; dates then
+ *    alternate 15th / month-end (so a 31st start gives 15th / month-end).
+ *  - Otherwise day1 = first day, minus 15 when >= 15. A date <= 15th moves 15 days,
+ *    capped at its month-end (February capping: a 14th start gives 14th / 29th, Feb
+ *    28 or 29); a date > 15th moves to day1 of the next month via
+ *    `DateSerial(y, m, day1)`, where day1 = 0 rolls back to the previous month's last
+ *    day (Date.UTC normalises day 0 the same way). So a 16th start gives 1st / 16th,
+ *    and a 30th in a 31-day month gives 15th / 30th.
+ *  - The monthly month-end rule OQ-X does not apply here.
+ *  T4 2026-09-27: semi-monthly getNextSemiMonthly port. */
+function nextSemiMonthlyDate(firstPaymentDate, currentDate) {
+    const first = new Date(utcDateOnly(firstPaymentDate));
+    const current = new Date(utcDateOnly(currentDate));
+    const firstDay = first.getUTCDate();
+    const isEom = endOfUtcMonth(first).getTime() === first.getTime() || firstDay === 15;
+    const day1 = firstDay >= 15 ? firstDay - 15 : firstDay;
+    const currDay = current.getUTCDate();
+    const currEom = endOfUtcMonth(current);
+    if (current.getTime() === currEom.getTime() && isEom) {
+        return new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + 1, 15));
+    }
+    if (currDay === 15 && isEom) {
+        return currEom;
+    }
+    if (currDay > 15) {
+        return new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + 1, day1));
+    }
+    const nextDate = addUtcDays(current, 15);
+    return nextDate.getTime() > currEom.getTime() ? currEom : nextDate;
+}
+/** The First Payment Date the schedule starts from (B25, DEV-OQZ). Semi-monthly: a date that is
+ *  neither the 15th nor its month's last day moves forward within the same UTC month to the
+ *  15th (days 1-14) or to the month-end (days 16 to the day before month-end); the result is a
+ *  new Date at UTC midnight. Every other frequency returns `first` itself. An invalid Date is
+ *  returned unchanged (callers check validity first). */
+function effectiveFirstPaymentDate(frequency, first) {
+    if (frequency !== 'semiMonthly' || Number.isNaN(first.getTime())) {
+        return first;
+    }
+    const year = first.getUTCFullYear();
+    const monthIndex = first.getUTCMonth();
+    const day = first.getUTCDate();
+    const last = daysInUtcMonth(year, monthIndex);
+    const movedDay = day === 15 || day === last ? day : day < 15 ? 15 : last;
+    return new Date(Date.UTC(year, monthIndex, movedDay));
+}
+/** periodDate for period index i (0-based) at the given payment frequency.
+ *  Per BR-09, Accelerated Weekly is treated identically to Weekly and Accelerated
+ *  Bi-weekly identically to Bi-weekly. Weekly, bi-weekly and monthly are indexed from the First Payment
+ *  Date; semiMonthly is chained like the macro: index 0 is the First Payment Date (a
+ *  new Date at its UTC midnight) and
+ *  each later date is nextSemiMonthlyDate(firstPaymentDate, previousPaymentDate). */
+function periodDateFor(frequency, firstPaymentDate, index, previousPaymentDate) {
+    switch (frequency) {
+        case 'monthly':
+            return addMonthsClamped(firstPaymentDate, index);
+        case 'weekly':
+        case 'acceleratedWeekly':
+            return addUtcDays(firstPaymentDate, index * 7);
+        case 'biweekly':
+        case 'acceleratedBiweekly':
+            return addUtcDays(firstPaymentDate, index * 14);
+        case 'semiMonthly':
+            return index === 0 ? new Date(utcDateOnly(firstPaymentDate)) : nextSemiMonthlyDate(firstPaymentDate, previousPaymentDate);
+    }
+}
+return { isLeapYear, utcDateOnly, daysBetween, dayCountFraction, addUtcDays, daysInUtcMonth, isLastDayOfMonth, addMonthsClamped, termBetween, endOfUtcMonth, nextSemiMonthlyDate, effectiveFirstPaymentDate, periodDateFor };
+})();
+__cobModules["dist/ca/types.js"] = (() => {
+/**
+ * Canadian Cost of Borrowing (COB) disclosure engine, per the BRD v2.3
+ * (COB-business-requirement.md; input fields §3.1) and the four flows of use cases UC-01
+ * to UC-04 (COB-user-stories.md), reconciled against the real Alterna Savings
+ * workbook. This module is standalone: no integration with other systems.
+ */
+/** Payments/year per payment frequency -- standard counts (12/24/26/52), used
+ *  throughout equations 1-8. Per BR-09, Accelerated Weekly has the same n as Weekly (52)
+ *  and Accelerated Bi-weekly the same n as Bi-weekly (26). */
+const PAYMENTS_PER_YEAR = {
+    monthly: 12,
+    semiMonthly: 24,
+    biweekly: 26,
+    weekly: 52,
+    acceleratedBiweekly: 26,
+    acceleratedWeekly: 52,
+};
+/** True only for a primitive number that is finite (not NaN / +-Infinity). No
+ *  coercion: numeric strings, booleans, arrays and null are all false (012 D-11). */
+function isFiniteNumber(x) {
+    return typeof x === 'number' && Number.isFinite(x);
+}
+return { PAYMENTS_PER_YEAR, isFiniteNumber };
+})();
+__cobModules["dist/ca/fees.js"] = (() => {
+const { isFiniteNumber } = __cobModules["dist/ca/types.js"];
+function throwRangeError(message) {
+    throw new RangeError(message);
+}
+/**
+ * Validates a single Fee for use in a Canadian (spec 006) flow: amount must be a
+ * finite, non-negative number and `financed` a boolean. `includedInCob` is optional;
+ * if present it must be a boolean, and its value is never read (C counts every fee in
+ * full: OQ-E, macro line 562; B10, user 2026-09-29).
+ *
+ * Each failing check passes its message to `report` and returns false (a fee gives at
+ * most one message: its first failing check); the default reporter throws a RangeError
+ * with that message. Returns true when the fee is valid.
+ */
+function validateFee(fee, index, report = throwRangeError) {
+    if (typeof fee !== 'object' || fee === null) {
+        report(`fees.fees[${index}] must be a fee object, got ${String(fee)}`);
+        return false;
+    }
+    const label = fee.name || `fees.fees[${index}]`;
+    if (!isFiniteNumber(fee.amount)) {
+        report(`${label} amount must be a finite number, got ${String(fee.amount)}`);
+        return false;
+    }
+    if (!(fee.amount >= 0)) {
+        report(`${label} amount must be >= 0, got ${fee.amount}`);
+        return false;
+    }
+    if (typeof fee.financed !== 'boolean') {
+        report(`${label}.financed must be a boolean, got ${String(fee.financed)}`);
+        return false;
+    }
+    const includedInCob = fee.includedInCob;
+    if (includedInCob !== undefined && typeof includedInCob !== 'boolean') {
+        report(`${label}.includedInCob must be a boolean if present, got ${String(includedInCob)}`);
+        return false;
+    }
+    return true;
+}
+/** Validates the schedule's shape, then every fee in index order (holes skipped); same reporter contract as validateFee. */
+function validateFeeSchedule(schedule, report = throwRangeError) {
+    if (typeof schedule !== 'object' || schedule === null || !Array.isArray(schedule.fees)) {
+        report('fees must be an object with a fees array');
+        return false;
+    }
+    let ok = true;
+    schedule.fees.forEach((fee, index) => {
+        if (!validateFee(fee, index, report))
+            ok = false;
+    });
+    return ok;
+}
+function totalFinancedFees(schedule) {
+    return schedule.fees.filter((fee) => fee.financed).reduce((sum, fee) => sum + fee.amount, 0);
+}
+function totalCashFees(schedule) {
+    return schedule.fees.filter((fee) => !fee.financed).reduce((sum, fee) => sum + fee.amount, 0);
+}
+return { validateFee, validateFeeSchedule, totalFinancedFees, totalCashFees };
+})();
+__cobModules["dist/ca/policies.js"] = (() => {
+/**
+ * One named constant per open business decision (COB-architecture.md §3.4), each at
+ * today's implemented value. None of these decisions is settled here.
+ *
+ * Mechanism M1: the constants carry no type annotation, so each has its literal type.
+ * `cobCanada.ts` pins each one with `NAME satisfies <literal>;` at the place where
+ * today's rule lives. Changing a value here makes `tsc` fail at that pin, which is
+ * where the alternative branch has to be written. Only today's branch is built.
+ * `UNPAID_INTEREST_CAPITALISED` is a decided switch (mechanism M2, ADR-14): both branches are built; it has no `satisfies` pin.
+ */
+/**
+ * @decision OQ-Q — basis of P, the average outstanding balance used in the COB rate.
+ * Today `'openingBalance'`: P is the simple mean of each row's `openingBalance`, which
+ * includes financed fees still owed and capitalised unpaid period interest (workbook
+ * branch only) (`averageOutstandingBalance` in `cobCanada.ts`).
+ * Alternative (not built): `'openingPrincipal'` (macro column E).
+ */
+const P_BASIS = 'openingBalance';
+/**
+ * @decision OQ-R — how `principalPayment` is derived.
+ * Today `'sumOfPrincipalPortion'`: `principalPayment` is the sum of `row.principalPortion`.
+ * Alternative (not built): `'totalPaymentMinusInterest'` (macro J31).
+ */
+const PRINCIPAL_PAID = 'sumOfPrincipalPortion';
+/**
+ * @decision OQ-W — W2: how IN-11 prior accrued interest counts in C.
+ * Today `'whenPaid'`: IN-11 counts in `totalInterest` (so in C) only through
+ * `row.interestPaid`; IN-11 unpaid at the end is not counted. Period interest unpaid at the end is counted in the shipped branch (B19).
+ * Alternatives (not built): `'never'` (W2 suggested default "No"), `'inFull'`.
+ */
+const PRIOR_ACCRUED_IN_COB = 'whenPaid';
+/**
+ * @decision OQ-W — W3: is IN-11 prior accrued interest part of P?
+ * Today `false`: IN-11 never enters `openingBalance`, so it is not in P.
+ * Alternative (not built): `true`.
+ */
+const PRIOR_ACCRUED_IN_P = false;
+/**
+ * @decision OQ-L — does unpaid interest earn interest? Revised by stakeholder decision 1
+ * (2026-09-29, DEV-OQL).
+ * Switch (ADR-14): shipped `false`; the other branch `true` is built and tested.
+ * `false`: no interest on interest. Every unpaid interest amount (IN-11 and period
+ * shortfalls) is one bucket outside the balance, earning nothing; payments clear it oldest
+ * first (IN-11 before any period shortfall, Q-W4-INT); C counts every period interest amount
+ * charged, including any still unpaid at the end.
+ * `true`: the workbook branch (macro l.461-462, 514, 540): T6 / OQ-L capitalisation, plus the
+ * OQ-W interim rule while IN-11 is owed.
+ */
+const UNPAID_INTEREST_CAPITALISED = false;
+/**
+ * @decision Q-SACD — is the semi-annual compounding reference date required for a fixed-rate mortgage?
+ * Switch (ADR-14): shipped `false`; the other branch `true` is built and tested.
+ * `false`: the date is optional (the UI does not ask for it); a present but invalid date is still rejected.
+ * `true`: a fixed-rate mortgage must supply it.
+ */
+const SEMI_ANNUAL_DATE_REQUIRED = false;
+return { P_BASIS, PRINCIPAL_PAID, PRIOR_ACCRUED_IN_COB, PRIOR_ACCRUED_IN_P, UNPAID_INTEREST_CAPITALISED, SEMI_ANNUAL_DATE_REQUIRED };
+})();
+__cobModules["dist/ca/flows.js"] = (() => {
+const { SEMI_ANNUAL_DATE_REQUIRED } = __cobModules["dist/ca/policies.js"];
+/** The four flows. The order is load-bearing: validate.ts joins it with '/' in its message. */
+const FLOW_IDS = Object.freeze([
+    'newMortgageOrLoan',
+    'renewal',
+    'paymentChange',
+    'variableRatePaymentChange',
+]);
+const FLOWS = Object.freeze({
+    newMortgageOrLoan: Object.freeze({
+        startDateField: 'disbursalDate',
+        accruedInterest: 'hidden',
+        forcedProductType: null,
+        forcedRateType: null,
+        startDateLabel: 'Disbursal date',
+        firstPaymentDateLabel: 'First payment date',
+    }),
+    renewal: Object.freeze({
+        startDateField: 'renewalDate',
+        accruedInterest: 'required',
+        forcedProductType: null,
+        forcedRateType: null,
+        startDateLabel: 'Renewal date',
+        firstPaymentDateLabel: 'First payment date',
+    }),
+    paymentChange: Object.freeze({
+        startDateField: 'renewalDate',
+        accruedInterest: 'required',
+        forcedProductType: null,
+        forcedRateType: null,
+        startDateLabel: 'Date of change',
+        firstPaymentDateLabel: 'Next payment date',
+    }),
+    // Exists specifically to recompute the trigger rate, so it is mortgage + variable only.
+    variableRatePaymentChange: Object.freeze({
+        startDateField: 'renewalDate',
+        accruedInterest: 'required',
+        forcedProductType: 'mortgage',
+        forcedRateType: 'variable',
+        startDateLabel: 'Date of change',
+        firstPaymentDateLabel: 'Next payment date',
+    }),
+});
+/**
+ * Trigger rate is computed whenever product = mortgage and rate = variable,
+ * regardless of which of the four flows is in play (spec 006's "Presentation layer"
+ * table: newMortgageOrLoan/renewal/paymentChange all say "Yes, if product = mortgage
+ * and rate type = variable"; variableRatePaymentChange says "Yes, always" but that
+ * flow is validated to be mortgage+variable-only by construction -- see validate.ts --
+ * so the condition collapses to this single productType/rateType check for every flow).
+ */
+function computesTriggerRate(productType, rateType) {
+    return productType === 'mortgage' && rateType === 'variable';
+}
+/** Whether the semi-annual compounding reference date belongs to this product and rate type (a fixed-rate mortgage). */
+function semiAnnualDateApplies(productType, rateType) {
+    return productType === 'mortgage' && rateType === 'fixed';
+}
+/**
+ * Q-SACD: the semi-annual compounding reference date (equation 1) is required for a
+ * fixed-rate mortgage only while `required` is on (mechanism M2: the defaulted last
+ * parameter). This coincides today with equations.ts selectRateBasis (OQ-C), but the
+ * two rules are kept separate on purpose.
+ */
+function requiresSemiAnnualDate(productType, rateType, required = SEMI_ANNUAL_DATE_REQUIRED) {
+    return required && semiAnnualDateApplies(productType, rateType);
+}
+return { FLOW_IDS, FLOWS, computesTriggerRate, requiresSemiAnnualDate };
+})();
+__cobModules["dist/ca/equations.js"] = (() => {
+const { dayCountFraction } = __cobModules["dist/ca/calendar.js"];
+const { isFiniteNumber } = __cobModules["dist/ca/types.js"];
+/**
+ * The eight equations, implemented as specified -- each function below is annotated with
+ * that equation's number. The numbering 1 to 8 is the archived spec's own labelling, kept
+ * as the code's labels; the rules are stated in the BRD v2.3: equations 1 and 2 (rate
+ * conversion, m) in BRD §4.2 and Appendix A; equation 3 (period interest, day count) in
+ * §4.4 and B.3; equation 4 (waterfall) in B.5; equation 6 (trigger rate) in §4.3;
+ * equations 7 and 8 (COB rate and amount) in §4.1 and B.7.
+ *
+ * Rounding note: unlike this project's general convention (round only final currency
+ * amounts to cents), this module deliberately does NOT round intermediate or final
+ * currency values. Doc 007's worked validation vector (pulled directly from the live
+ * Alterna workbook's `data_only=True` cell values) is itself unrounded to 13+
+ * significant digits at every row (e.g. payment #1's interest_portion =
+ * 138.82433838712447), which means the source-of-truth workbook never applies a
+ * ROUND() function anywhere in this calculation -- it carries full floating-point
+ * precision throughout and only formats for display. Rounding each row to cents here
+ * would diverge from that vector by more than floating-point noise, so this module
+ * matches the workbook's actual (unrounded) behavior instead. This is a deliberate,
+ * documented deviation from the repo-wide rounding convention, scoped to this engine.
+ */
+/**
+ * Equation 1 -- frequency-equivalent nominal rate from a compounded contract rate,
+ * general conversion formula (CONFIRMED, Interest Act R.S.C. 1985, c. I-15, s. 6 for
+ * the m=2 case; docx Appendix A for the general shape):
+ *   calculated_rate = n x [(1 + contract_rate/m)^(m/n) - 1]
+ * Returned as a DECIMAL (e.g. 0.03706781471105014), not a percent -- period_interest
+ * (equation 3) multiplies this directly against a dollar balance. Only the
+ * SEMI-ANNUAL rate basis (fixed-rate mortgage, m = 2) is converted; the MONTHLY basis
+ * uses the contract rate as entered (selectRateBasis below). When m==n this reduces
+ * algebraically to contractRate/100, but not exactly in floating point.
+ */
+function calculatedRate(contractRatePercent, compoundingPeriodsPerYear, paymentsPerYear) {
+    if (!(contractRatePercent >= 0)) {
+        throw new RangeError(`contractRatePercent must be >= 0, got ${contractRatePercent}`);
+    }
+    if (!(compoundingPeriodsPerYear > 0)) {
+        throw new RangeError(`compoundingPeriodsPerYear must be > 0, got ${compoundingPeriodsPerYear}`);
+    }
+    if (!(paymentsPerYear > 0)) {
+        throw new RangeError(`paymentsPerYear must be > 0, got ${paymentsPerYear}`);
+    }
+    const annualRate = contractRatePercent / 100;
+    return (paymentsPerYear *
+        (Math.pow(1 + annualRate / compoundingPeriodsPerYear, compoundingPeriodsPerYear / paymentsPerYear) - 1));
+}
+function selectRateBasis(productType, rateType) {
+    return productType === 'mortgage' && rateType === 'fixed' ? 'SEMI-ANNUAL' : 'MONTHLY';
+}
+/**
+ * Equation 2 -- `m` (the compounding-periods-per-year parameter of equation 1) for the
+ * product/rate type:
+ *   - SEMI-ANNUAL basis (fixed-rate mortgage): m = 2.
+ *   - MONTHLY basis (variable-rate mortgage, personal loan of either rate type):
+ *     m = n (paymentsPerYear), i.e. no conversion. The engine does not evaluate
+ *     equation 1 for this basis; it uses the contract rate directly so the result is
+ *     exact (see calculatedRateFor).
+ */
+function selectCompoundingPeriodsPerYear(productType, rateType, paymentsPerYear) {
+    if (!(paymentsPerYear > 0)) {
+        throw new RangeError(`paymentsPerYear must be > 0, got ${paymentsPerYear}`);
+    }
+    return selectRateBasis(productType, rateType) === 'SEMI-ANNUAL' ? 2 : paymentsPerYear;
+}
+/**
+ * The Calculated Rate (workbook D10, app OUT-01) for a product/rate type and payment
+ * frequency, as a percent and as the decimal fed to period interest (the macro's
+ * getRate reads aRate = D10 / 100). MONTHLY basis: percent === contractRatePercent
+ * exactly. SEMI-ANNUAL basis: equation 1 at m = 2.
+ */
+function calculatedRateFor(productType, rateType, contractRatePercent, paymentsPerYear) {
+    if (!(contractRatePercent >= 0)) {
+        throw new RangeError(`contractRatePercent must be >= 0, got ${contractRatePercent}`);
+    }
+    if (!(paymentsPerYear > 0)) {
+        throw new RangeError(`paymentsPerYear must be > 0, got ${paymentsPerYear}`);
+    }
+    if (selectRateBasis(productType, rateType) === 'MONTHLY') {
+        return { percent: contractRatePercent, decimal: contractRatePercent / 100 };
+    }
+    const m = selectCompoundingPeriodsPerYear(productType, rateType, paymentsPerYear);
+    const decimal = calculatedRate(contractRatePercent, m, paymentsPerYear);
+    return { percent: decimal * 100, decimal };
+}
+const __re0 = __cobModules["dist/ca/calendar.js"];
+/**
+ * Equation 3 -- period interest, day-count proration:
+ *   period_interest = opening_balance x calculated_rate x (days_in_period / 365)
+ * with the leap-year split folded into dayCountFraction above (this is the "second,
+ * independent step applied on top of" calculated_rate the spec describes -- never
+ * folded into a single fixed periodic rate).
+ */
+function periodInterest(openingBalance, calculatedRateDecimal, periodStart, periodEnd) {
+    if (!(openingBalance >= 0)) {
+        throw new RangeError(`openingBalance must be >= 0, got ${openingBalance}`);
+    }
+    if (!(calculatedRateDecimal >= 0)) {
+        throw new RangeError(`calculatedRateDecimal must be >= 0, got ${calculatedRateDecimal}`);
+    }
+    return openingBalance * calculatedRateDecimal * dayCountFraction(periodStart, periodEnd);
+}
+/**
+ * Equation 4 -- payment allocation waterfall: interest (including carried accrued
+ * interest), then fees, then principal (docx BR-13 / Appendix B.5, doc 007
+ * finding #8). Pure function over one row's inputs, reused per schedule row by
+ * cobCanada.ts's schedule generator -- kept independently testable rather than
+ * inlined into the loop.
+ *
+ * `principalOutstanding` (= the row's openingBalance - feesOpening) caps the
+ * principal step: principalPortion = min(paymentAmount - interestPaid - feesPaid,
+ * max(principalOutstanding, 0)). The cap is never negative, as the macro's running
+ * `currPrinciple` can't go negative (B11). On a payoff row (the cap applies) the row's
+ * Payment is the remaining principal only, as in the workbook (OQ-K / OQ-T).
+ */
+function applyPaymentWaterfall(periodInterestAmount, carriedAccruedInterestOpening, feesOpening, paymentAmount, principalOutstanding) {
+    if (!isFiniteNumber(periodInterestAmount)) {
+        throw new RangeError(`periodInterestAmount must be a finite number, got ${String(periodInterestAmount)}`);
+    }
+    if (!(periodInterestAmount >= 0)) {
+        throw new RangeError(`periodInterestAmount must be >= 0, got ${periodInterestAmount}`);
+    }
+    if (!isFiniteNumber(carriedAccruedInterestOpening)) {
+        throw new RangeError(`carriedAccruedInterestOpening must be a finite number, got ${String(carriedAccruedInterestOpening)}`);
+    }
+    if (!(carriedAccruedInterestOpening >= 0)) {
+        throw new RangeError(`carriedAccruedInterestOpening must be >= 0, got ${carriedAccruedInterestOpening}`);
+    }
+    if (!isFiniteNumber(feesOpening)) {
+        throw new RangeError(`feesOpening must be a finite number, got ${String(feesOpening)}`);
+    }
+    if (!(feesOpening >= 0)) {
+        throw new RangeError(`feesOpening must be >= 0, got ${feesOpening}`);
+    }
+    if (!isFiniteNumber(paymentAmount)) {
+        throw new RangeError(`paymentAmount must be a finite number, got ${String(paymentAmount)}`);
+    }
+    if (!(paymentAmount >= 0)) {
+        throw new RangeError(`paymentAmount must be >= 0, got ${paymentAmount}`);
+    }
+    if (!isFiniteNumber(principalOutstanding)) {
+        throw new RangeError(`principalOutstanding must be a finite number, got ${String(principalOutstanding)}`);
+    }
+    const totalInterestDue = periodInterestAmount + carriedAccruedInterestOpening;
+    const interestPaid = Math.min(paymentAmount, totalInterestDue);
+    const carriedAccruedInterestClosing = totalInterestDue - interestPaid;
+    const remainingAfterInterest = paymentAmount - interestPaid;
+    const feesPaid = Math.min(remainingAfterInterest, feesOpening);
+    const feesClosing = feesOpening - feesPaid;
+    const remainingAfterFees = remainingAfterInterest - feesPaid;
+    const principalCap = principalOutstanding > 0 ? principalOutstanding : 0;
+    const isPayoff = principalCap < remainingAfterFees;
+    const principalPortion = isPayoff ? principalCap : remainingAfterFees;
+    const amountPaid = isPayoff ? principalPortion : paymentAmount;
+    return {
+        totalInterestDue,
+        interestPaid,
+        carriedAccruedInterestClosing,
+        feesPaid,
+        feesClosing,
+        principalPortion,
+        amountPaid,
+    };
+}
+/**
+ * Equation 6 -- trigger rate (mortgage + variable-rate only). CONFIRMED, unchanged by
+ * doc 007 -- `loanAmount` here means the flow's CURRENT outstanding principal (the
+ * original loanAmount for a newMortgageOrLoan flow; the current balance for
+ * renewal/paymentChange/variableRatePaymentChange flows). Returned as a percent, left
+ * unrounded (a ratio, per this project's rounding policy).
+ */
+function triggerRatePercent(paymentAmount, paymentsPerYear, loanAmount) {
+    if (!isFiniteNumber(paymentAmount)) {
+        throw new RangeError(`paymentAmount must be a finite number, got ${String(paymentAmount)}`);
+    }
+    if (!(paymentAmount >= 0)) {
+        throw new RangeError(`paymentAmount must be >= 0, got ${paymentAmount}`);
+    }
+    if (!isFiniteNumber(paymentsPerYear)) {
+        throw new RangeError(`paymentsPerYear must be a finite number, got ${String(paymentsPerYear)}`);
+    }
+    if (!(paymentsPerYear > 0)) {
+        throw new RangeError(`paymentsPerYear must be > 0, got ${paymentsPerYear}`);
+    }
+    if (!isFiniteNumber(loanAmount)) {
+        throw new RangeError(`loanAmount must be a finite number, got ${String(loanAmount)}`);
+    }
+    if (!(loanAmount > 0)) {
+        throw new RangeError(`loanAmount must be > 0, got ${loanAmount}`);
+    }
+    return ((paymentAmount * paymentsPerYear) / loanAmount) * 100;
+}
+/**
+ * Equation 7's GENERAL branch (fees > 0) -- cost-of-borrowing rate ("APR"). CONFIRMED
+ * shape (Financial Consumer Protection Framework Regulations, SOR/2021-181,
+ * ss. 47-48), VBA-confirmed via doc 007's "Addendum: VBA macro source review":
+ *   cob_rate_percent = (C / (T x P)) x 100
+ * C = cob_amount (equation 8), T = the term in years as a PLAIN (non-leap-adjusted)
+ * days/365 divide, P = the SIMPLE (unweighted) average of each row's opening
+ * balance. Both T and P are computed by the caller (cobCanada.ts). This function
+ * implements only the general branch -- callers must apply the fees===0
+ * short-circuit themselves (see costOfBorrowingRatePercent below), since no T/P
+ * choice reproduces the short-circuit's result from this formula as an identity
+ * (confirmed numerically against the real workbook's per-row balances -- see doc
+ * 007's addendum). Returned as a percent, left unrounded.
+ */
+function cobRatePercent(costOfBorrowing, termYears, averagePrincipalOutstanding) {
+    if (!(costOfBorrowing >= 0)) {
+        throw new RangeError(`costOfBorrowing must be >= 0, got ${costOfBorrowing}`);
+    }
+    if (!(termYears > 0)) {
+        throw new RangeError(`termYears must be > 0, got ${termYears}`);
+    }
+    if (!(averagePrincipalOutstanding > 0)) {
+        throw new RangeError(`averagePrincipalOutstanding must be > 0, got ${averagePrincipalOutstanding}`);
+    }
+    return (costOfBorrowing / (termYears * averagePrincipalOutstanding)) * 100;
+}
+/**
+ * Equation 7 (FULL) -- cost-of-borrowing rate, including the fees===0 short-circuit.
+ * VBA-confirmed, doc 007's "Addendum: VBA macro source review" (the live macro's
+ * literal `getRate`/`COBRate` code):
+ *   if fees.total_financed_fees + fees.total_cash_fees == 0:
+ *       cob_rate_percent = calculated_rate x 100   -- SHORT-CIRCUIT, no T/P involved
+ *   else:
+ *       cob_rate_percent = (cob_amount / (T x P)) x 100
+ * This is a hard branch, not an approximation or a reverse-engineered T/P choice --
+ * sourced from FCPFR s.32 ("the APR ... is the annual interest rate if the only cost
+ * of borrowing is interest"), the same shape as this project's existing `apr.py`
+ * (spec 002) `if total_cash_fees == 0: apr_percent = note_rate` convention. Delegates
+ * to cobRatePercent (the general branch) rather than re-deriving it inline.
+ */
+function costOfBorrowingRatePercent(calculatedRateDecimal, totalFinancedFees, totalCashFees, costOfBorrowing, termYears, averagePrincipalOutstanding) {
+    if (!(calculatedRateDecimal >= 0)) {
+        throw new RangeError(`calculatedRateDecimal must be >= 0, got ${calculatedRateDecimal}`);
+    }
+    if (!(totalFinancedFees >= 0)) {
+        throw new RangeError(`totalFinancedFees must be >= 0, got ${totalFinancedFees}`);
+    }
+    if (!(totalCashFees >= 0)) {
+        throw new RangeError(`totalCashFees must be >= 0, got ${totalCashFees}`);
+    }
+    if (totalFinancedFees + totalCashFees === 0) {
+        return calculatedRateDecimal * 100;
+    }
+    return cobRatePercent(costOfBorrowing, termYears, averagePrincipalOutstanding);
+}
+/**
+ * Equation 8 -- cost-of-borrowing dollar amount. CORRECTED (doc 007 finding #6) --
+ * drops the prior draft's FCPFR inclusion/exclusion filtering entirely:
+ *   cob_amount = total_interest + fees.total_financed_fees + fees.total_cash_fees
+ * All fees, unconditionally -- this engine never reads Fee.includedInCob.
+ */
+function cobAmount(totalInterest, totalFinancedFees, totalCashFees) {
+    if (!(totalInterest >= 0)) {
+        throw new RangeError(`totalInterest must be >= 0, got ${totalInterest}`);
+    }
+    if (!(totalFinancedFees >= 0)) {
+        throw new RangeError(`totalFinancedFees must be >= 0, got ${totalFinancedFees}`);
+    }
+    if (!(totalCashFees >= 0)) {
+        throw new RangeError(`totalCashFees must be >= 0, got ${totalCashFees}`);
+    }
+    return totalInterest + totalFinancedFees + totalCashFees;
+}
+return { calculatedRate, selectRateBasis, selectCompoundingPeriodsPerYear, calculatedRateFor, daysBetween: __re0.daysBetween, dayCountFraction: __re0.dayCountFraction, periodInterest, applyPaymentWaterfall, triggerRatePercent, cobRatePercent, costOfBorrowingRatePercent, cobAmount };
+})();
+__cobModules["dist/ca/products.js"] = (() => {
+/**
+ * The product catalogue: the payment frequencies each product type accepts.
+ * @decision FB-24 (B27, DEV-FB24): a personal loan is paid monthly only, in every flow and
+ * rate type. Fixed rule (no switch); the engine rejects any other frequency in validation.
+ * A mortgage accepts all six payment frequencies.
+ */
+const ALLOWED_PAYMENT_FREQUENCIES = Object.freeze({
+    mortgage: Object.freeze([
+        'monthly',
+        'semiMonthly',
+        'biweekly',
+        'weekly',
+        'acceleratedBiweekly',
+        'acceleratedWeekly',
+    ]),
+    personalLoan: Object.freeze(['monthly']),
+});
+/** The payment frequencies allowed for `productType` (the catalogue's own list; do not mutate). */
+function allowedPaymentFrequencies(productType) {
+    return ALLOWED_PAYMENT_FREQUENCIES[productType];
+}
+return { allowedPaymentFrequencies };
+})();
+__cobModules["dist/ca/validate.js"] = (() => {
+const { PAYMENTS_PER_YEAR, isFiniteNumber } = __cobModules["dist/ca/types.js"];
+const { effectiveFirstPaymentDate, utcDateOnly } = __cobModules["dist/ca/calendar.js"];
+const { totalCashFees, totalFinancedFees, validateFeeSchedule } = __cobModules["dist/ca/fees.js"];
+const { FLOWS, FLOW_IDS, requiresSemiAnnualDate } = __cobModules["dist/ca/flows.js"];
+const { allowedPaymentFrequencies } = __cobModules["dist/ca/products.js"];
+/**
+ * Validates a CobCanadaInput against BRD §6 (validation and error handling) and UC-05
+ * (COB-user-stories.md), with the input fields of BRD §3.1: field types (finite numbers, own-key enum values; 012 D-11) and
+ * ranges, the BRD §6 fee limit (financed + non-financed; OQ-M), the flow-conditional
+ * required date fields (each a valid Date by name, ordered on UTC calendar dates;
+ * 012 D-12), and the mortgage+variable-only scoping of the variableRatePaymentChange
+ * flow. Called first by calculateCobCanada, per this project's validateXInput
+ * convention (plain RangeError, no custom error classes). collectInputIssues runs the
+ * same checks and returns every issue instead of throwing at the first (A9).
+ *
+ * Unlike the pre-rewrite model, flow no longer implies productType (BRD §3.1
+ * and UC-01 to UC-04 -- newMortgageOrLoan/renewal/paymentChange apply identically to both
+ * mortgages and personal loans; only variableRatePaymentChange is still scoped, by
+ * construction, to mortgage+variable), so there is no flow<->productType consistency
+ * check left to perform beyond that one case.
+ */
+const PRODUCT_TYPES = ['mortgage', 'personalLoan'];
+const RATE_TYPES = ['variable', 'fixed'];
+function isOneOf(allowed, x) {
+    return typeof x === 'string' && allowed.includes(x);
+}
+/** 012 D-12: a real, finite Date (objects that merely have getTime are rejected). */
+function isValidDate(x) {
+    return x instanceof Date && Number.isFinite(x.getTime());
+}
+function checkInput(input, report) {
+    let loanOk = false;
+    if (!isFiniteNumber(input.loanAmount)) {
+        report({ field: 'loanAmount', message: `loanAmount must be a finite number, got ${String(input.loanAmount)}` });
+    }
+    else if (!(input.loanAmount > 0)) {
+        report({ field: 'loanAmount', message: `loanAmount must be > 0, got ${input.loanAmount}` });
+    }
+    else {
+        loanOk = true;
+    }
+    if (!isFiniteNumber(input.contractRatePercent)) {
+        report({
+            field: 'contractRatePercent',
+            message: `contractRatePercent must be a finite number, got ${String(input.contractRatePercent)}`,
+        });
+    }
+    else if (!(input.contractRatePercent > 0)) {
+        report({ field: 'contractRatePercent', message: `contractRatePercent must be > 0, got ${input.contractRatePercent}` });
+    }
+    if (!isFiniteNumber(input.paymentAmount)) {
+        report({ field: 'paymentAmount', message: `paymentAmount must be a finite number, got ${String(input.paymentAmount)}` });
+    }
+    else if (!(input.paymentAmount > 0)) {
+        report({ field: 'paymentAmount', message: `paymentAmount must be > 0, got ${input.paymentAmount}` });
+    }
+    const freqOk = typeof input.paymentFrequency === 'string' && Object.hasOwn(PAYMENTS_PER_YEAR, input.paymentFrequency);
+    if (!freqOk) {
+        report({
+            field: 'paymentFrequency',
+            message: `paymentFrequency must be one of ${Object.keys(PAYMENTS_PER_YEAR).join('/')}, got ${String(input.paymentFrequency)}`,
+        });
+    }
+    const flowOk = isOneOf(FLOW_IDS, input.flow);
+    if (!flowOk) {
+        report({ field: 'flow', message: `flow must be one of ${FLOW_IDS.join('/')}, got ${String(input.flow)}` });
+    }
+    const productOk = isOneOf(PRODUCT_TYPES, input.productType);
+    if (!productOk) {
+        report({
+            field: 'productType',
+            message: `productType must be one of ${PRODUCT_TYPES.join('/')}, got ${String(input.productType)}`,
+        });
+    }
+    const rateOk = isOneOf(RATE_TYPES, input.rateType);
+    if (!rateOk) {
+        report({ field: 'rateType', message: `rateType must be one of ${RATE_TYPES.join('/')}, got ${String(input.rateType)}` });
+    }
+    const feesOk = validateFeeSchedule(input.fees, (message) => report({ field: 'fees', message }));
+    // BRD §6 / OQ-M: financed + non-financed fees must be less than the loan amount
+    // (macro lines 174-184). Summed as two group totals, as the macro does
+    // (finFee + nonFinFee), not as one list-order sum (B2-R1).
+    if (feesOk && loanOk) {
+        const groupedFees = totalFinancedFees(input.fees) + totalCashFees(input.fees);
+        if (!(groupedFees < input.loanAmount)) {
+            report({
+                field: 'fees',
+                message: `total fees (financed + non-financed) (${groupedFees}) must be less than loanAmount (${input.loanAmount})`,
+            });
+        }
+    }
+    // A flow may force a product type and/or a rate type (renewal: mortgage;
+    // variableRatePaymentChange: mortgage + variable; the locks live in flows.ts). The
+    // other flows apply identically across product/rate type. The message is built from
+    // the catalogue. FLOWS[input.flow] is safe: this runs only if the flow check passed.
+    if (flowOk && productOk && rateOk) {
+        const flowSpec = FLOWS[input.flow];
+        if ((flowSpec.forcedProductType !== null && input.productType !== flowSpec.forcedProductType) ||
+            (flowSpec.forcedRateType !== null && input.rateType !== flowSpec.forcedRateType)) {
+            const allowed = [
+                flowSpec.forcedProductType,
+                flowSpec.forcedRateType === null ? null : `${flowSpec.forcedRateType}-rate`,
+            ]
+                .filter((x) => x !== null)
+                .join(' + ');
+            report({
+                field: 'flow',
+                message: `flow '${input.flow}' is ${allowed} only, got productType='${input.productType}', rateType='${input.rateType}'`,
+            });
+        }
+    }
+    // The product catalogue restricts the payment frequency (personal loan: monthly only;
+    // B27, DEV-FB24). Every flow and rate type; runs only when both enums passed.
+    if (productOk && freqOk) {
+        const allowedFrequencies = allowedPaymentFrequencies(input.productType);
+        if (!allowedFrequencies.includes(input.paymentFrequency)) {
+            report({
+                field: 'paymentFrequency',
+                message: `paymentFrequency '${input.paymentFrequency}' is not allowed for productType '${input.productType}' (allowed: ${allowedFrequencies.join('/')})`,
+            });
+        }
+    }
+    const firstOk = isValidDate(input.firstPaymentDate);
+    if (!firstOk) {
+        report({ field: 'firstPaymentDate', message: 'firstPaymentDate must be a valid Date' });
+    }
+    const endOk = isValidDate(input.endDate);
+    if (!endOk) {
+        report({ field: 'endDate', message: 'endDate must be a valid Date' });
+    }
+    const effFirst = firstOk && freqOk ? effectiveFirstPaymentDate(input.paymentFrequency, input.firstPaymentDate) : input.firstPaymentDate;
+    const firstMoved = firstOk && utcDateOnly(effFirst) !== utcDateOnly(input.firstPaymentDate);
+    if (firstOk && endOk && utcDateOnly(input.endDate) <= utcDateOnly(effFirst)) {
+        const moved = firstMoved ? ` (moved to ${effFirst.toISOString().slice(0, 10)} for semi-monthly payments; compared as UTC calendar dates)` : ' (compared as UTC calendar dates)';
+        report({ field: 'endDate', message: `endDate must be after firstPaymentDate${moved}` });
+    }
+    // Flow-conditional date fields (spec 006's "Presentation layer" table).
+    let startDate;
+    if (flowOk) {
+        const startField = FLOWS[input.flow].startDateField;
+        const startValue = input[startField];
+        if (startValue === undefined) {
+            report({ field: startField, message: `flow '${input.flow}' requires ${startField}` });
+        }
+        else if (!isValidDate(startValue)) {
+            report({ field: startField, message: `${startField} must be a valid Date` });
+        }
+        else if (firstOk && utcDateOnly(startValue) > utcDateOnly(effFirst)) {
+            report({ field: startField, message: `${startField} must be on or before firstPaymentDate` });
+        }
+        else {
+            startDate = startValue;
+        }
+    }
+    if (flowOk && FLOWS[input.flow].accruedInterest === 'required' && input.accruedInterest === undefined) {
+        report({
+            field: 'accruedInterest',
+            message: `flow '${input.flow}' requires accruedInterest (enter 0 if there is none)`,
+        });
+    }
+    else if (input.accruedInterest !== undefined && !isFiniteNumber(input.accruedInterest)) {
+        report({
+            field: 'accruedInterest',
+            message: `accruedInterest must be a finite number, got ${String(input.accruedInterest)}`,
+        });
+    }
+    else if (input.accruedInterest !== undefined && !(input.accruedInterest >= 0)) {
+        report({ field: 'accruedInterest', message: `accruedInterest must be >= 0, got ${input.accruedInterest}` });
+    }
+    // Compounding-convention reference input (equation 1).
+    if (requiresSemiAnnualDate(input.productType, input.rateType, true)) {
+        if (input.semiAnnualCompoundingDate === undefined) {
+            if (requiresSemiAnnualDate(input.productType, input.rateType)) {
+                report({
+                    field: 'semiAnnualCompoundingDate',
+                    message: "productType 'mortgage' with rateType 'fixed' requires semiAnnualCompoundingDate " +
+                        '(the semi-annual compounding reference anchor -- equation 1)',
+                });
+            }
+        }
+        else if (!isValidDate(input.semiAnnualCompoundingDate)) {
+            report({ field: 'semiAnnualCompoundingDate', message: 'semiAnnualCompoundingDate must be a valid Date' });
+        }
+    }
+    return startDate;
+}
+/** Throws a RangeError with the first issue's message; evaluates no check after it (A9-R3). */
+function validateCobCanadaInput(input) {
+    return {
+        startDate: checkInput(input, (issue) => {
+            throw new RangeError(issue.message);
+        }),
+    };
+}
+/** Every issue validateCobCanadaInput would find, in check order; [] when the input is valid. Never catches. */
+function collectInputIssues(input) {
+    const issues = [];
+    checkInput(input, (issue) => {
+        issues.push(issue);
+    });
+    return issues;
+}
+return { validateCobCanadaInput, collectInputIssues };
+})();
+__cobModules["dist/ca/cobCanada.js"] = (() => {
+const { daysBetween, effectiveFirstPaymentDate, periodDateFor, termBetween } = __cobModules["dist/ca/calendar.js"];
+const { totalCashFees, totalFinancedFees } = __cobModules["dist/ca/fees.js"];
+const { FLOWS, computesTriggerRate } = __cobModules["dist/ca/flows.js"];
+const { PRINCIPAL_PAID, PRIOR_ACCRUED_IN_COB, PRIOR_ACCRUED_IN_P, P_BASIS, UNPAID_INTEREST_CAPITALISED } = __cobModules["dist/ca/policies.js"];
+const { applyPaymentWaterfall, calculatedRateFor, cobAmount: cobAmountEquation, costOfBorrowingRatePercent, periodInterest, triggerRatePercent: triggerRatePercentEquation } = __cobModules["dist/ca/equations.js"];
+const { PAYMENTS_PER_YEAR } = __cobModules["dist/ca/types.js"];
+const { validateCobCanadaInput } = __cobModules["dist/ca/validate.js"];
+/** A generous safety cap against a misconfigured schedule that never reaches
+ *  end_date (the date-based stop condition below is otherwise self-terminating by
+ *  construction, since periodDateFor is strictly increasing) -- not expected to ever
+ *  trigger for real input, purely defensive. */
+const MAX_SCHEDULE_ROWS_SAFETY_CAP = 20000;
+/**
+ * Equation 5 -- schedule generation / stop condition (doc 007 finding #2, boundary
+ * corrected against the live macro source -- see doc 007's "Addendum: VBA macro
+ * source review"). One row per payment_frequency period starting at
+ * first_payment_date, running equations 3-4 each row, stopping BEFORE generating the
+ * first candidate row whose date is STRICTLY AFTER end_date -- a row landing exactly
+ * ON end_date IS generated (inclusive, not exclusive; matches the real macro's
+ * `DateDiff("d", endDate, candidateDate) > 0` exit check) -- or right after the row
+ * whose closing_balance reaches zero, whichever comes first. Verified against doc
+ * 007's worked vector: first_payment_date 2026-03-23, weekly, end_date 2029-03-17
+ * generates exactly 156 rows, the last dated 2029-03-12 (row 157 would fall on
+ * 2029-03-19, strictly after end_date, so it is never generated) -- there is no
+ * amortization-horizon input anywhere in this engine.
+ *
+ * Unpaid interest, shipped branch (UNPAID_INTEREST_CAPITALISED false, DEV-OQL). The
+ * interest base is openingBalance = principal + unrecovered financed fees; it never holds
+ * unpaid interest (B19-R1). Unpaid interest (IN-11 and period shortfalls) is one bucket
+ * outside the balance that earns nothing; the waterfall pays it, and this period's
+ * interest, first, and its own closing value is the next bucket (B19-R2). Payments clear
+ * IN-11 first (oldest first, Q-W4-INT), tracked as `priorAccruedOwed` (B19-R3). The
+ * bucket minus the IN-11 still owed is the period interest unpaid at the end, which
+ * counts in C as charged (B19-R4). closingBalance excludes interest (B19-R5).
+ *
+ * Workbook branch (true): unpaid period interest, OQ-L. A shortfall stays owing, is paid
+ * first from later payments, is part of the Loan balance (closing and next opening), and
+ * is charged interest next period. CalculateAll: `newInt = openingBalance * appliedRate`,
+ * `intAccrued = intAccrued + newInt`, `newBalance = newFees + newPrinciple + intAccrued -
+ * totalInterestPaid`, `openingBalance = newBalance`. Past accrued interest, IN-11, is
+ * carried outside the balance, earning nothing; while any is outstanding, an interest
+ * shortfall is carried with it (OQ-W interim). Only one of the two is ever nonzero, so
+ * the waterfall sees their sum.
+ */
+function buildSchedule(args) {
+    const { loanAmount, calculatedRateDecimal, paymentAmount, startDate, firstPaymentDate, endDate, frequency, initialPastAccruedInterest, initialFeesToRecover, unpaidInterestCapitalised, } = args;
+    const rows = [];
+    let openingBalance = loanAmount;
+    let feesToRecover = initialFeesToRecover;
+    let priorDate = startDate;
+    // Workbook branch (UNPAID_INTEREST_CAPITALISED true): T6 / OQ-L plus the OQ-W interim rule.
+    let pastAccruedInterest = initialPastAccruedInterest;
+    let unpaidPeriodInterest = 0;
+    // Shipped branch (false, DEV-OQL): one bucket of unpaid interest outside the balance.
+    let accruedBucket = initialPastAccruedInterest;
+    let priorAccruedOwed = initialPastAccruedInterest;
+    for (let index = 0; index < MAX_SCHEDULE_ROWS_SAFETY_CAP; index += 1) {
+        const rowDate = periodDateFor(frequency, firstPaymentDate, index, priorDate);
+        if (rowDate.getTime() > endDate.getTime()) {
+            break;
+        }
+        const daysInPeriod = daysBetween(priorDate, rowDate);
+        const periodInterestAmount = periodInterest(openingBalance, calculatedRateDecimal, priorDate, rowDate);
+        const carriedAccruedInterest = unpaidInterestCapitalised
+            ? pastAccruedInterest + unpaidPeriodInterest
+            : accruedBucket;
+        const waterfall = applyPaymentWaterfall(periodInterestAmount, carriedAccruedInterest, feesToRecover, paymentAmount, unpaidInterestCapitalised
+            ? openingBalance - feesToRecover - unpaidPeriodInterest
+            : openingBalance - feesToRecover);
+        let closingBalance;
+        if (unpaidInterestCapitalised) {
+            const unpaidPeriodInterestClosing = pastAccruedInterest > 0 ? 0 : waterfall.carriedAccruedInterestClosing;
+            // Spec 011 D9/D8 (DEV-011-2): financed fees are inside openingBalance, so the fees
+            // paid reduce it as well as the principal paid. OQ-L: so is unpaid period interest.
+            closingBalance =
+                openingBalance -
+                    waterfall.feesPaid -
+                    waterfall.principalPortion -
+                    unpaidPeriodInterest +
+                    unpaidPeriodInterestClosing;
+            pastAccruedInterest = pastAccruedInterest > 0 ? waterfall.carriedAccruedInterestClosing : 0;
+            unpaidPeriodInterest = unpaidPeriodInterestClosing;
+        }
+        else {
+            closingBalance = openingBalance - waterfall.feesPaid - waterfall.principalPortion;
+            priorAccruedOwed = priorAccruedOwed - Math.min(waterfall.interestPaid, priorAccruedOwed);
+            accruedBucket = waterfall.carriedAccruedInterestClosing;
+        }
+        rows.push({
+            period: index + 1,
+            date: rowDate,
+            daysInPeriod,
+            openingBalance,
+            periodInterest: periodInterestAmount,
+            carriedAccruedInterestOpening: carriedAccruedInterest,
+            feesOpening: feesToRecover,
+            paymentAmount: waterfall.amountPaid,
+            interestPaid: waterfall.interestPaid,
+            feesPaid: waterfall.feesPaid,
+            principalPortion: waterfall.principalPortion,
+            carriedAccruedInterestClosing: waterfall.carriedAccruedInterestClosing,
+            feesClosing: waterfall.feesClosing,
+            closingBalance,
+        });
+        openingBalance = closingBalance;
+        feesToRecover = waterfall.feesClosing;
+        priorDate = rowDate;
+        if (closingBalance <= 0) {
+            break;
+        }
+    }
+    return {
+        schedule: rows,
+        unpaidPeriodInterestAtEnd: unpaidInterestCapitalised ? unpaidPeriodInterest : accruedBucket - priorAccruedOwed,
+    };
+}
+/**
+ * Equation 7's P (general branch only) -- the SIMPLE (unweighted) average of each
+ * row's opening balance. VBA-confirmed (doc 007's "Addendum: VBA macro source
+ * review"): the macro's own `avgOpeningPrinciple = totalOpeningPrinciple /
+ * pymtCount`, matching the spec's prose ("the average of the opening balances
+ * across all payments") and docx Appendix B.7 exactly -- an earlier version of this
+ * module weighted this average by each row's day-count fraction to
+ * reverse-engineer a match against doc 007's worked vector, but that vector's
+ * cob_rate_percent is produced by equation 7's fees===0 SHORT-CIRCUIT
+ * (costOfBorrowingRatePercent below), not by this formula at all, so no such
+ * weighting was ever needed or correct.
+ */
+function averageOutstandingBalance(rows) {
+    P_BASIS; // OQ-Q
+    PRIOR_ACCRUED_IN_P; // OQ-W3
+    return rows.reduce((sum, row) => sum + row.openingBalance, 0) / rows.length;
+}
+const SHIPPED_SWITCHES = Object.freeze({
+    unpaidInterestCapitalised: UNPAID_INTEREST_CAPITALISED,
+});
+function calculateCobCanada(input) {
+    return calculateCobCanadaWith(input, SHIPPED_SWITCHES);
+}
+function calculateCobCanadaWith(input, switches) {
+    const { startDate } = validateCobCanadaInput(input);
+    const paymentsPerYear = PAYMENTS_PER_YEAR[input.paymentFrequency];
+    const financedFees = totalFinancedFees(input.fees);
+    const cashFees = totalCashFees(input.fees);
+    // "Financed fees" (resolved, doc 007 finding #4): loan_amount is ALREADY
+    // inclusive of financed fees -- amortized_principal is simply loan_amount, and
+    // disbursal_amount only subtracts financed fees (cash fees never touch disbursal).
+    const amortizedPrincipal = input.loanAmount;
+    const disbursalAmount = input.loanAmount - financedFees;
+    // Equations 1/2 -- the Calculated Rate by rate basis (OQ-C): the contract rate
+    // as entered (MONTHLY) or converted at m = 2 (SEMI-ANNUAL, fixed mortgage).
+    const { percent: calculatedRatePercent, decimal: calculatedRateDecimal } = calculatedRateFor(input.productType, input.rateType, input.contractRatePercent, paymentsPerYear);
+    const flowSpec = FLOWS[input.flow];
+    // Past accrued interest (IN-11) starts at the input accrued_interest for
+    // renewal/paymentChange/variableRatePaymentChange flows, 0 for newMortgageOrLoan
+    // (doc 007 finding #5 -- never capitalized into the opening balance; OQ-W open).
+    // Required since B20; the `?? 0` only satisfies the union type.
+    const initialPastAccruedInterest = flowSpec.accruedInterest === 'hidden' ? 0 : (input.accruedInterest ?? 0);
+    // fees_to_recover starts at the FINANCED fees only (spec 011 DEV-011-1, BRD IN-07 /
+    // BR-04): non-financed fees are paid separately by the member, never enter the
+    // waterfall, and count only in cobAmount / cobRatePercent below.
+    const initialFeesToRecover = financedFees;
+    const { schedule, unpaidPeriodInterestAtEnd } = buildSchedule({
+        loanAmount: amortizedPrincipal,
+        calculatedRateDecimal,
+        paymentAmount: input.paymentAmount,
+        startDate,
+        firstPaymentDate: effectiveFirstPaymentDate(input.paymentFrequency, input.firstPaymentDate),
+        endDate: input.endDate,
+        frequency: input.paymentFrequency,
+        initialPastAccruedInterest,
+        initialFeesToRecover,
+        unpaidInterestCapitalised: switches.unpaidInterestCapitalised,
+    });
+    if (schedule.length === 0) {
+        throw new RangeError('calculateCobCanada produced zero scheduled payments -- firstPaymentDate must fall before endDate');
+    }
+    const lastRow = schedule[schedule.length - 1];
+    const totalPayment = schedule.reduce((sum, row) => sum + row.paymentAmount, 0);
+    // Total interest counts period interest as charged (OQ-L / DEV-OQL; CalculateAll:
+    // `TOTALINTERESTCELL = intAccrued`), so the period interest still unpaid at the end is
+    // added. IN-11 past accrued interest still counts only as it is paid (W2).
+    PRIOR_ACCRUED_IN_COB; // OQ-W2
+    const totalInterest = schedule.reduce((sum, row) => sum + row.interestPaid, 0) + unpaidPeriodInterestAtEnd;
+    const feesRecovered = schedule.reduce((sum, row) => sum + row.feesPaid, 0);
+    // Equation 4: principal_payment == total_payment - sum(interest_paid) - fees_recovered,
+    // reconciling exactly by construction (invariant #2) -- summed directly rather than
+    // subtracted, so it holds even if a future change makes any individual row's
+    // waterfall math imprecise.
+    PRINCIPAL_PAID; // OQ-R
+    const principalPayment = schedule.reduce((sum, row) => sum + row.principalPortion, 0);
+    // Equation 8 -- all fees, unconditionally (the only place non-financed fees enter,
+    // with cobRatePercent through it -- spec 011).
+    const cobDollarAmount = cobAmountEquation(totalInterest, financedFees, cashFees);
+    // Equation 7 -- T = actual days from start_date to the LAST ROW ACTUALLY
+    // GENERATED (not end_date itself), a PLAIN days/365 divide (VBA-confirmed NOT
+    // leap-year-adjusted, unlike equation 3's period_interest); P = the simple average
+    // of each row's opening balance. Both only matter for the general (fees > 0)
+    // branch -- costOfBorrowingRatePercent short-circuits to calculatedRate x 100
+    // whenever fees total $0, per doc 007's addendum.
+    const finalPaymentDate = lastRow.date;
+    const termDays = daysBetween(startDate, finalPaymentDate);
+    if (termDays === 0 && !(financedFees + cashFees === 0)) {
+        const startField = flowSpec.startDateField;
+        throw new RangeError(`${startField} is the same day as the only payment date, so the COB-rate term is 0 days; with fees the term must be at least 1 day`);
+    }
+    const termYearsExact = termDays / 365;
+    const averageOutstandingBalanceValue = averageOutstandingBalance(schedule);
+    const cobRate = costOfBorrowingRatePercent(calculatedRateDecimal, financedFees, cashFees, cobDollarAmount, termYearsExact, averageOutstandingBalanceValue);
+    // Equation 6 -- mortgage + variable only. loan_amount = current outstanding
+    // principal = amortizedPrincipal (== loanAmount at disbursal for new flows;
+    // already the current balance for renewal/paymentChange flows).
+    const triggerRate = computesTriggerRate(input.productType, input.rateType)
+        ? triggerRatePercentEquation(input.paymentAmount, paymentsPerYear, amortizedPrincipal)
+        : null;
+    return {
+        calculatedRatePercent,
+        cobAmount: cobDollarAmount,
+        cobRatePercent: cobRate,
+        totalPayment,
+        numberOfPayments: schedule.length,
+        totalInterest,
+        principalPayment,
+        feesRecovered,
+        triggerRatePercent: triggerRate,
+        amortizationSchedule: schedule,
+        termDays,
+        disbursalAmount,
+        amortizedPrincipal,
+        endingBalance: lastRow.closingBalance,
+    };
+}
+/**
+ * The contract term (B24): whole years, months and leftover days from the first to the last
+ * row of the calculated schedule. Unrelated to `termDays`, which runs from the flow's start date.
+ * An empty schedule (the engine never returns one) throws a RangeError.
+ */
+function contractTerm(result) {
+    const schedule = result.amortizationSchedule;
+    const first = schedule[0];
+    const last = schedule[schedule.length - 1];
+    if (first === undefined || last === undefined) {
+        throw new RangeError('amortizationSchedule must have at least one row');
+    }
+    return termBetween(first.date, last.date);
+}
+return { SHIPPED_SWITCHES, calculateCobCanada, calculateCobCanadaWith, contractTerm };
+})();
+__cobModules["dist/ca/index.js"] = (() => {
+// Canadian Cost of Borrowing (COB) engine: the public API. The UI imports only this
+// module (COB-architecture.md ADR-05, F2).
+const __re0 = __cobModules["dist/ca/cobCanada.js"];
+const __re1 = __cobModules["dist/ca/flows.js"];
+const __re2 = __cobModules["dist/ca/types.js"];
+const __re3 = __cobModules["dist/ca/products.js"];
+const __re4 = __cobModules["dist/ca/validate.js"];
+return { calculateCobCanada: __re0.calculateCobCanada, contractTerm: __re0.contractTerm, FLOWS: __re1.FLOWS, requiresSemiAnnualDate: __re1.requiresSemiAnnualDate, PAYMENTS_PER_YEAR: __re2.PAYMENTS_PER_YEAR, allowedPaymentFrequencies: __re3.allowedPaymentFrequencies, collectInputIssues: __re4.collectInputIssues };
+})();
+__cobModules["ui/ca-view.js"] = (() => {
+// DOM-free view logic for ui/ca.js (COB-architecture.md §3.1, §5 A10): form strings -> engine
+// input, figures, print rows, schedule table nodes, CSV. No imports and no DOM: the engine facts
+// it needs (the flow spec, whether the semi-annual date applies) are passed in by ui/ca.js.
+
+// --- labels (display text) ---
+
+const LABELS = Object.freeze({
+  flow: Object.freeze({
+    newMortgageOrLoan: 'New mortgage or loan',
+    renewal: 'Renewal',
+    paymentChange: 'Payment change',
+    variableRatePaymentChange: 'Variable rate payment change',
+  }),
+  productType: Object.freeze({ mortgage: 'Mortgage', personalLoan: 'Personal loan' }),
+  rateType: Object.freeze({ fixed: 'Fixed', variable: 'Variable' }),
+  paymentFrequency: Object.freeze({
+    weekly: 'Weekly',
+    biweekly: 'Bi-weekly',
+    semiMonthly: 'Semi-monthly',
+    monthly: 'Monthly',
+    acceleratedWeekly: 'Accelerated Weekly',
+    acceleratedBiweekly: 'Accelerated Bi-weekly',
+  }),
+});
+
+function label(kind, value) {
+  return LABELS[kind][value] ?? value;
+}
+
+// --- formats ---
+
+const currency = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' });
+const printCurrency = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', signDisplay: 'negative' });
+const printRate = new Intl.NumberFormat('en-CA', { minimumFractionDigits: 5, maximumFractionDigits: 5, signDisplay: 'negative' });
+const printCount = new Intl.NumberFormat('en-CA');
+// timeZone 'UTC' is required: every date is a UTC midnight (the engine's convention).
+const inputDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: 'short', day: '2-digit', timeZone: 'UTC' });
+const printShortDate = new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+
+function formatCurrency(value) {
+  return currency.format(value);
+}
+
+function formatInputDate(date) {
+  return date ? inputDate.format(date) : 'Not entered';
+}
+
+function formatRate(value) {
+  return `${printRate.format(value)}%`;
+}
+
+function isoDay(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+// `YYYY-MM-DD` -> `Mar 23, 2026` from the string's own parts; anything else unchanged.
+function formatIsoDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  const t = new Date(0);
+  t.setUTCFullYear(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return printShortDate.format(t);
+}
+
+// --- money amounts (B16, Q-MONEY-FMT) ---
+
+// Sign, optional `$`, integer part (plain digits, or comma groups of three with no leading zero), optional
+// fraction. The whole string is trimmed first; nothing else is accepted (no inner spaces, no exponent, no `+`).
+const AMOUNT = /^(-?)\$?(\d+|[1-9]\d{0,2}(?:,\d{3})+)?(?:\.(\d*))?$/;
+
+function amountParts(raw) {
+  const m = AMOUNT.exec(raw.trim());
+  if (!m || (m[2] === undefined && !m[3])) return null;
+  return { sign: m[1], int: m[2] === undefined ? '' : m[2].replace(/,/g, ''), frac: m[3] };
+}
+
+// A money field as typed: undefined if blank, NaN if malformed, else the number of its digits.
+function parseAmount(raw) {
+  if (raw.trim() === '') return undefined;
+  const p = amountParts(raw);
+  if (!p) return NaN;
+  return Number(`${p.sign}${p.int}${p.frac === undefined ? '' : `.${p.frac}`}`);
+}
+
+// A money field's display form: `227,199.00`. Blank -> ''; malformed -> unchanged; never rounds.
+function formatAmount(raw) {
+  if (raw.trim() === '') return '';
+  const p = amountParts(raw);
+  if (!p) return raw;
+  const int = p.int.replace(/^0+(?=\d)/, '') || '0';
+  const grouped = int.replace(/\B(?=(\d{3})+$)/g, ',');
+  return `${p.sign}${grouped}.${(p.frac ?? '').padEnd(2, '0')}`;
+}
+
+// An amount for the printout: `$227,829.65` (`-$5.00` if negative); blank or malformed as typed with a `$`.
+function typedMoney(typed) {
+  if (Number.isNaN(parseAmount(typed) ?? NaN)) {
+    const t = typed.trim();
+    return t.startsWith('$') || t.startsWith('-$') ? t : `$${t}`;
+  }
+  const f = formatAmount(typed);
+  return f.startsWith('-') ? `-$${f.slice(1)}` : `$${f}`;
+}
+
+// A typed dollar amount, or null if blank or malformed (same grammar as parseAmount).
+function parseMoney(raw) {
+  const v = parseAmount(raw);
+  return v === undefined || Number.isNaN(v) ? null : v;
+}
+
+function paymentsText(n) {
+  return `${printCount.format(n)} ${n === 1 ? 'payment' : 'payments'}`;
+}
+
+// --- UI switches (ADR-14) ---
+
+/**
+ * Switch (ADR-14): shipped false; the other branch true is built and tested.
+ * financedOption: show the Financed control, the fee columns and the fee figures.
+ * Decision: stakeholder decision 7 (2026-09-29), Q-FEE-CSV. Not a deviation from Excel (F44): off, every fee
+ * is sent as non-financed, which the workbook also accepts.
+ *
+ * Switch (ADR-14): shipped false; the other branch true is built and tested.
+ * acceleratedFrequencies: offer the Accelerated Weekly and Accelerated Bi-weekly payment frequencies.
+ * Decision: B28. Accelerated frequencies hidden; the engine still supports them.
+ *
+ * Switch (ADR-14): shipped false; the other branch true is built and tested.
+ * contractDateField: show the Contract date field, its print row and the "as of" date in the terms heading.
+ * Decision: B24 (user decision 2026-09-30). Contract date hidden; it never changed the calculation.
+ *
+ * Switch (ADR-14): shipped false; the other branch true is built and tested.
+ * variableRatePaymentChangeFlow: offer the Variable rate payment change option in the Flow dropdown.
+ * Decision: user decision 2026-10-01. Variable rate payment change hidden; the engine flow still exists.
+ */
+const UI_SWITCHES = Object.freeze({ financedOption: false, acceleratedFrequencies: false, contractDateField: false, variableRatePaymentChangeFlow: false });
+
+function switchedOut(ctx, name) {
+  return ctx.switches[name] !== true;
+}
+
+const FREQUENCY_LOCK_HINT = 'Personal loans are paid monthly.';
+
+/**
+ * B27-R7 (DEV-FB24): the Payment frequency lock. `allowed` is the engine catalogue's list for the product;
+ * a product with one allowed frequency locks the select to it, any other leaves the value as it is.
+ */
+function frequencyLock(productType, allowed, current) {
+  if (allowed.length === 1) return { value: allowed[0], locked: true, hint: FREQUENCY_LOCK_HINT };
+  return { value: current, locked: false, hint: '' };
+}
+
+const FEE_KEYS = Object.freeze(['feesOpening', 'feesPaid', 'feesClosing']);
+
+// --- input parsing ---
+
+// `YYYY-MM-DD` -> UTC midnight; blank -> undefined.
+function parseDateInput(value) {
+  if (!value) return undefined;
+  const [y, m, d] = value.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+function numOrUndefined(value) {
+  if (value === '' || value === null || value === undefined) return undefined;
+  const n = Number(value);
+  return Number.isNaN(n) ? undefined : n;
+}
+
+function toInput(raw, ctx) {
+  const input = {
+    flow: raw.flow,
+    productType: raw.productType,
+    rateType: raw.rateType,
+    loanAmount: parseAmount(raw.loanAmount) ?? 0,
+    fees: {
+      fees: raw.fees.map((fee) => ({ name: fee.name || 'Fee', amount: parseAmount(fee.amount) ?? 0, financed: ctx.switches.financedOption ? fee.financed : false })),
+    },
+    contractRatePercent: numOrUndefined(raw.contractRatePercent) ?? NaN,
+    paymentAmount: parseAmount(raw.paymentAmount) ?? NaN,
+    paymentFrequency: raw.paymentFrequency,
+    firstPaymentDate: parseDateInput(raw.firstPaymentDate) ?? new Date(NaN),
+    endDate: parseDateInput(raw.endDate) ?? new Date(NaN),
+  };
+  const field = ctx.spec.startDateField;
+  const startDate = parseDateInput(raw[field]);
+  if (startDate) input[field] = startDate;
+  if (ctx.spec.accruedInterest !== 'hidden') {
+    const accruedInterest = parseAmount(raw.accruedInterest);
+    if (accruedInterest !== undefined) input.accruedInterest = accruedInterest;
+  }
+  if (ctx.semiAnnual) {
+    const semiAnnualCompoundingDate = parseDateInput(raw.semiAnnualCompoundingDate);
+    if (semiAnnualCompoundingDate) input.semiAnnualCompoundingDate = semiAnnualCompoundingDate;
+  }
+  return input;
+}
+
+// --- per-flow page texts (B22, decisions 2 and 5) ---
+
+// Accrued interest hint per flow (interim wording, Q-MSG). The field name "Accrued interest" is the same for every flow.
+const ACCRUED_TEXT = Object.freeze({
+  renewal: 'Interest accrued since the last payment date.',
+  paymentChange: 'Interest accrued since the last payment date is already included; enter only earlier unpaid interest (arrears), usually $0.00.',
+  variableRatePaymentChange:
+    'Only interest due at earlier payments and not yet paid (arrears), usually $0.00. Interest since the last payment date is already charged.',
+});
+
+// The fieldset legend, both date labels and the Accrued interest hint (null when the flow hides the field).
+function flowLabels(flow, spec) {
+  return {
+    legend: label('flow', flow),
+    startDate: spec.startDateLabel,
+    firstPaymentDate: spec.firstPaymentDateLabel,
+    accruedHint: spec.accruedInterest === 'hidden' ? null : ACCRUED_TEXT[flow] ?? null,
+  };
+}
+
+// --- contract term (B24) ---
+
+function plural(n, unit) {
+  return `${n} ${unit}${n === 1 ? '' : 's'}`;
+}
+
+// ["2 years", "11 months", "17 days"]: the unit is singular only for 1; zero parts are always shown.
+function contractTermParts(term) {
+  return [plural(term.years, 'year'), plural(term.months, 'month'), plural(term.days, 'day')];
+}
+
+function contractTermText(term) {
+  return contractTermParts(term).join(', ');
+}
+
+// Hint under the read-only Contract term field (interim wording, Q-MSG); the label is the flow's first payment date label, lower-cased.
+function contractTermHint(firstPaymentLabel) {
+  return `Calculated from the ${firstPaymentLabel} to the last scheduled payment date.`;
+}
+
+// Note shown when the engine moved the first payment date (semi-monthly: the 15th and month-end); '' when it did not.
+function firstDateMoveNote(label, typedIso, firstRowDate) {
+  if (!firstRowDate || isoDay(firstRowDate) === typedIso) return '';
+  return `${label.replace(/ date$/, '')} moved to ${formatInputDate(firstRowDate)} (semi-monthly payments fall on the 15th and month-end)`;
+}
+
+// --- print record ---
+
+function printInputRows(raw, ctx, termText, moveNote = '') {
+  const { spec } = ctx;
+  const texts = flowLabels(raw.flow, spec);
+  const rows = [
+    ...(switchedOut(ctx, 'contractDateField') ? [] : [['Contract date', raw.contractDate ? formatIsoDate(raw.contractDate) : 'Not entered']]),
+    ['Use case', label('flow', raw.flow)],
+    ['Product type', label('productType', raw.productType)],
+    ['Rate type', label('rateType', raw.rateType)],
+    ['Mortgage or loan amount', typedMoney(raw.loanAmount)],
+    ['Interest rate', `${raw.contractRatePercent.trim()}%`],
+    ['Payment amount *', typedMoney(raw.paymentAmount)],
+    ['Payment frequency', label('paymentFrequency', raw.paymentFrequency)],
+    [texts.firstPaymentDate, formatIsoDate(raw.firstPaymentDate)],
+    ...(moveNote ? [['Moved first date', moveNote]] : []),
+    ['End date', formatIsoDate(raw.endDate)],
+    ['Contract term', termText],
+    [texts.startDate, formatIsoDate(raw[spec.startDateField])],
+  ];
+  if (spec.accruedInterest !== 'hidden') {
+    rows.push(['Accrued interest', typedMoney(raw.accruedInterest)]);
+  }
+  if (ctx.semiAnnual) {
+    rows.push(['Semi-annual compounding reference date', formatIsoDate(raw.semiAnnualCompoundingDate)]);
+  }
+  return rows;
+}
+
+function printInputNodes(rows) {
+  return rows.map(([name, value]) => h('div', [['class', 'print-input']], [h('dt', [], [name]), h('dd', [], [value])]));
+}
+
+function printFeesNodes(rawFees, ctx) {
+  if (rawFees.length === 0) return [h('p', [], ['No fees.'])];
+  const withFinanced = ctx.switches.financedOption;
+  const th = (text, cls) => h('th', cls ? [['class', cls], ['scope', 'col']] : [['scope', 'col']], [text]);
+  const table = h('table', [['class', 'print-fees']], [
+    h('thead', [], [h('tr', [], [th('Fee'), th('Amount', 'num'), ...(withFinanced ? [th('Financed')] : [])])]),
+    h('tbody', [], rawFees.map((fee) =>
+      h('tr', [], [
+        h('td', [], [fee.name || 'Fee']),
+        h('td', [['class', 'num']], [typedMoney(fee.amount)]),
+        ...(withFinanced ? [h('td', [], [fee.financed ? 'Yes' : 'No'])] : []),
+      ]),
+    )),
+  ]);
+  const nodes = [table];
+  const parsed = rawFees.map((fee) => parseMoney(fee.amount));
+  if (withFinanced && !parsed.some((a) => a === null)) {
+    let financed = 0;
+    let notFinanced = 0;
+    rawFees.forEach((fee, i) => {
+      if (fee.financed) financed += parsed[i];
+      else notFinanced += parsed[i];
+    });
+    nodes.push(h('p', [['class', 'fee-subtotals']], [
+      `Financed ${printCurrency.format(financed)} · Not financed ${printCurrency.format(notFinanced)}`,
+    ]));
+  }
+  return nodes;
+}
+
+// --- figures: [label, value] or [label, value, hint], in the app's order ---
+
+function headlineFigures(result) {
+  return [
+    ['Cost of borrowing rate (APR)', formatRate(result.cobRatePercent)],
+    ['Cost of borrowing amount', printCurrency.format(result.cobAmount), 'Interest plus all fees over the term.'],
+  ];
+}
+
+function mainFigures(result) {
+  const list = [
+    ['Calculated rate', formatRate(result.calculatedRatePercent), 'Fixed-rate mortgages: contract rate converted to the payment frequency. Otherwise the contract rate.'],
+  ];
+  if (result.triggerRatePercent !== null) {
+    list.push(['Trigger rate', formatRate(result.triggerRatePercent), 'If the contract rate rises above this, the payment no longer covers the interest.']);
+  }
+  list.push(
+    ['Number of payments', printCount.format(result.numberOfPayments)],
+    ['Total of all payments', printCurrency.format(result.totalPayment)],
+    ['Total interest', printCurrency.format(result.totalInterest), 'Interest charged over the term, including any not yet paid.'],
+    ['Total principal paid', printCurrency.format(result.principalPayment)],
+  );
+  return list;
+}
+
+function moreFigures(result, ctx) {
+  const withFinanced = ctx.switches.financedOption;
+  const list = [];
+  if (withFinanced) list.push(['Fees recovered through payments', printCurrency.format(result.feesRecovered)]);
+  list.push(['Balance at end date', printCurrency.format(result.endingBalance)]);
+  const unpaidInterest = result.amortizationSchedule[result.amortizationSchedule.length - 1].carriedAccruedInterestClosing;
+  if (unpaidInterest > 0) {
+    list.push(['Unpaid interest at end date', printCurrency.format(unpaidInterest), 'Unpaid after the last payment; interest since then is not included']);
+  }
+  if (withFinanced && ctx.spec.startDateField === 'disbursalDate') {
+    list.push(['Disbursal amount', printCurrency.format(result.disbursalAmount), 'Loan amount less financed fees.']);
+  }
+  list.push(['Term in days', `${printCount.format(result.termDays)} days`]);
+  return list;
+}
+
+function printFigures(result, ctx) {
+  return [...headlineFigures(result), ...mainFigures(result), ...moreFigures(result, ctx)];
+}
+
+function figureNodes(list) {
+  return list.map(([name, value, hint]) =>
+    h('div', [['class', 'figure']], [
+      h('dt', [['class', 'figure-label']], hint ? [name, h('span', [['class', 'figure-hint']], [hint])] : [name]),
+      h('dd', [['class', 'figure-value']], [value]),
+    ]),
+  );
+}
+
+// --- schedule columns: one list for screen and print; the CSV keeps its own order (OQ-J) ---
+
+const COLUMNS = Object.freeze([
+  ['period', '#', 'count', null, '#'],
+  ['date', 'Date', 'date', null, 'Date'],
+  ['daysInPeriod', 'Days', 'count', null, 'Days'],
+  ['openingBalance', 'Opening balance', 'currency', 'Opening', 'Balance'],
+  ['feesOpening', 'Fees (opening)', 'currency', 'Opening', 'Fees'],
+  ['periodInterest', 'Period interest', 'currency', 'Interest', 'Period'],
+  ['carriedAccruedInterestOpening', 'Accrued interest (opening)', 'currency', 'Interest', 'Accrued'],
+  ['paymentAmount', 'Payment', 'currency', 'Payment breakdown', 'Payment'],
+  ['interestPaid', 'Interest paid', 'currency', 'Payment breakdown', 'Interest'],
+  ['feesPaid', 'Fees paid', 'currency', 'Payment breakdown', 'Fees'],
+  ['principalPortion', 'Principal paid', 'currency', 'Payment breakdown', 'Principal'],
+  ['carriedAccruedInterestClosing', 'Accrued interest (closing)', 'currency', 'Closing', 'Accrued'],
+  ['feesClosing', 'Fees (closing)', 'currency', 'Closing', 'Fees'],
+  ['closingBalance', 'Balance', 'currency', 'Closing', 'Balance'],
+].map((c) => Object.freeze(c)));
+
+const CSV_COLUMNS = Object.freeze([
+  ['period', '#'],
+  ['date', 'Date'],
+  ['daysInPeriod', 'Days'],
+  ['openingBalance', 'Opening balance'],
+  ['periodInterest', 'Period interest'],
+  ['carriedAccruedInterestOpening', 'Accrued interest (open)'],
+  ['feesOpening', 'Fees (open)'],
+  ['paymentAmount', 'Payment'],
+  ['interestPaid', 'Interest paid'],
+  ['feesPaid', 'Fees paid'],
+  ['principalPortion', 'Principal'],
+  ['carriedAccruedInterestClosing', 'Accrued interest (close)'],
+  ['feesClosing', 'Fees (close)'],
+  ['closingBalance', 'Balance'],
+].map((c) => Object.freeze(c)));
+
+const COMPACT_KEYS = Object.freeze(['period', 'date', 'paymentAmount', 'interestPaid', 'feesPaid', 'principalPortion', 'closingBalance']);
+
+function feeHidden(key, ctx) {
+  return !ctx.switches.financedOption && FEE_KEYS.includes(key);
+}
+
+function shown(key, columns) {
+  return columns !== 'compact' || COMPACT_KEYS.includes(key);
+}
+
+function cellText(key, format, row) {
+  if (format === 'date') return formatIsoDate(isoDay(row[key]));
+  if (format === 'count') return printCount.format(row[key]);
+  return printCurrency.format(row[key]);
+}
+
+function totalText(key, result) {
+  switch (key) {
+    case 'daysInPeriod': return printCount.format(result.termDays);
+    case 'paymentAmount': return printCurrency.format(result.totalPayment);
+    case 'interestPaid': return printCurrency.format(result.amortizationSchedule.reduce((sum, row) => sum + row.interestPaid, 0));
+    case 'feesPaid': return printCurrency.format(result.feesRecovered);
+    case 'principalPortion': return printCurrency.format(result.principalPayment);
+    case 'closingBalance': return printCurrency.format(result.endingBalance);
+    default: return '';
+  }
+}
+
+function colClass(target, key, format) {
+  const num = format === 'currency' || key === 'daysInPeriod';
+  if (target === 'print') return num ? `col-${key} num` : `col-${key}`;
+  return [`col-${key}`, COMPACT_KEYS.includes(key) ? '' : 'col-extra', num ? 'num' : ''].filter(Boolean).join(' ');
+}
+
+// The one schedule table builder. Screen: every column (the CSS hides col-extra in compact),
+// with a caption; print: only the shown columns, under the short print headings (Q-PRINT-HEAD).
+function scheduleTableNodes(result, target, columns, ctx) {
+  const screen = target === 'screen';
+  const cols = COLUMNS.filter(([key]) => !feeHidden(key, ctx) && (screen || shown(key, columns)));
+  const compact = columns === 'compact';
+  const rows = result.amortizationSchedule;
+  const n = rows.length;
+  const nodes = [];
+  if (screen) {
+    const span = n > 0 ? ` from ${formatIsoDate(isoDay(rows[0].date))} to ${formatIsoDate(isoDay(rows[n - 1].date))}` : '';
+    nodes.push(h('caption', [['class', 'visually-hidden']], [
+      `Amortization schedule, ${paymentsText(n)}${span}. Amounts rounded to the cent; download the CSV for exact values.`,
+    ]));
+  }
+
+  const groupCells = [];
+  const leafCells = [];
+  const spans = [];
+  for (const [key, screenHeader, format, group, printHeader] of cols) {
+    const header = screen ? screenHeader : printHeader;
+    if (group === null) {
+      groupCells.push(h('th', [['class', colClass(target, key, format)], ['scope', 'col'], ['rowspan', '2']], [header]));
+      continue;
+    }
+    const last = spans[spans.length - 1];
+    if (last && last.group === group) last.keys.push(key);
+    else {
+      const th = h('th', [['scope', 'colgroup']], [group]);
+      groupCells.push(th);
+      spans.push({ group, keys: [key], th });
+    }
+    leafCells.push(h('th', [['class', colClass(target, key, format)], ['scope', 'col']], [header]));
+  }
+  for (const { keys, th } of spans) {
+    if (!screen) {
+      if (keys.length > 1) th.attrs.push(['colspan', String(keys.length)]);
+      continue;
+    }
+    const compactCount = keys.filter((k) => COMPACT_KEYS.includes(k)).length;
+    const hidden = compact && compactCount === 0;
+    th.attrs.push(['colspan', String(compact && !hidden ? compactCount : keys.length)]);
+    if (hidden) th.attrs.push(['class', 'col-extra']);
+  }
+  nodes.push(h('thead', [], [h('tr', [['class', 'schedule-groups']], groupCells), h('tr', [], leafCells)]));
+
+  let body = null;
+  let year = '';
+  for (const row of rows) {
+    const rowYear = isoDay(row.date).slice(0, 4);
+    if (rowYear !== year) {
+      year = rowYear;
+      body = h('tbody', [['class', 'schedule-year']], [
+        h('tr', [['class', 'year-row']], [h('th', [['scope', 'rowgroup'], ['colspan', String(cols.length)]], [year])]),
+      ]);
+      nodes.push(body);
+    }
+    body.children.push(h('tr', [], cols.map(([key, , format]) =>
+      key === 'period'
+        ? h('th', [['class', colClass(target, key, format)], ['scope', 'row']], [cellText(key, format, row)])
+        : h('td', [['class', colClass(target, key, format)]], [cellText(key, format, row)]),
+    )));
+  }
+
+  nodes.push(h('tfoot', [], [h('tr', [], cols.map(([key, , format]) =>
+    key === 'period'
+      ? h('th', [['class', colClass(target, key, format)], ['scope', 'row']], ['Totals'])
+      : h('td', [['class', colClass(target, key, format)]], [totalText(key, result)]),
+  ))]));
+  return nodes;
+}
+
+// --- CSV ---
+
+// RFC 4180: quote a field holding a quote, comma or line break; double inner quotes.
+function csvCell(value) {
+  const text = String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function csvValue(key, row) {
+  return key === 'date' ? isoDay(row.date) : row[key];
+}
+
+// Header row, then one row per payment; amounts unrounded, dates ISO, every line ends in CRLF.
+function scheduleCsv(rows, columns, ctx) {
+  const cols = CSV_COLUMNS.filter(([key]) => !feeHidden(key, ctx) && shown(key, columns));
+  const lines = [cols.map(([, header]) => csvCell(header)).join(',')];
+  for (const row of rows) lines.push(cols.map(([key]) => csvCell(csvValue(key, row))).join(','));
+  return lines.map((line) => `${line}\r\n`).join('');
+}
+
+function csvFileName(firstPaymentIso) {
+  return `cost-of-borrowing-schedule-${firstPaymentIso}.csv`;
+}
+
+// --- nodes and their HTML (the browser's innerHTML serialisation of the same tree) ---
+
+function h(tag, attrs, children) {
+  return { tag, attrs, children };
+}
+
+function escapeText(s) {
+  return s.replace(/&/g, '&amp;').replace(/ /g, '&nbsp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function escapeAttr(s) {
+  return s.replace(/&/g, '&amp;').replace(/ /g, '&nbsp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function html(nodes) {
+  let out = '';
+  for (const node of nodes) {
+    if (typeof node === 'string') {
+      out += escapeText(node);
+      continue;
+    }
+    out += `<${node.tag}`;
+    for (const [name, value] of node.attrs) out += ` ${name}="${escapeAttr(value)}"`;
+    out += `>${html(node.children)}</${node.tag}>`;
+  }
+  return out;
+}
+
+return { LABELS, label, formatCurrency, formatInputDate, formatRate, isoDay, formatIsoDate, parseAmount, formatAmount, typedMoney, parseMoney, paymentsText, UI_SWITCHES, switchedOut, FREQUENCY_LOCK_HINT, frequencyLock, FEE_KEYS, parseDateInput, numOrUndefined, toInput, flowLabels, contractTermParts, contractTermText, contractTermHint, firstDateMoveNote, printInputRows, printInputNodes, printFeesNodes, headlineFigures, mainFigures, moreFigures, printFigures, figureNodes, COLUMNS, CSV_COLUMNS, COMPACT_KEYS, scheduleTableNodes, scheduleCsv, csvFileName, h, html };
+})();
+__cobModules["ui/ca.js"] = (() => {
+const { allowedPaymentFrequencies, calculateCobCanada, contractTerm, FLOWS, requiresSemiAnnualDate } = __cobModules["dist/ca/index.js"];
+const { contractTermHint, contractTermParts, contractTermText, csvFileName, firstDateMoveNote, isoDay, figureNodes, flowLabels, formatAmount, frequencyLock, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures, moreFigures, parseDateInput, paymentsText, printFeesNodes, printFigures, printInputNodes, printInputRows, scheduleCsv, scheduleTableNodes, toInput, switchedOut, UI_SWITCHES } = __cobModules["ui/ca-view.js"];
+
+// --- element refs ---
+
+const form = document.getElementById('form');
+const errorEl = document.getElementById('error');
+const resultStatusEl = document.getElementById('resultStatus');
+const resultBodyEl = document.getElementById('resultBody');
+const resultContextEl = document.getElementById('resultContext');
+const headlineFiguresEl = document.getElementById('headlineFigures');
+const mainFiguresEl = document.getElementById('mainFigures');
+const moreFiguresEl = document.getElementById('moreFigures');
+const contractTermsEl = document.getElementById('contractTerms');
+const contractTermsDateEl = document.getElementById('contractTermsDate');
+const contractTermsListEl = document.getElementById('contractTermsList');
+const contractTermsNoteEl = document.getElementById('contractTermsNote');
+const firstDateNoteEl = document.getElementById('firstDateNote');
+const scheduleSectionEl = document.getElementById('scheduleSection');
+const scheduleCountEl = document.getElementById('scheduleCount');
+const scheduleTableEl = document.getElementById('scheduleTable');
+const columnRadios = [...document.querySelectorAll('input[name="scheduleColumns"]')];
+
+const flowEl = document.getElementById('flow');
+const productTypeEl = document.getElementById('productType');
+const rateTypeEl = document.getElementById('rateType');
+const paymentFrequencyEl = document.getElementById('paymentFrequency');
+const paymentFrequencyHintEl = document.getElementById('paymentFrequencyHint');
+
+const contractDateEl = document.getElementById('contractDate');
+const loanAmountEl = document.getElementById('loanAmount');
+const contractRatePercentEl = document.getElementById('contractRatePercent');
+const paymentAmountEl = document.getElementById('paymentAmount');
+const firstPaymentDateEl = document.getElementById('firstPaymentDate');
+const endDateEl = document.getElementById('endDate');
+const contractTermEl = document.getElementById('contractTerm');
+const contractTermHintEl = document.getElementById('contractTerm-hint');
+
+const firstPaymentLabelEl = document.getElementById('firstPaymentDate-label');
+
+const newFlowFieldsEl = document.getElementById('newFlowFields');
+const newFlowLegendEl = document.getElementById('newFlowLegend');
+const disbursalDateEl = document.getElementById('disbursalDate');
+const disbursalLabelEl = document.getElementById('disbursalDate-label');
+
+const existingFlowFieldsEl = document.getElementById('existingFlowFields');
+const existingFlowLegendEl = document.getElementById('existingFlowLegend');
+const renewalDateEl = document.getElementById('renewalDate');
+const renewalLabelEl = document.getElementById('renewalDate-label');
+const accruedInterestEl = document.getElementById('accruedInterest');
+const accruedHintEl = document.getElementById('accruedInterest-hint');
+
+const semiAnnualFieldEl = document.getElementById('semiAnnualField');
+const semiAnnualCompoundingDateEl = document.getElementById('semiAnnualCompoundingDate');
+
+const feesBodyEl = document.getElementById('feesBody');
+const addFeeBtn = document.getElementById('addFee');
+
+const downloadCsvBtn = document.getElementById('downloadCsv');
+const printScheduleBtn = document.getElementById('printSchedule');
+const actionsHintEl = document.getElementById('result-actions-hint');
+
+const printedLineEl = document.getElementById('printedLine');
+const printedAtEl = document.getElementById('printedAt');
+const calculatedLineEl = document.getElementById('calculatedLine');
+const calculatedAtEl = document.getElementById('calculatedAt');
+const printGuardEl = document.getElementById('printGuard');
+const printEngineEl = document.getElementById('printEngine');
+const printBodyEl = document.getElementById('printBody');
+const printInputsEl = document.getElementById('printInputs');
+const printFeesEl = document.getElementById('printFees');
+const printFiguresEl = document.getElementById('printFigures');
+const printScheduleSectionEl = document.getElementById('printScheduleSection');
+const printScheduleCountEl = document.getElementById('printScheduleCount');
+const printScheduleTableEl = document.getElementById('printScheduleTable');
+
+// --- flow <-> product/rate-type locking, per the flow catalogue (src/ca/flows.ts,
+// FLOWS[flow].forcedProductType / forcedRateType), which validateCobCanadaInput also
+// enforces: flow no longer implies productType -- newMortgageOrLoan/renewal/
+// paymentChange apply identically to mortgages and personal loans (doc 007 finding
+// #9). Renewal is scoped to mortgage (decision 9) and variableRatePaymentChange to
+// mortgage + variable (that Flow option is hidden by UI_SWITCHES.variableRatePaymentChangeFlow). Locking the dependent dropdown for those
+// cases (rather than just letting the calculation throw) keeps the common path
+// error-free while still surfacing a RangeError for any combination the engine
+// itself still rejects. ---
+
+function updateConditionalVisibility() {
+  const spec = FLOWS[flowEl.value];
+  const forcedProduct = spec.forcedProductType;
+  if (forcedProduct !== null) {
+    productTypeEl.value = forcedProduct;
+    productTypeEl.disabled = true;
+  } else {
+    productTypeEl.disabled = false;
+  }
+
+  const forcedRate = spec.forcedRateType;
+  if (forcedRate !== null) {
+    rateTypeEl.value = forcedRate;
+    rateTypeEl.disabled = true;
+  } else {
+    rateTypeEl.disabled = false;
+  }
+
+  const frequency = frequencyLock(productTypeEl.value, allowedPaymentFrequencies(productTypeEl.value), paymentFrequencyEl.value);
+  paymentFrequencyEl.value = frequency.value;
+  paymentFrequencyEl.disabled = frequency.locked;
+  paymentFrequencyHintEl.textContent = frequency.hint;
+  paymentFrequencyHintEl.hidden = !frequency.locked;
+
+  const isNew = spec.startDateField === 'disbursalDate';
+  newFlowFieldsEl.style.display = isNew ? '' : 'none';
+  existingFlowFieldsEl.style.display = isNew ? 'none' : '';
+
+  const texts = flowLabels(flowEl.value, spec);
+  firstPaymentLabelEl.textContent = texts.firstPaymentDate;
+  newFlowLegendEl.textContent = texts.legend;
+  disbursalLabelEl.textContent = texts.startDate;
+  existingFlowLegendEl.textContent = texts.legend;
+  renewalLabelEl.textContent = texts.startDate;
+  if (texts.accruedHint !== null) accruedHintEl.textContent = texts.accruedHint;
+  contractTermHintEl.textContent = contractTermHint(texts.firstPaymentDate.toLowerCase());
+
+  semiAnnualFieldEl.style.display = requiresSemiAnnualDate(productTypeEl.value, rateTypeEl.value) ? '' : 'none';
+}
+
+// --- fee table ---
+
+let feeRowId = 0;
+
+function addFeeRow(values = {}) {
+  const id = feeRowId++;
+  const tr = document.createElement('tr');
+  tr.dataset.id = String(id);
+  tr.innerHTML = `
+    <td><input type="text" data-field="name" value="${values.name ?? ''}" placeholder="Fee name" aria-label="Fee name" /></td>
+    <td><input type="text" inputmode="decimal" autocomplete="off" data-money data-field="amount" value="${formatAmount(String(values.amount ?? 0))}" /></td>
+    ${viewCtx().switches.financedOption ? `<td><input type="checkbox" data-field="financed" ${values.financed ? 'checked' : ''} /></td>` : ''}
+    <td><button type="button" class="remove-fee" data-remove>Remove</button></td>
+  `;
+  const nameEl = tr.querySelector('[data-field="name"]');
+  const amountEl = tr.querySelector('[data-field="amount"]');
+  const financedEl = tr.querySelector('[data-field="financed"]');
+  const removeBtn = tr.querySelector('[data-remove]');
+  const labelRow = () => {
+    const name = nameEl.value || 'Fee';
+    amountEl.setAttribute('aria-label', `Amount: ${name}`);
+    financedEl?.setAttribute('aria-label', `Financed: ${name}`);
+    removeBtn.setAttribute('aria-label', `Remove fee: ${name}`);
+  };
+  labelRow();
+  nameEl.addEventListener('input', labelRow);
+  removeBtn.addEventListener('click', () => {
+    tr.remove();
+    recompute();
+  });
+  feesBodyEl.appendChild(tr);
+}
+
+function readFees() {
+  return [...feesBodyEl.querySelectorAll('tr')].map((tr) => ({
+    name: tr.querySelector('[data-field="name"]').value,
+    amount: tr.querySelector('[data-field="amount"]').value,
+    financed: tr.querySelector('[data-field="financed"]')?.checked ?? false,
+  }));
+}
+
+addFeeBtn.addEventListener('click', () => {
+  addFeeRow();
+  recompute();
+});
+
+function selectedText(selectEl) {
+  return selectEl.selectedOptions[0]?.textContent ?? selectEl.value;
+}
+
+// The terms of the calculation that produced the shown results, as entered, one tile
+// each. Amounts, rates, dates and single words stay on one line (fitTermValues); the
+// flow, product type and contract term may wrap between words.
+function renderContractTerms(input, contractDate, ctx, result) {
+  if (contractTermsDateEl) contractTermsDateEl.textContent = contractDate ? formatInputDate(contractDate) : 'no date entered';
+
+  const spec = FLOWS[input.flow];
+  const texts = flowLabels(input.flow, spec);
+  const noBreak = (text) => text.replace(' ', '\u00a0');
+  const items = [
+    ['Flow', selectedText(flowEl), false],
+    ['Product type', selectedText(productTypeEl), false],
+    ['Rate type', selectedText(rateTypeEl)],
+    ['Loan amount', formatCurrency(input.loanAmount)],
+    ['Contract rate', `${contractRatePercentEl.value.trim()}%`],
+    ['Payment amount', formatCurrency(input.paymentAmount)],
+  ];
+  if (spec.accruedInterest !== 'hidden') {
+    items.push(['Accrued interest', formatCurrency(input.accruedInterest)]);
+  }
+  items.push(
+    ['Payment frequency', label('paymentFrequency', input.paymentFrequency)],
+    ['Contract term', contractTermParts(contractTerm(result)).map(noBreak).join(', '), false],
+    [texts.startDate, formatInputDate(input[spec.startDateField])],
+    [texts.firstPaymentDate, formatInputDate(input.firstPaymentDate)],
+    ['End date', formatInputDate(input.endDate)],
+  );
+  if (requiresSemiAnnualDate(input.productType, input.rateType)) {
+    items.push(['Semi-annual compounding reference date', formatInputDate(input.semiAnnualCompoundingDate)]);
+  }
+
+  // Built with textContent: fee names are free text.
+  const tile = (label, dd, className = 'term') => {
+    const div = el('div', undefined, className);
+    div.append(el('dt', label, 'term-label'), dd);
+    return div;
+  };
+  const valueTile = ([label, value, oneLine = true]) => {
+    const dd = el('dd', undefined, 'term-data');
+    const span = el('span', value, oneLine ? 'term-value term-value--fit' : 'term-value');
+    dd.appendChild(span);
+    return tile(label, dd);
+  };
+
+  const fees = input.fees.fees;
+  const feesDd = el('dd', undefined, 'term-data');
+  if (fees.length === 0) {
+    feesDd.appendChild(el('span', 'No fees', 'term-value term-value--fees'));
+  } else {
+    const ul = el('ul', undefined, 'term-fees');
+    for (const fee of fees) {
+      const li = el('li', undefined, 'term-value term-value--fees');
+      li.append(
+        el('span', fee.name, 'fee-name'),
+        ' — ',
+        el('span', formatCurrency(fee.amount), 'fee-amount'),
+        ...(ctx.switches.financedOption ? [' ', el('span', fee.financed ? 'Financed' : 'Not financed', 'fee-tag')] : []),
+      );
+      ul.appendChild(li);
+    }
+    feesDd.appendChild(ul);
+  }
+
+  contractTermsListEl.replaceChildren(...items.map(valueTile), tile('Fees', feesDd, 'term term--fees'));
+  fitTermValues();
+}
+
+// Sets each one-line value's width in ems (--term-em, at the .term-value style, with a 2%
+// margin) on its tile; the CSS sizes the value so that it fits the tile. Measured in the
+// page's font, and again once the web font has loaded.
+function fitTermValues() {
+  const probe = el('span', undefined, 'term-value');
+  probe.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap;font-size:100px';
+  document.body.appendChild(probe);
+  for (const value of contractTermsListEl.querySelectorAll('.term-value--fit')) {
+    probe.textContent = value.textContent;
+    value.closest('.term').style.setProperty('--term-em', String((probe.getBoundingClientRect().width / 100) * 1.02));
+  }
+  probe.remove();
+}
+document.fonts?.ready.then(fitTermValues);
+
+// --- export: CSV download and print ---
+
+// The schedule of the result currently shown, and the first payment date of the input
+// that produced it; empty whenever the results are hidden.
+let lastSchedule = [];
+let lastFirstPaymentIso = '';
+
+// Built in the browser and handed over as a download; nothing is stored.
+downloadCsvBtn.addEventListener('click', () => {
+  if (downloadCsvBtn.getAttribute('aria-disabled') === 'true' || lastSchedule.length === 0) return;
+  const blob = new Blob([scheduleCsv(lastSchedule, scheduleColumns, scheduleCtx)], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = csvFileName(lastFirstPaymentIso);
+  link.hidden = true;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+});
+
+printScheduleBtn.addEventListener('click', () => {
+  if (printScheduleBtn.getAttribute('aria-disabled') === 'true') return;
+  window.print();
+});
+
+const printedAtFmt = new Intl.DateTimeFormat('en-CA', { dateStyle: 'long', timeStyle: 'short' });
+const clockTimeFmt = new Intl.DateTimeFormat('en-CA', { timeStyle: 'short' });
+
+function refreshPrintedAt() {
+  printedAtEl.textContent = printedAtFmt.format(new Date());
+}
+window.addEventListener('beforeprint', refreshPrintedAt);
+
+// The engine version is this package's; it prints only if the server hands it out.
+printEngineEl.textContent = " · Engine 0.1.0";
+
+function renderPrintSchedule(result) {
+  printScheduleCountEl.textContent = paymentsText(result.amortizationSchedule.length);
+  printScheduleTableEl.innerHTML = html(scheduleTableNodes(result, 'print', scheduleColumns, scheduleCtx));
+}
+
+// The print table is built only when a print is about to happen, and only if the result or the
+// column set changed since the last build.
+let printBuiltFor = null;
+let printBuiltColumns = null;
+function ensurePrintSchedule() {
+  if (!scheduleResult) return;
+  if (printBuiltFor === scheduleResult && printBuiltColumns === scheduleColumns) return;
+  renderPrintSchedule(scheduleResult);
+  printBuiltFor = scheduleResult;
+  printBuiltColumns = scheduleColumns;
+}
+window.addEventListener('beforeprint', ensurePrintSchedule);
+window.matchMedia('print').addEventListener('change', (event) => {
+  if (event.matches) ensurePrintSchedule();
+});
+
+function el(tag, text, className) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  if (className) node.className = className;
+  return node;
+}
+
+function renderPrintRecord(raw, ctx, result, termText, moveNote) {
+  printInputsEl.innerHTML = html(printInputNodes(printInputRows(raw, ctx, termText, moveNote)));
+  printFeesEl.innerHTML = html(printFeesNodes(raw.fees, ctx));
+  printFiguresEl.innerHTML = html(figureNodes(printFigures(result, ctx)));
+}
+
+// --- on-screen results and schedule: the app's results panel and schedule table ---
+
+function kpiCard([label, value, hint]) {
+  const div = el('div', undefined, 'kpi kpi--headline');
+  const data = el('dd', undefined, 'kpi-data');
+  data.appendChild(el('span', value, 'kpi-value'));
+  if (hint) data.appendChild(el('span', hint, 'kpi-hint'));
+  div.append(el('dt', label, 'kpi-label'), data);
+  return div;
+}
+
+// Width of a headline value in ems at the .kpi-value style (Inter 700 tabular, -0.03em
+// tracking), with a 1% margin. Glyph widths are measured in Chrome; the fallback fonts
+// (system-ui, Arial) are no wider. The CSS sizes the values so the widest one fits its card.
+const KPI_GLYPH_EM = { '.': 0.269, ',': 0.269, '%': 1.016, $: 0.655 };
+function kpiValueEm(text) {
+  let em = 0;
+  for (const ch of text) em += (KPI_GLYPH_EM[ch] ?? (ch >= '0' && ch <= '9' ? 0.647 : 0.655)) - 0.03;
+  return em * 1.01;
+}
+
+function renderResults(input, result, calculatedAt, ctx) {
+  resultContextEl.textContent = [
+    label('flow', input.flow),
+    label('productType', input.productType),
+    label('rateType', input.rateType),
+    label('paymentFrequency', input.paymentFrequency),
+    `Calculated ${clockTimeFmt.format(calculatedAt)}`,
+  ].join(' · ');
+  const headline = headlineFigures(result);
+  headlineFiguresEl.replaceChildren(...headline.map(kpiCard));
+  headlineFiguresEl.style.setProperty('--kpi-em', String(Math.max(...headline.map(([, value]) => kpiValueEm(value)))));
+  mainFiguresEl.innerHTML = html(figureNodes(mainFigures(result)));
+  moreFiguresEl.innerHTML = html(figureNodes(moreFigures(result, ctx)));
+}
+
+// Wide screens start with all columns, narrow ones with the compact set, as the app does.
+let scheduleColumns = window.matchMedia('(min-width: 768px)').matches ? 'all' : 'compact';
+let scheduleResult = null;
+let scheduleCtx = null;
+
+function renderScheduleTable() {
+  const result = scheduleResult;
+  if (!result) return;
+  scheduleCountEl.textContent = paymentsText(result.amortizationSchedule.length);
+  for (const radio of columnRadios) radio.checked = radio.value === scheduleColumns;
+  scheduleTableEl.className = scheduleColumns === 'compact' ? 'schedule schedule--compact' : 'schedule';
+  scheduleTableEl.innerHTML = html(scheduleTableNodes(result, 'screen', scheduleColumns, scheduleCtx));
+}
+
+for (const radio of columnRadios) {
+  radio.addEventListener('change', () => {
+    if (!radio.checked) return;
+    scheduleColumns = radio.value;
+    renderScheduleTable();
+  });
+}
+
+// Print and download need a current result: one is current exactly while the results
+// are shown (the page recomputes on every input change and hides them on invalid input).
+// Without one, the buttons are unavailable and the printout is the guard only.
+function setCurrentResult(schedule, firstPaymentIso, calculatedAt) {
+  const current = schedule !== null;
+  lastSchedule = current ? schedule : [];
+  lastFirstPaymentIso = current ? firstPaymentIso : '';
+  // Unavailable but still focusable, as the app's buttons: clicks are ignored.
+  for (const btn of [downloadCsvBtn, printScheduleBtn]) {
+    btn.classList.toggle('btn--unavailable', !current);
+    if (current) {
+      btn.removeAttribute('aria-disabled');
+      btn.removeAttribute('aria-describedby');
+    } else {
+      btn.setAttribute('aria-disabled', 'true');
+      btn.setAttribute('aria-describedby', actionsHintEl.id);
+    }
+  }
+  actionsHintEl.hidden = current;
+  printedLineEl.hidden = !current;
+  calculatedLineEl.hidden = !current;
+  printGuardEl.hidden = current;
+  printBodyEl.hidden = !current;
+  printScheduleSectionEl.hidden = !current;
+  if (current) {
+    calculatedAtEl.textContent = clockTimeFmt.format(calculatedAt);
+    refreshPrintedAt();
+  }
+}
+
+// --- recompute ---
+
+// With no current result the panel shows the app's empty state; the contract terms and
+// the schedule are hidden.
+function showResult(shown) {
+  resultStatusEl.hidden = shown;
+  resultBodyEl.hidden = !shown;
+  contractTermsEl.hidden = !shown;
+  scheduleSectionEl.hidden = !shown;
+}
+
+function readForm() {
+  const v = (el) => el.value;
+  return {
+    flow: v(flowEl),
+    productType: v(productTypeEl),
+    rateType: v(rateTypeEl),
+    contractDate: contractDateEl ? v(contractDateEl) : '',
+    loanAmount: v(loanAmountEl),
+    contractRatePercent: v(contractRatePercentEl),
+    paymentAmount: v(paymentAmountEl),
+    paymentFrequency: v(paymentFrequencyEl),
+    firstPaymentDate: v(firstPaymentDateEl),
+    endDate: v(endDateEl),
+    disbursalDate: v(disbursalDateEl),
+    renewalDate: v(renewalDateEl),
+    accruedInterest: v(accruedInterestEl),
+    semiAnnualCompoundingDate: v(semiAnnualCompoundingDateEl),
+    fees: readFees(),
+  };
+}
+
+function viewContext(raw) {
+  return { spec: FLOWS[raw.flow], semiAnnual: requiresSemiAnnualDate(raw.productType, raw.rateType), switches: UI_SWITCHES };
+}
+
+function viewCtx() {
+  return viewContext({ flow: flowEl.value, productType: productTypeEl.value, rateType: rateTypeEl.value });
+}
+
+function recompute() {
+  updateConditionalVisibility();
+  try {
+    const raw = readForm();
+    const ctx = viewContext(raw);
+    const input = toInput(raw, ctx);
+    const result = calculateCobCanada(input);
+    const calculatedAt = new Date();
+    const termText = contractTermText(contractTerm(result));
+    const texts = flowLabels(raw.flow, ctx.spec);
+    const moveNote = firstDateMoveNote(texts.firstPaymentDate, raw.firstPaymentDate, result.amortizationSchedule[0]?.date);
+    renderContractTerms(input, parseDateInput(raw.contractDate), ctx, result);
+    renderResults(input, result, calculatedAt, ctx);
+    scheduleResult = result;
+    scheduleCtx = ctx;
+    renderScheduleTable();
+    renderPrintRecord(raw, ctx, result, termText, moveNote);
+    firstDateNoteEl.textContent = moveNote;
+    firstDateNoteEl.hidden = !moveNote;
+    contractTermsNoteEl.textContent = moveNote;
+    contractTermsNoteEl.hidden = !moveNote;
+    contractTermEl.value = termText;
+    setCurrentResult(result.amortizationSchedule, isoDay(result.amortizationSchedule[0].date), calculatedAt);
+    showResult(true);
+    errorEl.style.display = 'none';
+  } catch (err) {
+    contractTermEl.value = '';
+    firstDateNoteEl.textContent = '';
+    firstDateNoteEl.hidden = true;
+    contractTermsNoteEl.textContent = '';
+    contractTermsNoteEl.hidden = true;
+    setCurrentResult(null);
+    scheduleResult = null;
+    showResult(false);
+    errorEl.textContent = err instanceof Error ? err.message : String(err);
+    errorEl.style.display = 'block';
+  }
+}
+
+form.addEventListener('input', recompute);
+form.addEventListener('change', recompute);
+form.addEventListener('submit', (event) => event.preventDefault());
+// A money field shows money format once the user leaves it (Q-MONEY-FMT); the value is unchanged.
+form.addEventListener('focusout', (event) => {
+  if (event.target.matches('input[data-money]')) event.target.value = formatAmount(event.target.value);
+});
+
+// --- brand logo: hotlinked from alterna.ca; fall back to the name as text if it can't load ---
+
+const brandLogoEl = document.getElementById('brandLogo');
+function showBrandFallback() {
+  brandLogoEl.hidden = true;
+  brandLogoEl.nextElementSibling.hidden = false;
+}
+if (brandLogoEl.complete && brandLogoEl.naturalWidth === 0) showBrandFallback();
+else brandLogoEl.addEventListener('error', showBrandFallback);
+
+// --- initial state ---
+
+// Today's local calendar date (toISOString() is UTC and can be a day off).
+function todayLocalIso() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+if (contractDateEl && !switchedOut(viewCtx(), 'contractDateField')) contractDateEl.value = todayLocalIso();
+
+for (const node of document.querySelectorAll('[data-switch]')) {
+  if (switchedOut(viewCtx(), node.dataset.switch)) node.remove();
+}
+
+updateConditionalVisibility();
+recompute();
+
+return {  };
+})();
+</script>
+</body>
+</html>

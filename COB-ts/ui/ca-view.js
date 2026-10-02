@@ -200,8 +200,7 @@ export function toInput(raw, ctx) {
 // Accrued interest hint per flow (interim wording, Q-MSG). The field name "Accrued interest" is the same for every flow.
 const ACCRUED_TEXT = Object.freeze({
   renewal: 'Interest accrued since the last payment date.',
-  paymentChange:
-    'Only interest due at earlier payments and not yet paid (arrears), usually $0.00. Interest since the last payment date is already charged.',
+  paymentChange: 'Interest accrued since the last payment date is already included; enter only earlier unpaid interest (arrears), usually $0.00.',
   variableRatePaymentChange:
     'Only interest due at earlier payments and not yet paid (arrears), usually $0.00. Interest since the last payment date is already charged.',
 });

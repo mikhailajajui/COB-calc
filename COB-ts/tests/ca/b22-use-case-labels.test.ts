@@ -31,6 +31,10 @@ const FLOW_IDS: CobFlow[] = ['newMortgageOrLoan', 'renewal', 'paymentChange', 'v
 
 // B22-R6: the Renewal hint is today's text; the change-flow hint is the accepted interim wording.
 const RENEWAL_HINT = 'Interest accrued since the last payment date.';
+// Payment Change: user decision 2026-10-02 (double-charge risk of the section 67 hint); exact text.
+const PAYMENT_CHANGE_HINT =
+  'Interest accrued since the last payment date is already included; enter only earlier unpaid interest (arrears), usually $0.00.';
+// VRPC (hidden flow) keeps the old arrears text; Payment Change moved to the renewal wording (user 2026-10-01).
 const ARREARS_HINT =
   'Only interest due at earlier payments and not yet paid (arrears), usually $0.00. Interest since the last payment date is already charged.';
 
@@ -38,7 +42,7 @@ const ARREARS_HINT =
 const EXPECTED: Record<CobFlow, View.FlowLabels> = {
   newMortgageOrLoan: { legend: 'New mortgage or loan', startDate: 'Disbursal date', firstPaymentDate: 'First payment date', accruedHint: null },
   renewal: { legend: 'Renewal', startDate: 'Renewal date', firstPaymentDate: 'First payment date', accruedHint: RENEWAL_HINT },
-  paymentChange: { legend: 'Payment change', startDate: 'Date of change', firstPaymentDate: 'Next payment date', accruedHint: ARREARS_HINT },
+  paymentChange: { legend: 'Payment change', startDate: 'Date of change', firstPaymentDate: 'Next payment date', accruedHint: PAYMENT_CHANGE_HINT },
   variableRatePaymentChange: {
     legend: 'Variable rate payment change', startDate: 'Date of change', firstPaymentDate: 'Next payment date', accruedHint: ARREARS_HINT,
   },
@@ -68,7 +72,7 @@ describe('B22-INV-labels: flowLabels is the one pure source of the per-flow text
     const t = v.flowLabels('paymentChange', spec);
     expect([t.startDate, t.firstPaymentDate]).toEqual(['S-label', 'F-label']);
     expect(t.legend).toBe('Payment change');
-    expect(t.accruedHint).toBe(ARREARS_HINT);
+    expect(t.accruedHint).toBe(PAYMENT_CHANGE_HINT);
     // R2: accruedHint is null when spec.accruedInterest === 'hidden' (read from the spec, not the flow id).
     expect(v.flowLabels('renewal', { ...FLOWS.renewal, accruedInterest: 'hidden' }).accruedHint).toBeNull();
   });

@@ -162,14 +162,17 @@ const ensureVrpcOption = (page) => page.evaluate(() => {
   }
 });
 
-const server = baseArg ? { base: baseArg.replace(/\/$/, ''), stop: () => {} } : await startServer();
+// COB_PAGE_URL (optional): a full page URL; when set the page is opened there and no server is started.
+const PAGE_URL = process.env.COB_PAGE_URL || '';
+const server = PAGE_URL ? { base: '', stop: () => {} } : baseArg ? { base: baseArg.replace(/\/$/, ''), stop: () => {} } : await startServer();
+const PAGE = PAGE_URL || server.base + '/ui/ca.html';
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true, locale: 'en-CA', timezoneId: 'America/Toronto' });
   const scenarios = [];
   for (const sc of SCENARIOS) {
     const page = await context.newPage();
-    await page.goto(server.base + '/ui/ca.html');
+    await page.goto(PAGE);
     // B23: there are no default fee rows, so there is no count to wait on; the module runs before `load`.
     await page.waitForLoadState('load');
     await ensureVrpcOption(page);
@@ -277,7 +280,7 @@ try {
       return { label: dt.firstChild.textContent, hint: hint ? hint.textContent : null, value: f.querySelector('dd').textContent };
     }), id);
     const fill = async (page, sc) => {
-      await page.goto(server.base + '/ui/ca.html');
+      await page.goto(PAGE);
       await page.waitForLoadState('load');
       const order = (id) => (id === 'flow' ? 0 : id === 'paymentFrequency' ? 1 : 2);
       for (const [id, v] of Object.entries(sc.selects).sort(([a], [b]) => order(a) - order(b))) {
@@ -314,7 +317,7 @@ try {
   const flowScreens = {};
   for (const flow of ['newMortgageOrLoan', 'renewal', 'paymentChange', 'variableRatePaymentChange']) {
     const page = await context.newPage();
-    await page.goto(server.base + '/ui/ca.html');
+    await page.goto(PAGE);
     await ensureVrpcOption(page);
     await page.selectOption('#flow', flow);
     flowScreens[flow] = await page.evaluate(() => {
@@ -334,7 +337,7 @@ try {
   // B23-FIX: what a fresh page holds, nothing typed (the fees section; decisions 6 and 7).
   const formDefaults = await (async () => {
     const page = await context.newPage();
-    await page.goto(server.base + '/ui/ca.html');
+    await page.goto(PAGE);
     await page.waitForLoadState('load');
     const d = await page.evaluate(() => ({
       feeRows: document.querySelectorAll('#feesBody tr').length,
