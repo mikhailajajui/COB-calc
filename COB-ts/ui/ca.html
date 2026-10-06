@@ -514,7 +514,7 @@
     .print-record h3 { font: 700 11px/1.3 var(--font-display); color: var(--heading); margin: 8px 0 0; }
     .print-meta { color: var(--ink-muted); }
 
-    .print-record .print-inputs, .print-record .figures {
+    .print-record .print-inputs, .print-record .figure-columns {
       display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; margin: 4px 0;
     }
     .print-input { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding: 2px 0; }
@@ -596,7 +596,10 @@
       <div id="printFees"></div>
       <p class="print-taxes">* Payment amount does not include taxes.</p>
       <h2>Results</h2>
-      <dl class="figures" id="printFigures"></dl>
+      <div class="figure-columns" id="printFigures">
+        <dl class="figures" id="printFiguresLeft"></dl>
+        <dl class="figures" id="printFiguresRight"></dl>
+      </div>
     </div>
   </div>
   <section class="print-only print-schedule-section" id="printScheduleSection">
@@ -662,7 +665,7 @@
       </div>
       <div class="field">
         <label for="paymentFrequency">Payment frequency</label>
-        <select id="paymentFrequency" aria-describedby="paymentFrequencyHint">
+        <select id="paymentFrequency">
           <option value="weekly" selected>Weekly (52/yr)</option>
           <option value="acceleratedWeekly" data-switch="acceleratedFrequencies">Accelerated Weekly (52/yr)</option>
           <option value="biweekly">Bi-weekly (26/yr)</option>
@@ -670,7 +673,6 @@
           <option value="semiMonthly">Semi-monthly (24/yr)</option>
           <option value="monthly">Monthly (12/yr)</option>
         </select>
-        <span class="hint" id="paymentFrequencyHint" hidden></span>
       </div>
       <div class="field">
         <label for="firstPaymentDate" id="firstPaymentDate-label">First payment date</label>
@@ -683,7 +685,7 @@
         <span class="hint" id="endDate-hint">Payments are scheduled up to and including this date, or until the loan is paid off.</span>
       </div>
       <div class="field">
-        <label for="contractTerm">Contract term</label>
+        <label for="contractTerm" id="contractTerm-label">Contract term</label>
         <input type="text" id="contractTerm" readonly aria-describedby="contractTerm-hint" />
         <span class="hint" id="contractTerm-hint"></span>
       </div>

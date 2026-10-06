@@ -9,6 +9,9 @@
  *   T2  B24-R1 properties P1-P4 (grid), P5 (a monthly schedule of N rows is N-1 months and 0 days), P6 (time of day).
  *   T3  B24-R2 / R3 `contractTerm(result)` from the first row to the last row (never the typed First Payment Date when
  *       they differ, never the start date, never the End Date); barrels; the empty schedule.
+ *       B32 (DEC-B32-TERM, 2026-10-05; COB-architecture.md section 5 B32, revision 50) re-baselined T3: the term now runs
+ *       from the flow's START DATE (input[FLOWS[flow].startDateField]) to the last row, `contractTerm(input, result)`;
+ *       new values from the B32 vectors table. Edits are marked "B32 (DEC-B32-TERM)".
  *   T4  B24-R4 termYears / termMonths are never read and never validated: any value gives a result JSON-identical to
  *       the input without them, and collectInputIssues has no term issue. The B13 zero-day COB-rate check is unchanged.
  *
@@ -32,7 +35,8 @@ import type { Term } from './support/termOracle.js';
 const d = utcDate;
 
 type TermBetween = (from: Date, to: Date) => Term;
-type ContractTermFn = (result: { amortizationSchedule: { date: Date }[] }) => Term;
+// B32 (DEC-B32-TERM): contractTerm(input, result) (B32-R1).
+type ContractTermFn = (input: unknown, result: { amortizationSchedule: { date: Date }[] }) => Term;
 
 const termBetween: TermBetween = (from, to) => {
   const fn = (calendar as unknown as { termBetween?: TermBetween }).termBetween;
@@ -44,7 +48,7 @@ const contractTermOf = (mod: object): ContractTermFn => {
   if (typeof fn !== 'function') throw new Error('B24: contractTerm is not exported yet');
   return fn;
 };
-const contractTerm: ContractTermFn = (r) => contractTermOf(ca)(r);
+const contractTerm: ContractTermFn = (i, r) => contractTermOf(ca)(i, r);
 
 interface Vectors { rows: { name: string; from: string; to: string; years: number; months: number; days: number }[] }
 const VECTORS = loadFixture<Vectors>('b24_term_vectors.json');
@@ -199,39 +203,44 @@ const run = (o: Record<string, unknown> = {}): CobCanadaResult => ca.calculateCo
 
 interface CaptureRaw { scenarios: { id: string; raw: Record<string, string> }[] }
 const CAPTURE = loadFixture<CaptureRaw>('a10_ui_capture_v1.json');
-const captured = async (id: string): Promise<CobCanadaResult> => {
+// B32 (DEC-B32-TERM): the input is returned with the result (contractTerm(input, result)).
+const captured = async (id: string): Promise<{ input: CobCanadaInput; r: CobCanadaResult }> => {
   const view = (await import('../../ui/ca-view.js')) as unknown as {
     toInput: (raw: unknown, ctx: unknown) => CobCanadaInput;
   };
   const raw = CAPTURE.scenarios.find((s) => s.id === id)!.raw;
   const spec = ca.FLOWS[raw['flow'] as ca.CobFlow];
   const ctx = { spec, semiAnnual: ca.requiresSemiAnnualDate(raw['productType'] as ca.ProductType, raw['rateType'] as ca.RateType), switches: { financedOption: false, acceleratedFrequencies: false, contractDateField: false } };
-  return ca.calculateCobCanada(view.toInput(raw, ctx));
+  const input = view.toInput(raw, ctx);
+  return { input, r: ca.calculateCobCanada(input) };
 };
 
-describe('B24-T3 contractTerm(result): first row to last row (B24-R2, R3)', () => {
-  // [scenario, first row, last row, term]: the four capture scenarios, architect-measured (R1 table).
+describe('B24-T3 contractTerm(input, result): start date to last row (B24-R2, R3; start point B32, DEC-B32-TERM)', () => {
+  // [scenario, first row, last row, term]: the four capture scenarios, architect-measured (B32 vectors table).
+  // B32 (DEC-B32-TERM): was 2,11,17 / 2,11,17 / 2,5,0 / 4,11,11 (first row to last row).
   it.each([
-    ['REF-01', '2026-03-23', '2029-03-12', T(2, 11, 17)],
-    ['S1_fees', '2026-03-23', '2029-03-12', T(2, 11, 17)],
-    ['RENEWAL', '2026-05-01', '2028-10-01', T(2, 5, 0)],
-    ['VRPC_zero_accrued', '2026-06-26', '2031-06-06', T(4, 11, 11)],
-  ] as const)('%s: rows %s .. %s give %j (not measured from the start date, not to the End Date)', async (id, first, last, want) => {
-    const r = await captured(id);
+    ['REF-01', '2026-03-23', '2029-03-12', T(2, 11, 23)],
+    ['S1_fees', '2026-03-23', '2029-03-12', T(2, 11, 23)],
+    ['RENEWAL', '2026-05-01', '2028-10-01', T(2, 6, 0)],
+    ['VRPC_zero_accrued', '2026-06-26', '2031-06-06', T(4, 11, 22)],
+  ] as const)('%s: rows %s .. %s give %j (measured from the start date, not from the first row, not to the End Date)', async (id, first, last, want) => {
+    const { input, r } = await captured(id);
     const rows = r.amortizationSchedule;
     expect(isoDay(rows[0]!.date)).toBe(first);
     expect(isoDay(rows[rows.length - 1]!.date)).toBe(last);
-    expect(contractTerm(r)).toEqual(want);
+    expect(contractTerm(input, r)).toEqual(want);
   });
 
-  it('REF-01 is 2 years, 11 months, 17 days and NOT the 2, 11, 23 of the Disbursal date or the 2, 11, 22 of the End Date (MUT-3 / MUT-4)', async () => {
-    const r = await captured('REF-01');
-    expect(contractTerm(r)).not.toEqual(T(2, 11, 23));
-    expect(contractTerm(r)).not.toEqual(T(2, 11, 22));
+  // B32 (DEC-B32-TERM): inverted. Was "IS 2, 11, 17 and NOT the 2, 11, 23 of the Disbursal date".
+  it('REF-01 IS 2 years, 11 months, 23 days (Disbursal date), NOT the 2, 11, 17 of the first row or the 2, 11, 22 of first row to End Date', async () => {
+    const { input, r } = await captured('REF-01');
+    expect(contractTerm(input, r)).toEqual(T(2, 11, 23));
+    expect(contractTerm(input, r)).not.toEqual(T(2, 11, 17));
+    expect(contractTerm(input, r)).not.toEqual(T(2, 11, 22));
   });
 
   it('REF-01: "Term in days" is unchanged (Q-CT-DAYS): daysBetween(Disbursal 2026-03-17, last row 2029-03-12) = 1091', async () => {
-    const r = await captured('REF-01');
+    const { r } = await captured('REF-01');
     expect(r.termDays).toBe(1091);
   });
 
@@ -244,20 +253,27 @@ describe('B24-T3 contractTerm(result): first row to last row (B24-R2, R3)', () =
     // 6 monthly rows from 2027-02-01 (10,000 at 5.19% repaid by 2,000 payments): last row 2027-07-01, 5 months.
     expect(rows).toHaveLength(6);
     expect(isoDay(lastRow)).toBe('2027-07-01');
-    expect(contractTerm(r)).toEqual(T(0, 5, 0));
-    expect(contractTerm(r)).not.toEqual(refTerm(d('2027-02-01'), d('2030-01-01'))); // would be 2, 11, 0 against the End Date
+    // B32 (DEC-B32-TERM): from the Disbursal date 2027-01-01, 6 months (was 0, 5, 0 from the first row).
+    expect(contractTerm(make({ loanAmount: 10000, paymentAmount: 2000, endDate: d('2030-01-01') }), r)).toEqual(T(0, 6, 0));
+    expect(contractTerm(make({ loanAmount: 10000, paymentAmount: 2000, endDate: d('2030-01-01') }), r)).not.toEqual(refTerm(d('2027-01-01'), d('2030-01-01'))); // would be 3, 0, 0 against the End Date
   });
 
-  it('a contract under one month is allowed (Q-TERM-SHORT): two weekly rows give 0 years, 0 months, 7 days', () => {
-    const r = run({ paymentFrequency: 'weekly', paymentAmount: 300, firstPaymentDate: d('2027-03-23'), endDate: d('2027-03-31') });
+  // B32 (DEC-B32-TERM): measured from the Disbursal date 2027-01-01 the two weekly rows give 0, 2, 29 (was 0, 0, 7 first to last
+  // row); a term under one month is still allowed (Q-TERM-SHORT): a start date 7 days before the last row gives 0, 0, 7.
+  it('two weekly rows: 0 years, 2 months, 29 days from the Disbursal date; under one month allowed (Q-TERM-SHORT)', () => {
+    const o = { paymentFrequency: 'weekly', paymentAmount: 300, firstPaymentDate: d('2027-03-23'), endDate: d('2027-03-31') };
+    const r = run(o);
     expect(r.amortizationSchedule.map((x) => isoDay(x.date))).toEqual(['2027-03-23', '2027-03-30']);
-    expect(contractTerm(r)).toEqual(T(0, 0, 7));
+    expect(contractTerm(make(o), r)).toEqual(T(0, 2, 29));
+    const short = { ...o, disbursalDate: d('2027-03-23') };
+    expect(contractTerm(make(short), run(short))).toEqual(T(0, 0, 7));
   });
 
   it('a one-row schedule is allowed and reads 0 years, 0 months, 0 days', () => {
-    const r = run({ disbursalDate: d('2027-01-01'), firstPaymentDate: d('2027-01-01'), endDate: d('2027-01-02') });
+    const o = { disbursalDate: d('2027-01-01'), firstPaymentDate: d('2027-01-01'), endDate: d('2027-01-02') };
+    const r = run(o);
     expect(r.amortizationSchedule).toHaveLength(1);
-    expect(contractTerm(r)).toEqual(T(0, 0, 0));
+    expect(contractTerm(make(o), r)).toEqual(T(0, 0, 0)); // B32 (DEC-B32-TERM): start = last row (Q-B32-SAME-DAY default)
   });
 
   it('a one-row schedule with any fee is still decided by the B13 zero-day rule (unchanged message)', () => {
@@ -268,31 +284,37 @@ describe('B24-T3 contractTerm(result): first row to last row (B24-R2, R3)', () =
     expect(call).toThrow(/disbursalDate/);
   });
 
-  it('semi-monthly: the term is row 0 to the last row (the dates of the schedule), equal to the oracle', () => {
-    const r = run({ paymentFrequency: 'semiMonthly', paymentAmount: 700, firstPaymentDate: d('2027-01-15'), endDate: d('2027-06-20') });
+  // B32 (DEC-B32-TERM): start date (Disbursal 2027-01-01) to the last row: 0, 5, 14 (was 0, 5, 0 from row 0).
+  it('semi-monthly: the term is the start date to the last row, equal to the oracle', () => {
+    const o = { paymentFrequency: 'semiMonthly', paymentAmount: 700, firstPaymentDate: d('2027-01-15'), endDate: d('2027-06-20') };
+    const r = run(o);
     const rows = r.amortizationSchedule.map((x) => isoDay(x.date));
     expect(rows[0]).toBe('2027-01-15');
     expect(rows[rows.length - 1]).toBe('2027-06-15');
-    expect(contractTerm(r)).toEqual(T(0, 5, 0));
-    expect(contractTerm(r)).toEqual(refTerm(r.amortizationSchedule[0]!.date, r.amortizationSchedule[rows.length - 1]!.date));
+    expect(contractTerm(make(o), r)).toEqual(T(0, 5, 14));
+    expect(contractTerm(make(o), r)).toEqual(refTerm(d('2027-01-01'), r.amortizationSchedule[rows.length - 1]!.date));
   });
 
-  it('weekly and bi-weekly: the term equals the oracle on the schedule\'s own first and last dates', () => {
+  // B32 (DEC-B32-TERM): the oracle is fed the Disbursal date instead of the schedule's first row.
+  it('weekly and bi-weekly: the term equals the oracle on the Disbursal date and the schedule\'s last date', () => {
     for (const [f, amount] of [['weekly', 300], ['biweekly', 600], ['acceleratedWeekly', 300], ['acceleratedBiweekly', 600]] as const) {
-      const r = run({ paymentFrequency: f, paymentAmount: amount, firstPaymentDate: d('2027-03-01'), endDate: d('2028-09-01') });
+      const o = { paymentFrequency: f, paymentAmount: amount, firstPaymentDate: d('2027-03-01'), endDate: d('2028-09-01') };
+      const r = run(o);
       const rows = r.amortizationSchedule;
-      expect(contractTerm(r), f).toEqual(refTerm(rows[0]!.date, rows[rows.length - 1]!.date));
+      expect(contractTerm(make(o), r), f).toEqual(refTerm(d('2027-01-01'), rows[rows.length - 1]!.date));
     }
   });
 
-  it('reads only the first and last row date (a minimal Pick<CobCanadaResult, "amortizationSchedule"> is enough; times of day are dropped)', () => {
-    const rows = [{ date: new Date('2026-01-31T18:00:00Z') }, { date: new Date('2026-06-01T00:00:00Z') }, { date: new Date('2026-02-28T03:00:00Z') }];
-    // middle rows and their order do not matter; first = 2026-01-31, last = 2026-02-28 (a month-end to month-end month)
-    expect(contractTerm({ amortizationSchedule: rows })).toEqual(T(0, 1, 0));
+  // B32 (DEC-B32-TERM): the synthetic schedule gets an input; only the LAST row is read now (with the input's start date).
+  it('reads only the last row date and the input\'s start date (a minimal Pick<CobCanadaResult, "amortizationSchedule"> is enough; times of day are dropped)', () => {
+    const rows = [{ date: new Date('2026-03-15T18:00:00Z') }, { date: new Date('2026-06-01T00:00:00Z') }, { date: new Date('2026-02-28T03:00:00Z') }];
+    // middle rows, the first row and their order do not matter; start = 2026-01-31, last = 2026-02-28 (a month-end to month-end month)
+    expect(contractTerm(make({ disbursalDate: new Date('2026-01-31T23:00:00Z') }), { amortizationSchedule: rows })).toEqual(T(0, 1, 0));
   });
 
-  it('an empty schedule throws RangeError (the engine never returns one)', () => {
-    expect(() => contractTerm({ amortizationSchedule: [] })).toThrow(RangeError);
+  it('an empty schedule throws RangeError (the engine never returns one) with its message', () => {
+    expect(() => contractTerm(make(), { amortizationSchedule: [] })).toThrow(RangeError);
+    expect(() => contractTerm(make(), { amortizationSchedule: [] })).toThrow(/amortizationSchedule must have at least one row/);
   });
 
   it('B24-R3: contractTerm is exported by cobCanada.ts and by both barrels as the same function', () => {

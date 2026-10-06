@@ -71,15 +71,16 @@ describe('B24-T6 contractTermParts / contractTermText (B24-R6)', () => {
   });
 });
 
-describe('B24-T6 contractTermHint (B24-R6, interim wording Q-MSG) per flow', () => {
+// B32 (DEC-B32-TERM): the hint names the flow's START date (was the first payment date label).
+describe('B24-T6 contractTermHint (B24-R6, interim wording Q-MSG; start label B32) per flow', () => {
   it.each([
-    ['newMortgageOrLoan', 'Calculated from the first payment date to the last scheduled payment date.'],
-    ['renewal', 'Calculated from the first payment date to the last scheduled payment date.'],
-    ['paymentChange', 'Calculated from the next payment date to the last scheduled payment date.'],
-    ['variableRatePaymentChange', 'Calculated from the next payment date to the last scheduled payment date.'],
-  ] as const)('%s: "%s" (label = flowLabels(...).firstPaymentDate, lower-cased)', async (flow, want) => {
+    ['newMortgageOrLoan', 'Calculated from the disbursal date to the last scheduled payment date.'],
+    ['renewal', 'Calculated from the renewal date to the last scheduled payment date.'],
+    ['paymentChange', 'Calculated from the date of change to the last scheduled payment date.'],
+    ['variableRatePaymentChange', 'Calculated from the date of change to the last scheduled payment date.'],
+  ] as const)('%s: "%s" (label = flowLabels(...).startDate, lower-cased)', async (flow, want) => {
     const v = await loadView();
-    const label = v.flowLabels(flow, ca.FLOWS[flow]).firstPaymentDate.toLowerCase();
+    const label = v.flowLabels(flow, ca.FLOWS[flow]).startDate.toLowerCase();
     expect(v.contractTermHint(label)).toBe(want);
   });
 
@@ -113,13 +114,20 @@ describe('B24-T6 toInput sends neither termYears nor termMonths (B24-R6)', () =>
 });
 
 describe('B24-T6 printInputRows carries the Contract term text it is given (B24-R6)', () => {
-  it.each(FLOW_IDS)('%s: exactly one "Contract term" row, directly after "End date", with the given text verbatim', async (flow) => {
+  // B32 (DEC-B32-TERM): the row is located by flowLabels(flow).contractTerm ("Remaining contract term" for renewal and
+  // paymentChange, "Contract term" otherwise), typed here as literals.
+  const TERM_LABEL: Record<CobFlow, string> = {
+    newMortgageOrLoan: 'Contract term', renewal: 'Remaining contract term', paymentChange: 'Remaining contract term', variableRatePaymentChange: 'Contract term',
+  };
+  it.each(FLOW_IDS)('%s: exactly one term row (per-flow label), directly after "End date", with the given text verbatim', async (flow) => {
     const v = await loadView();
     const raw = RAW_FLOW[flow]();
     const rows = v.printInputRows(raw, ctxOf(raw), 'A-verbatim-text');
-    const at = rows.findIndex(([k]) => k === 'Contract term');
-    expect(rows.filter(([k]) => k === 'Contract term')).toHaveLength(1);
-    expect(rows[at]).toEqual(['Contract term', 'A-verbatim-text']);
+    const lbl = (v.flowLabels(flow, ca.FLOWS[flow]) as unknown as Record<string, unknown>)['contractTerm'];
+    expect(lbl).toBe(TERM_LABEL[flow]);
+    const at = rows.findIndex(([k]) => k === lbl);
+    expect(rows.filter(([k]) => k === lbl)).toHaveLength(1);
+    expect(rows[at]).toEqual([TERM_LABEL[flow], 'A-verbatim-text']);
     expect(rows[at - 1]![0]).toBe('End date');
   });
 
@@ -160,7 +168,7 @@ describe('B24-T6 ui/ca.html (static)', () => {
     expect(a.get('type')).toBe('text');
     expect(a.get('aria-describedby')).toBe('contractTerm-hint');
     expect(a.has('aria-live')).toBe(false);
-    expect(src).toContain('<label for="contractTerm">Contract term</label>');
+    expect(src).toContain('<label for="contractTerm" id="contractTerm-label">Contract term</label>'); // B32 (DEC-B32-TERM): label id (R6)
     expect(src).toMatch(/<span class="hint" id="contractTerm-hint">[^<]*<\/span>/);
     // it never carries a value of its own in the markup (the page fills it after a calculation)
     expect(a.get('value') ?? '').toBe('');
@@ -198,11 +206,12 @@ describe('B24-T6 ui/ca.js (static)', () => {
     for (const m of imports) expect(['/dist/ca/index.js', '/ui/ca-view.js', './ca-view.js']).toContain(m[2]);
   });
 
-  it('fills the field after a successful calculation: contractTermText(contractTerm(result)) is written to a #contractTerm element', () => {
+  it('fills the field after a successful calculation: contractTermText(contractTerm(input, result)) is written to a #contractTerm element', () => {
     const src = code('ui/ca.js');
     expect(src).toMatch(/getElementById\('contractTerm'\)/);
-    // the text is built from contractTerm(result) by contractTermText, and written to the field (directly or through a variable)
-    expect(src).toMatch(/contractTermText\(\s*contractTerm\(\s*result\s*\)\s*\)/);
+    // the text is built from contractTerm(input, result) by contractTermText, and written to the field (directly or through a variable)
+    // B32 (DEC-B32-TERM): two-argument call (B32-R1, R6); was contractTerm(result).
+    expect(src).toMatch(/contractTermText\(\s*contractTerm\(\s*input\s*,\s*result\s*\)\s*\)/);
     expect(src).toMatch(/\b\w*[cC]ontractTerm\w*\.value\s*=\s*[^'";\s]/);
   });
 
@@ -258,9 +267,10 @@ describe('B24-T6 ui/ca.js (static)', () => {
     }
   });
 
-  it('the tile keeps the "Contract term" label and uses contractTermParts with a non-breaking space in each part', () => {
+  // B32 (DEC-B32-TERM): the tile label comes from texts.contractTerm (per flow); ca.js holds no 'Contract term' literal (B32-R6).
+  it('the tile takes its label from texts.contractTerm and uses contractTermParts with a non-breaking space in each part', () => {
     const src = code('ui/ca.js');
-    expect(src).toMatch(/'Contract term'/);
+    expect(src).toMatch(/\[\s*texts\.contractTerm\s*,\s*contractTermParts\(/);
     expect(src).toMatch(/contractTermParts\(/);
     expect(src).toMatch(/\\u00a0|&nbsp;/);
   });
@@ -453,6 +463,6 @@ describe('B24-T9 the Chrome scripts no longer fill or read the removed / hidden 
   it('check_page_smoke.mjs asserts the Contract term shows after a calculation and is blank after a failed one', () => {
     const src = readFileSync(`${ROOT}/tests/ui/check_page_smoke.mjs`, 'utf8');
     expect(src).toContain('contractTerm');
-    expect(src).toContain('2 years, 11 months, 17 days');
+    expect(src).toContain('2 years, 11 months, 23 days'); // B32 (DEC-B32-TERM): REF-01 from the Disbursal date (was 17 days)
   });
 });

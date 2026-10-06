@@ -141,18 +141,24 @@ describe('B23-T3 moreFigures and printFigures', () => {
   const FLOW_CASES: [string, View.RawForm][] = [['New', NEW_RAW(CASH_FEES)], ['Renewal', RENEWAL_RAW(CASH_FEES)]];
 
   it.each(BOTH.flatMap(([n, sw]) => FLOW_CASES.map(([f, raw]) => [`${n} / ${f}`, sw, raw] as const)))(
-    '%s: exact label list of moreFigures; Disbursal amount only on New and only on; printFigures = headline + main + more',
+    '%s: exact label list of moreFigures; Disbursal amount only on New and only on; printFigures = { left: [APR, ...more], right: main with the hinted Cost of borrowing amount } (B31)',
     async (_name, sw, raw) => {
       const v = await loadView();
       const r = await resultOf(raw);
       const ctx = ctxOf(raw, sw);
       const isNew = raw.flow === 'newMortgageOrLoan';
+      // B31-R2 (DEC-B31-LAYOUT, revision 49): moreFigures is the rates-and-term group; the two
+      // financed figures follow Balance at end date (Q-B31-ON-ORDER).
+      const base = ['Calculated rate', 'Number of payments', 'Term in days', 'Balance at end date'];
       const expected = sw.financedOption
-        ? ['Fees recovered through payments', 'Balance at end date', ...(isNew ? ['Disbursal amount'] : []), 'Term in days']
-        : ['Balance at end date', 'Term in days'];
+        ? [...base, 'Fees recovered through payments', ...(isNew ? ['Disbursal amount'] : [])]
+        : base;
       const more = v.moreFigures(r, ctx);
       expect(more.map((f) => f[0])).toEqual(expected);
-      expect(v.printFigures(r, ctx)).toEqual([...v.headlineFigures(r), ...v.mainFigures(r), ...more]);
+      const [apr, cobAmount] = v.headlineFigures(r);
+      const main = v.mainFigures(r);
+      const right = main.map((f, i) => (i === 1 ? cobAmount : f));
+      expect(v.printFigures(r, ctx)).toEqual({ left: [apr, ...more], right });
       // values are the engine's, unchanged by the switch
       const byLabel = Object.fromEntries(more.map((f) => [f[0], f[1]]));
       expect(byLabel['Balance at end date']).toMatch(/^\$[\d,]+\.\d{2}$/);

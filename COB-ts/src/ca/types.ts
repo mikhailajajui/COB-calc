@@ -102,10 +102,10 @@ export interface CobInputCommon {
   endDate: Date;
 
   /** @deprecated Never read and never validated (DEV-OQP). The contract term is derived
-   *  from the schedule: see `contractTerm(result)`. */
+   *  from the schedule: see `contractTerm(input, result)`. */
   termYears?: number;
   /** @deprecated Never read and never validated (DEV-OQP). The contract term is derived
-   *  from the schedule: see `contractTerm(result)`. */
+   *  from the schedule: see `contractTerm(input, result)`. */
   termMonths?: number;
 
   /** fixed-rate mortgages only -- display/reference anchor for the semi-annual

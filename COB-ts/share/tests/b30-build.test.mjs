@@ -217,6 +217,8 @@ describe('Q-B30-NPM: no root script', () => {
   it('the root package.json has no script that mentions share (answer: none, F16 pins that file)', () => {
     const scripts = JSON.parse(read(join(COB, 'package.json'))).scripts;
     expect(Object.entries(scripts).filter(([k, v]) => /share|COB\.html/.test(k + v))).toEqual([]);
-    expect(sha256File(join(COB, 'package.json'))).toBe('b8680e37f5f0be1182ae3ea84894ae1209f354d5a564ce21fdf4024a87e2b54e');
+    // Re-pinned 2026-10-05 by QA (B32 red step, DEC-B32-TERM; recorded): test:tz gains tests/ca/b32-term-start.test.ts (was b8680e37...).
+    // Re-pinned 2026-10-05 by QA (B33 red step, DEC-B33-FREQ; recorded): test:tz gains tests/ca/b33-personal-loan-frequencies.test.ts (was daa37ca1...).
+    expect(sha256File(join(COB, 'package.json'))).toBe('8c9c47d8461b25ab5dcf115a742bb9c8ff767b6dad038f3d3b536f19fd84635a');
   });
 });

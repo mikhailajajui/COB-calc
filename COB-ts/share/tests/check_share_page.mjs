@@ -86,7 +86,7 @@ try {
   for (const [id, v] of Object.entries(selects).sort(([a], [b]) => order(a) - order(b))) await page.selectOption('#' + id, v);
   const fields = { loanAmount: '227829.65', contractRatePercent: '3.74', paymentAmount: '465.46', disbursalDate: '2026-03-17', firstPaymentDate: '2026-03-23', endDate: '2029-03-17' };
   for (const [id, v] of Object.entries(fields)) await page.fill('#' + id, v);
-  same(await page.locator('#contractTerm').inputValue(), '2 years, 11 months, 17 days', 'Contract term');
+  same(await page.locator('#contractTerm').inputValue(), '2 years, 11 months, 23 days', 'Contract term'); // B32 (DEC-B32-TERM): from the Disbursal date (was 17 days)
   await page.check('#scheduleColumns-all', { timeout: 5000 });
   await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
   const figures = await page.evaluate(() => [...document.querySelectorAll('#printFigures .figure')].map((f) => {

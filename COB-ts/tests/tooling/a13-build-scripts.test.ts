@@ -117,6 +117,8 @@ describe('A13 timezone hygiene: test:tz matches the spec command', () => {
         'tests/ca/b15-semimonthly-time-of-day.test.ts', // B15 (QA 2026-09-28): asserts payment dates
         'tests/ca/b24-term-rule.test.ts', // B24 (QA 2026-09-30): the term rule reads UTC calendar dates; must give the same answers in both zones
         'tests/ca/b25-semimonthly-move.test.ts', // B25 (QA 2026-10-01): the semi-monthly move reads UTC calendar dates; same answers in both zones
+        'tests/ca/b32-term-start.test.ts', // B32 (DEC-B32-TERM, QA 2026-10-05): the term from the start date reads UTC calendar dates; same answers in both zones
+        'tests/ca/b33-personal-loan-frequencies.test.ts', // B33 (DEC-B33-FREQ, QA 2026-10-05): personal-loan schedules at every frequency (payment dates, semi-monthly move, workbook vectors); same answers in both zones
         'tests/ca/b3b-date-validation.test.ts',
         'tests/ca/b8-accelerated-frequencies.test.ts', // B8 (QA 2026-09-29): asserts payment dates
         'tests/ca/calendar-a4.test.ts',

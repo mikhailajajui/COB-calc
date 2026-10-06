@@ -134,9 +134,9 @@ describe('B28-T4: ca.js and ca-view.js source', () => {
     expect(code).toMatch(/\bswitchedOut\(/);
     expect(code).toMatch(/\[data-switch\]/);
     expect(code).not.toMatch(/accelerated/i);
-    // B27 (B27-R7): ca.js now imports allowedPaymentFrequencies for the Payment frequency LOCK (frequencyLock), which
-    // is not the option list: it may be imported and called as the lock's argument, nowhere else. The options still
-    // come from ca.html (this test's other half), never from the catalogue.
+    // B27 (B27-R7) imported allowedPaymentFrequencies into ca.js for the Payment frequency LOCK (frequencyLock); B33
+    // (DEC-B33-FREQ) deleted the lock, so after B33 there are 0 uses (0 = 0 + 0 below). Either way the options come from
+    // ca.html (this test's other half), never from the catalogue.
     const uses = [...code.matchAll(/allowedPaymentFrequencies/g)].length;
     const inImport = /import \{[^}]*\ballowedPaymentFrequencies\b[^}]*\} from '\/dist\/ca\/index\.js'/.test(code) ? 1 : 0;
     const asLockArgument = [...code.matchAll(/frequencyLock\(\s*[\w.]+\s*,\s*allowedPaymentFrequencies\(/g)].length;

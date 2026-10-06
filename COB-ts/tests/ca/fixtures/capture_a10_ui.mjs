@@ -9,11 +9,13 @@
 // Without baseUrl it starts `node ui/serve.mjs` on a free port and stops it afterwards.
 // A10-CAP2: rerun after each green step and compare the output, minus `provenance`, with the fixture.
 // B28: the shipped page has four Payment frequency options (weekly, biweekly, semiMonthly, monthly); the script throws otherwise.
-// B27 (DEV-FB24): choosing Personal loan locks Payment frequency to Monthly and disables that select, and Playwright's
-// selectOption waits for an enabled element. So every scenario sets flow first, paymentFrequency BEFORE productType, and
-// skips a disabled select whose value already equals the wanted one. For a personal-loan scenario the script also asserts
-// the locked state (disabled, value monthly, hint visible) and, after switching back to Mortgage, enabled, still monthly,
-// hint gone; it then selects Personal loan again. These are assertions, not recorded keys: the fixture is unchanged.
+// B27 (DEV-FB24) locked Payment frequency to Monthly for a personal loan; B33 (DEC-B33-FREQ, 2026-10-05) removed that lock.
+// Every scenario still sets flow first, then paymentFrequency, then the rest, and skips a disabled select that already holds
+// the wanted value (the flow still forces product / rate for VRPC). For a personal-loan scenario the script ASSERTS (not
+// recorded) the unlocked state: Payment frequency enabled, no aria-describedby, holding the scenario's frequency; and the
+// same after switching Product to Mortgage and back to Personal loan (value kept, never disabled). B33 appends scenario
+// PL_WEEKLY (a weekly personal loan, the only page-level pin of a personal loan at a non-monthly frequency) LAST, so the
+// indices of the six earlier scenarios are unchanged.
 // B24 (DEV-OQP): the Term years / Term months inputs are gone, the Contract date and the Semi-annual compounding date
 // are not filled (hidden behind switches), and ONE read-only field #contractTerm shows the derived Contract term. The
 // script no longer fills #termYears, #termMonths, #contractDate or #semiAnnualCompoundingDate and no longer reads them
@@ -24,10 +26,17 @@
 // architect's R1 values), so a wrong page cannot be baked into the fixture.
 // A11 (scope B, Q-A11-FIX = no): the print table is built when printing, not on every keystroke, so before reading the
 // elements the script dispatches `beforeprint` on window, as a print does. a10_ui_capture_v1.json stays byte-identical.
+// B32 (DEC-B32-TERM, 2026-10-05): the Contract term runs from the flow's start date (Disbursal date / Renewal date / Date of
+// change); EXPECT_TERM holds the B32 vectors-table values. The field's label is per flow ("Remaining contract term" for
+// Renewal and Payment change, "Contract term" otherwise; TERM_LABEL), asserted on every scenario page and recorded as
+// `flowScreens.<flow>.termLabel` right after `termHint` (which now names the start date).
 // B26: after the recorded scenarios one extra step (assertions only, nothing is written to <out.json>) fills a shortfall
 // mortgage (200,000 at 5%, monthly, payment 700, End Date 2028-04-15) and asserts the 'Unpaid interest at end date'
 // figure ($3,015.17, hint 'Unpaid after the last payment; interest since then is not included') on screen and in the printout, with
 // 'Balance at end date' $200,000.00 before it; then REF-01 again and asserts the figure is absent.
+// B31 (DEC-B31-LAYOUT, revision 49): ELEMENTS records #printFiguresLeft and #printFiguresRight instead of the old single
+// #printFigures list; `figures` is still read from '#printFigures .figure' (the wrapper keeps the id), i.e. left then right.
+// The B26 step still reads #moreFigures and #printFigures: Balance at end date stays directly before the unpaid line in both.
 import { createRequire } from 'node:module';
 import { execSync, spawn } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -44,14 +53,23 @@ if (!out) throw new Error('usage: node tests/ca/fixtures/capture_a10_ui.mjs <out
 
 // B24: nothing is filled on every scenario any more (the Contract date field is hidden behind a switch).
 const COMMON = {};
-// B24: the Contract term each successful scenario must show (first payment date to last scheduled payment date).
+// B24: the Contract term each successful scenario must show. B32 (DEC-B32-TERM): from the flow's start date to the last
+// scheduled payment date (B32 vectors table; was 2,11,17 / 2,11,17 / 2,5,0 / 4,11,11 from the first payment date).
 const EXPECT_TERM = {
-  'REF-01': '2 years, 11 months, 17 days',
-  S1_fees: '2 years, 11 months, 17 days',
-  RENEWAL: '2 years, 5 months, 0 days',
+  'REF-01': '2 years, 11 months, 23 days',
+  S1_fees: '2 years, 11 months, 23 days',
+  RENEWAL: '2 years, 6 months, 0 days',
   VRPC_blank_accrued: '',
-  VRPC_zero_accrued: '4 years, 11 months, 11 days',
+  VRPC_zero_accrued: '4 years, 11 months, 22 days',
   ERR_blank_rate: '',
+  PL_WEEKLY: '2 years, 10 months, 13 days', // B33 (DEC-B33-FREQ): 2026-03-17 -> last weekly payment 2029-01-30
+};
+// B32 (DEC-B32-TERM): the label of #contractTerm per flow, typed from the decision.
+const TERM_LABEL = {
+  newMortgageOrLoan: 'Contract term',
+  renewal: 'Remaining contract term',
+  paymentChange: 'Remaining contract term',
+  variableRatePaymentChange: 'Contract term',
 };
 const SCENARIOS = [
   {
@@ -99,8 +117,16 @@ const SCENARIOS = [
       disbursalDate: '2026-03-17', firstPaymentDate: '2026-04-17', endDate: '2029-03-17' },
     fees: [],
   },
+  {
+    id: 'PL_WEEKLY', // B33 (DEC-B33-FREQ): a personal loan paid weekly; contract rate used as entered (not converted)
+    selects: { flow: 'newMortgageOrLoan', productType: 'personalLoan', rateType: 'fixed', paymentFrequency: 'weekly' },
+    fields: { loanAmount: '10000', contractRatePercent: '8', paymentAmount: '75', disbursalDate: '2026-03-17', firstPaymentDate: '2026-03-24', endDate: '2029-03-17' },
+    fees: [],
+  },
 ];
-const ELEMENTS = ['printInputs', 'printFees', 'printFigures', 'printScheduleTable', 'printScheduleCount', 'scheduleTable',
+// B31-R9a (DEC-B31-LAYOUT): the print figures are two lists in the #printFigures wrapper; record each (the wrapper's
+// `.figure` read below still gives left then right, in DOM order).
+const ELEMENTS = ['printInputs', 'printFees', 'printFiguresLeft', 'printFiguresRight', 'printScheduleTable', 'printScheduleCount', 'scheduleTable',
   'scheduleCount', 'mainFigures', 'moreFigures', 'contractTermsList', 'headlineFigures'];
 // B24: no contractDate, termYears, termMonths or semiAnnualCompoundingDate (not on the page / not filled).
 const RAW_IDS = ['flow', 'productType', 'rateType', 'loanAmount', 'contractRatePercent', 'paymentAmount',
@@ -125,7 +151,7 @@ async function startServer() {
 }
 
 // B24: the structure of the form around the Contract term, asserted on every scenario page (nothing is recorded).
-async function assertTermField(page, where) {
+async function assertTermField(page, where, flow) {
   const st = await page.evaluate(() => {
     const term = document.getElementById('contractTerm');
     const end = document.getElementById('endDate');
@@ -146,7 +172,7 @@ async function assertTermField(page, where) {
     };
   });
   const want = { termYearsNode: 0, termMonthsNode: 0, contractDateNode: 0, semiVisible: false, hasTerm: true, readonly: true, type: 'text',
-    hintId: 'contractTerm-hint', hintExists: true, afterEnd: true, labelText: 'Contract term' };
+    hintId: 'contractTerm-hint', hintExists: true, afterEnd: true, labelText: TERM_LABEL[flow] }; // B32 (DEC-B32-TERM): per flow
   for (const k of Object.keys(want)) if (st[k] !== want[k]) throw new Error(`B24 ${where}: ${k} is ${JSON.stringify(st[k])}, expected ${JSON.stringify(want[k])}`);
 }
 
@@ -188,30 +214,21 @@ try {
       await page.selectOption('#' + id, v);
     }
     if (sc.selects.productType === 'personalLoan') {
+      // B33 (DEC-B33-FREQ): no lock. The select is enabled, has no hint reference and keeps the scenario's frequency,
+      // also after Product -> Mortgage -> Personal loan. Assertions only; nothing is recorded.
       const frequencyState = () => page.evaluate(() => {
         const sel = document.getElementById('paymentFrequency');
-        const hintEl = document.getElementById(sel.getAttribute('aria-describedby') ?? '');
-        const hintShown = hintEl !== null && hintEl.getClientRects().length > 0 && getComputedStyle(hintEl).display !== 'none' && !hintEl.hidden;
-        return { disabled: sel.disabled, value: sel.value, hintShown, hintText: hintEl ? hintEl.textContent.trim() : null };
+        return { disabled: sel.disabled, value: sel.value, describedBy: sel.getAttribute('aria-describedby'), hintNode: document.getElementById('paymentFrequencyHint') === null ? 0 : 1 };
       });
-      const expectState = (st, want, where) => {
-        for (const k of Object.keys(want)) if (st[k] !== want[k]) throw new Error(`B27 ${sc.id} ${where}: ${k} is ${JSON.stringify(st[k])}, expected ${JSON.stringify(want[k])}`);
+      const want = { disabled: false, value: sc.selects.paymentFrequency, describedBy: null, hintNode: 0 };
+      const expectState = (st, where) => {
+        for (const k of Object.keys(want)) if (st[k] !== want[k]) throw new Error(`B33 ${sc.id} ${where}: ${k} is ${JSON.stringify(st[k])}, expected ${JSON.stringify(want[k])}`);
       };
-      expectState(await frequencyState(), { disabled: true, value: 'monthly', hintShown: true, hintText: 'Personal loans are paid monthly.' }, 'personal loan');
+      expectState(await frequencyState(), 'personal loan');
       await page.selectOption('#productType', 'mortgage');
-      expectState(await frequencyState(), { disabled: false, value: 'monthly', hintShown: false }, 'back to mortgage');
+      expectState(await frequencyState(), 'switched to mortgage');
       await page.selectOption('#productType', 'personalLoan');
-      expectState(await frequencyState(), { disabled: true, value: 'monthly', hintShown: true }, 'personal loan again');
-      // B27 verify (MUT-10): the scenario starts at Monthly, so the round trip above cannot tell "keeps Monthly" from
-      // "restores the earlier choice". Detour through a non-Monthly choice; the final state is the same as before it.
-      await page.selectOption('#productType', 'mortgage');
-      await page.selectOption('#paymentFrequency', 'weekly');
-      await page.selectOption('#productType', 'personalLoan');
-      expectState(await frequencyState(), { disabled: true, value: 'monthly', hintShown: true }, 'weekly then personal loan');
-      await page.selectOption('#productType', 'mortgage');
-      expectState(await frequencyState(), { disabled: false, value: 'monthly', hintShown: false }, 'weekly, personal loan, back to mortgage (no restore of weekly)');
-      await page.selectOption('#productType', 'personalLoan');
-      expectState(await frequencyState(), { disabled: true, value: 'monthly', hintShown: true }, 'personal loan after the detour');
+      expectState(await frequencyState(), 'back to personal loan');
     }
     for (const [id, v] of Object.entries({ ...COMMON, ...sc.fields })) await page.fill('#' + id, v);
     // Fees: the form opens with none (B23-R1); add the scenario's rows.
@@ -237,7 +254,7 @@ try {
       const e = document.getElementById('error');
       return e.style.display === 'block' ? e.textContent : null;
     });
-    await assertTermField(page, sc.id);
+    await assertTermField(page, sc.id, raw.flow);
     const contractTermField = await page.locator('#contractTerm').inputValue();
     if (contractTermField !== EXPECT_TERM[sc.id]) {
       throw new Error(`B24 ${sc.id}: #contractTerm is ${JSON.stringify(contractTermField)}, expected ${JSON.stringify(EXPECT_TERM[sc.id])}`);
@@ -330,8 +347,14 @@ try {
       };
       if (!isNew) s.accruedInterestHint = t('accruedInterest-hint');
       s.termHint = t('contractTerm-hint'); // B24-R6
+      s.termLabel = document.querySelector('label[for="contractTerm"]').textContent; // B32 (DEC-B32-TERM)
       return s;
     });
+    // B32 (DEC-B32-TERM): assert before recording, so a wrong page cannot be baked into the fixture.
+    const wantHint = `Calculated from the ${flowScreens[flow].startDate.toLowerCase()} to the last scheduled payment date.`;
+    if (flowScreens[flow].termLabel !== TERM_LABEL[flow] || flowScreens[flow].termHint !== wantHint) {
+      throw new Error(`B32 ${flow}: label ${JSON.stringify(flowScreens[flow].termLabel)} / hint ${JSON.stringify(flowScreens[flow].termHint)}, expected ${JSON.stringify(TERM_LABEL[flow])} / ${JSON.stringify(wantHint)}`);
+    }
     await page.close();
   }
   // B23-FIX: what a fresh page holds, nothing typed (the fees section; decisions 6 and 7).
@@ -362,7 +385,7 @@ try {
     chrome: browser.version(),
     playwrightCore: PLAYWRIGHT_CORE_VERSION,
     date: new Date().toISOString(),
-    tree: 'post-B24 (Contract term derived; Contract date and Semi-annual date hidden)',
+    tree: 'post-B24 (Contract term derived; Contract date and Semi-annual date hidden)', // pinned by b23-fees-switch B23-T8; B32 keeps it
   };
   writeFileSync(out, JSON.stringify({ provenance, formDefaults, flowScreens, scenarios }, null, 1) + '\n');
   console.log('ok', provenance.chrome, scenarios.map((s) => `${s.id}:${s.error ?? 'ok'}:${s.modes.all?.figures.length ?? 0}fig`).join(' '));

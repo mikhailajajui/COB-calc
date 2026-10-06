@@ -6,7 +6,8 @@
  *
  *   T1  B25-R1 / R2 the move function: the 12 vectors, the 731-date oracle sweep, the other frequencies, time of day, purity.
  *   T2  B25-R3 the engine schedule: oracle date lists, row 1, B25-INV-equiv, and the pre-B25 snapshot for what must not change.
- *   T3  B25-R7 typed versus moved Contract term (the B24 gap).
+ *   T3  B25-R7 typed versus moved Contract term (the B24 gap). Re-baselined by B32 (DEC-B32-TERM): the term runs from the
+ *       start date, so the move no longer changes it (supersedes Q-CT-B25).
  *   T4  B25-R5 validation (moved date; interim End wording; start between typed and moved is accepted).
  *   T5  purity (frozen input, called twice) and the F3 source guard.
  *
@@ -236,36 +237,45 @@ describe('B25-T2 what must NOT change: a pre-B25 snapshot (sha256 of JSON.string
 // ---------------------------------------------------------------------------------------------------------------
 // T3 typed versus moved Contract term
 // ---------------------------------------------------------------------------------------------------------------
-describe('B25-T3 Contract term runs from the MOVED first date (R7; the case B24 could not kill)', () => {
-  const run = (typed: string, end: string, start = '2027-01-01', frequency: PaymentFrequency = 'semiMonthly') =>
-    calculateCobCanada(asInput({ ...snap.snapInput(typed, frequency, end), disbursalDate: d(start), semiAnnualCompoundingDate: d(start) }));
+// B32 (DEC-B32-TERM, 2026-10-05): superseding Q-CT-B25 (term from the moved date). The term now runs from the start date
+// (here the Disbursal date 2027-01-01) to the last row, contractTerm(input, result); values from the B32 vectors table.
+type ContractTerm2 = (input: unknown, result: unknown) => { years: number; months: number; days: number };
+const contractTerm2: ContractTerm2 = (i, r) => (contractTerm as unknown as ContractTerm2)(i, r);
+describe('B25-T3 Contract term runs from the start date; the move does not change it (B32, superseding Q-CT-B25)', () => {
+  const inputOf = (typed: string, end: string, start = '2027-01-01', frequency: PaymentFrequency = 'semiMonthly') =>
+    asInput({ ...snap.snapInput(typed, frequency, end), disbursalDate: d(start), semiAnnualCompoundingDate: d(start) });
+  const run = (typed: string, end: string, start = '2027-01-01', frequency: PaymentFrequency = 'semiMonthly') => {
+    const input = inputOf(typed, end, start, frequency);
+    return { input, r: calculateCobCanada(input) };
+  };
 
-  it('typed 2027-01-10, start 2027-01-01, End 2029-01-15: row 1 2027-01-15, last row 2029-01-15, term 2 years 0 months 0 days', () => {
-    const r = run('2027-01-10', '2029-01-15');
+  it('typed 2027-01-10, start 2027-01-01, End 2029-01-15: row 1 2027-01-15, last row 2029-01-15, term 2 years 0 months 14 days', () => {
+    const { input, r } = run('2027-01-10', '2029-01-15');
     expect(iso(r.amortizationSchedule[0]!.date)).toBe('2027-01-15');
     expect(iso(r.amortizationSchedule.at(-1)!.date)).toBe('2029-01-15');
-    expect(contractTerm(r)).toEqual({ years: 2, months: 0, days: 0 });
-    // whereas the typed date would have given 2 years, 0 months, 5 days
+    expect(contractTerm2(input, r)).toEqual({ years: 2, months: 0, days: 14 }); // B32 (DEC-B32-TERM): was 2, 0, 0 (moved date)
+    // neither the moved date (2, 0, 0) nor the typed date (2, 0, 5) is the start any more
     expect(calendar.termBetween(d('2027-01-10'), r.amortizationSchedule.at(-1)!.date)).toEqual({ years: 2, months: 0, days: 5 });
+    expect(contractTerm2(input, r)).not.toEqual({ years: 2, months: 0, days: 0 });
   });
 
-  it('typed 2027-01-30, End 2028-01-31: term 1 year 0 months 0 days (typed date would give 1 year 0 months 1 day)', () => {
-    const r = run('2027-01-30', '2028-01-31');
+  it('typed 2027-01-30, End 2028-01-31: term 1 year 0 months 30 days (B32; was 1, 0, 0 from the moved date)', () => {
+    const { input, r } = run('2027-01-30', '2028-01-31');
     expect(iso(r.amortizationSchedule[0]!.date)).toBe('2027-01-31');
-    expect(contractTerm(r)).toEqual({ years: 1, months: 0, days: 0 });
+    expect(contractTerm2(input, r)).toEqual({ years: 1, months: 0, days: 30 });
     expect(calendar.termBetween(d('2027-01-30'), r.amortizationSchedule.at(-1)!.date)).toEqual({ years: 1, months: 0, days: 1 });
   });
 
-  it('typed 2027-01-15 (not moved): both ways agree, 2 years 0 months 0 days', () => {
-    const r = run('2027-01-15', '2029-01-15');
-    expect(contractTerm(r)).toEqual({ years: 2, months: 0, days: 0 });
+  it('typed 2027-01-15 (not moved): the same 2 years 0 months 14 days as the moved case (the move does not change the term)', () => {
+    const { input, r } = run('2027-01-15', '2029-01-15');
+    expect(contractTerm2(input, r)).toEqual({ years: 2, months: 0, days: 14 }); // B32 (DEC-B32-TERM): was 2, 0, 0
     expect(calendar.termBetween(d('2027-01-15'), r.amortizationSchedule.at(-1)!.date)).toEqual({ years: 2, months: 0, days: 0 });
   });
 
-  it('a monthly schedule of the same typed date is untouched: first row is the typed date', () => {
-    const r = run('2027-01-10', '2029-01-10', '2027-01-01', 'monthly');
+  it('a monthly schedule of the same typed date is untouched: first row is the typed date; term 2 years 0 months 9 days', () => {
+    const { input, r } = run('2027-01-10', '2029-01-10', '2027-01-01', 'monthly');
     expect(iso(r.amortizationSchedule[0]!.date)).toBe('2027-01-10');
-    expect(contractTerm(r)).toEqual({ years: 2, months: 0, days: 0 });
+    expect(contractTerm2(input, r)).toEqual({ years: 2, months: 0, days: 9 }); // B32 (DEC-B32-TERM): was 2, 0, 0
   });
 });
 

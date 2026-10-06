@@ -1,6 +1,6 @@
 import { daysBetween, effectiveFirstPaymentDate, periodDateFor, termBetween } from './calendar.js';
 import { totalCashFees, totalFinancedFees } from './fees.js';
-import { FLOWS, computesTriggerRate } from './flows.js';
+import { FLOWS, FLOW_IDS, computesTriggerRate } from './flows.js';
 import {
   PRINCIPAL_PAID,
   PRIOR_ACCRUED_IN_COB,
@@ -328,16 +328,29 @@ export function calculateCobCanadaWith(input: CobCanadaInput, switches: EngineSw
 }
 
 /**
- * The contract term (B24): whole years, months and leftover days from the first to the last
- * row of the calculated schedule. Unrelated to `termDays`, which runs from the flow's start date.
- * An empty schedule (the engine never returns one) throws a RangeError.
+ * The contract term (B24; start point changed by B32, DEC-B32-TERM): whole years, months and
+ * leftover days from the flow's start date (input[FLOWS[flow].startDateField]: Disbursal date,
+ * Renewal date or Date of change) to the last row of the calculated schedule. Same span as
+ * `termDays`: daysBetween(start, last row) === result.termDays for a pair from calculateCobCanada.
+ * RangeError for an empty schedule, an unknown flow, a start date that is not a valid Date, or a
+ * start date after the last row (none of which calculateCobCanada can produce).
  */
-export function contractTerm(result: Pick<CobCanadaResult, 'amortizationSchedule'>): ContractTerm {
+export function contractTerm(
+  input: CobCanadaInput,
+  result: Pick<CobCanadaResult, 'amortizationSchedule'>,
+): ContractTerm {
   const schedule = result.amortizationSchedule;
-  const first = schedule[0];
   const last = schedule[schedule.length - 1];
-  if (first === undefined || last === undefined) {
+  if (last === undefined) {
     throw new RangeError('amortizationSchedule must have at least one row');
   }
-  return termBetween(first.date, last.date);
+  if (!FLOW_IDS.includes(input.flow)) {
+    throw new RangeError(`flow must be one of ${FLOW_IDS.join('/')}`);
+  }
+  const startField = FLOWS[input.flow].startDateField;
+  const start: unknown = input[startField];
+  if (!(start instanceof Date) || Number.isNaN(start.getTime())) {
+    throw new RangeError(`${startField} must be a valid Date`);
+  }
+  return termBetween(start, last.date);
 }

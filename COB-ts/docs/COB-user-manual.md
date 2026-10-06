@@ -1,7 +1,7 @@
 # Cost of Borrowing Calculator: User Manual
 
 For branch and lending staff at Alterna Savings.
-Version: twentieth draft, 2026-10-02. What changed in this draft: the hint under **Accrued interest ($)** for Payment change reads "Interest accrued since the last payment date." again (a longer wording was tried for one day and withdrawn). The hint and the advice in section 7 do not agree; follow the advice. Before that: nothing you see changed; the printout is now prepared at the moment you print (section 12). Before that: a semi-monthly first payment date that is not the 15th or month-end is now moved forward, and the page tells you with a note (section 6); the printout and the CSV file name follow. Before that: the start date for **Payment change** is now called **Date of change** (it was **Last payment date**); **Renewal** now also allows a **Personal loan**; the **Flow** list shows three flows (**Variable rate payment change** is hidden for now). Earlier draft (2026-09-30):  the **Years** and **Months** boxes are gone. One read-only **Contract term** now shows the time from the first payment to the last payment, in years, months and days (see section 6). The **Contract date** box and the **Semi-annual compounding reference date** box are no longer on the form. Earlier drafts: the results add an **Unpaid interest at end date** line when interest is still unpaid (section 10); the **Payment frequency** list offers four options and a personal loan is **Monthly** only (sections 6 and 9); the page opens with no sample fees and no **Financed?** box (sections 3 and 8); the screen labels follow the flow (section 5); **Renewal** is for mortgages only; **Accrued interest ($)** is required for Renewal, Payment change and Variable rate payment change; unpaid interest no longer earns interest; dollar amounts are shown in money format; and the printed schedule uses short column headings. The error box still shows one problem at a time.
+Version: twenty-third draft, 2026-10-05. What changed in this draft: a personal loan can now have any payment frequency in the list (**Weekly (52/yr)**, **Bi-weekly (26/yr)**, **Semi-monthly (24/yr)** or **Monthly (12/yr)**), in every flow. **Payment frequency** is no longer locked to **Monthly** for a personal loan, and the hint "Personal loans are paid monthly." is gone. A personal loan uses the contract rate as entered, at any frequency (section 10). Before that: the contract term is now counted from the flow's start date (**Disbursal date**, **Renewal date** or **Date of change**) to the last scheduled payment, not from the first payment. It is usually a few days or weeks longer than before. For **Renewal** and **Payment change** the field is now called **Remaining contract term**, on screen, in the **Contract terms** summary and on the printout (section 6). The hint under it names the start date. A semi-monthly first date that is moved no longer changes the term. The CSV file is the same. Before that: the result figures are arranged differently. On screen, **Calculated rate** and **Number of payments** have moved under **More figures**, and the main list now starts with **Total of all payments** and **Cost of borrowing amount**. On the printout, the figures are in two columns (section 12). No figure, label or amount changed, and the CSV file is the same. Before that: the hint under **Accrued interest ($)** for Payment change reads "Interest accrued since the last payment date." again (a longer wording was tried for one day and withdrawn). The hint and the advice in section 7 do not agree; follow the advice. Before that: nothing you see changed; the printout is now prepared at the moment you print (section 12). Before that: a semi-monthly first payment date that is not the 15th or month-end is now moved forward, and the page tells you with a note (section 6); the printout and the CSV file name follow. Before that: the start date for **Payment change** is now called **Date of change** (it was **Last payment date**); **Renewal** now also allows a **Personal loan**; the **Flow** list shows three flows (**Variable rate payment change** is hidden for now). Earlier draft (2026-09-30):  the **Years** and **Months** boxes are gone. One read-only **Contract term** now shows the time from the first payment to the last payment, in years, months and days (see section 6). The **Contract date** box and the **Semi-annual compounding reference date** box are no longer on the form. Earlier drafts: the results add an **Unpaid interest at end date** line when interest is still unpaid (section 10); the **Payment frequency** list offers four options and a personal loan was **Monthly** only (this was later withdrawn); the page opens with no sample fees and no **Financed?** box (sections 3 and 8); the screen labels follow the flow (section 5); **Renewal** is for mortgages only; **Accrued interest ($)** is required for Renewal, Payment change and Variable rate payment change; unpaid interest no longer earns interest; dollar amounts are shown in money format; and the printed schedule uses short column headings. The error box still shows one problem at a time.
 
 ---
 
@@ -87,11 +87,11 @@ Then choose:
 - **Product type**: **Mortgage** or **Personal loan**.
 - **Rate type**: **Variable** or **Fixed**.
 
-For **Renewal**, **Product type** and **Rate type** stay open: choose **Mortgage** or **Personal loan**, and **Variable** or **Fixed**. A personal loan can only be paid monthly (see section 6).
+For **Renewal**, **Product type** and **Rate type** stay open: choose **Mortgage** or **Personal loan**, and **Variable** or **Fixed**.
 
 For **Payment change**, you can choose **Mortgage** or **Personal loan**, and **Variable** or **Fixed**. For a variable-rate mortgage, the **Trigger rate** appears in the results once you have entered **Accrued interest ($)** (enter 0 if there is none).
 
-> **Note for Payment change.** For this flow the start date field is called **Date of change**, and the first payment field is called **Next payment date**. The printout and the **Contract terms** summary use the same names.
+> **Note for Payment change.** For this flow the start date field is called **Date of change**, the first payment field is called **Next payment date**, and the term field is called **Remaining contract term**. The printout and the **Contract terms** summary use the same names.
 >
 > - **Date of change** is the date from which interest is charged: the date of the member's last payment, of any size. It is not "the last full payment".
 > - **Next payment date** is the date of the first payment under the new payment amount. It is payment 1 in the schedule.
@@ -99,7 +99,7 @@ For **Payment change**, you can choose **Mortgage** or **Personal loan**, and **
 > - **For Payment change, enter the Date of change and put only arrears in Accrued interest.** Do **not** put the interest since the last payment date into **Accrued interest ($)**. The schedule charges it already, so it would be counted twice and the cost of borrowing would be too high. (In one check, doing this raised the cost of borrowing amount by $784.19.)
 > - Arrears means interest that was due at earlier payments and is still unpaid. It is usually $0.00. Enter 0 if there is none.
 
-For **Renewal** nothing has changed: the start date is called **Renewal date**, the first payment field is called **First payment date**, and **Accrued interest ($)** is the unpaid interest owing at the renewal date.
+For **Renewal**, the start date is called **Renewal date**, the first payment field is called **First payment date**, the term field is called **Remaining contract term**, and **Accrued interest ($)** is the unpaid interest owing at the renewal date.
 
 **Switching flows.** You can change the flow at any time. Values in fields that the flows share are kept. The flow-specific fields are shown or hidden, and the results update straight away.
 
@@ -112,8 +112,8 @@ For **Renewal** nothing has changed: the start date is called **Renewal date**, 
 | **Loan amount ($)** | For a new loan: the loan amount. Fees the member pays separately are **not** part of it (see section 8). For a renewal or payment change: the current outstanding balance. Must be more than $0. |
 | **Contract rate (%)** | The annual contract interest rate, as a percentage (for example, 3.74). Must be more than 0. A blank rate is rejected. |
 | **Payment amount ($)** | The scheduled payment, before taxes. The calculator doesn't work this out; enter it from the loan documents. Must be more than $0. |
-| **Payment frequency** | Choose one of four options: **Weekly (52/yr)**, **Bi-weekly (26/yr)**, **Semi-monthly (24/yr)** or **Monthly (12/yr)**. The number in brackets is the number of payments a year. **Weekly (52/yr)** is selected when the page opens. When **Product type** is **Personal loan**, the box is set to **Monthly (12/yr)** and locked (greyed out), with the hint "Personal loans are paid monthly." If you then switch **Product type** back to **Mortgage**, the box stays on **Monthly (12/yr)** and unlocks; change it if the mortgage is paid at another frequency. See the notes below. |
-| **Contract term** | You don't enter this. It is read-only and fills in by itself once a schedule is calculated. It shows the time from the **First payment date** to the date of the last scheduled payment, in years, months and leftover days, for example "2 years, 11 months, 17 days". It is exact, not rounded: a mortgage sold as a 3-year term from a first payment on 2026-03-23 shows "2 years, 11 months, 17 days", because the first payment is the start and the last payment is the end. The field is blank until a schedule exists, and is cleared again if a calculation fails. A contract shorter than one month is allowed. For Payment change and Variable rate payment change, the hint under the field says it runs from the **Next payment date**. It appears on the printout and in the **Contract terms** summary, but not in the CSV file. |
+| **Payment frequency** | Choose one of four options: **Weekly (52/yr)**, **Bi-weekly (26/yr)**, **Semi-monthly (24/yr)** or **Monthly (12/yr)**. The number in brackets is the number of payments a year. **Weekly (52/yr)** is selected when the page opens. The same options are offered for a mortgage and a personal loan, in every flow. See the notes below. |
+| **Contract term** (called **Remaining contract term** for Renewal and Payment change) | You don't enter this. It is read-only and fills in by itself once a schedule is calculated. It shows the time from the flow's start date (**Disbursal date**, **Renewal date** or **Date of change**) to the date of the last scheduled payment, in years, months and leftover days. The hint under the field says which start date it uses, for example "Calculated from the disbursal date to the last scheduled payment date." It is exact, not rounded. Example: a mortgage sold as a 3-year term, with **Disbursal date** 2026-03-17 and weekly payments up to the **End date** 2029-03-17, shows "2 years, 11 months, 23 days", because the last weekly payment falls on 2029-03-12. Example for Payment change: **Date of change** 2026-02-20, **Next payment date** 2026-03-15, monthly, **End date** 2029-03-15 shows "3 years, 0 months, 23 days". It covers the same days as **Term in days**. If the start date is the same day as the last payment, it reads "0 years, 0 months, 0 days". The field is blank until a schedule exists, and is cleared again if a calculation fails. A contract shorter than one month is allowed. It appears on the printout and in the **Contract terms** summary, but not in the CSV file. |
 | **First payment date** | The date of the first payment after the advance or renewal. This is always payment 1. For Payment change this field is called **Next payment date**: enter the date of the next payment. |
 | **End date** | The maturity date of the term. Payments are scheduled up to **and including** this date, or until the loan is paid off. Must be after the first payment date. |
 
@@ -127,7 +127,7 @@ For **Renewal** nothing has changed: the start date is called **Renewal date**, 
 
 **Accelerated payments.** The list doesn't offer accelerated weekly or accelerated bi-weekly. The calculator doesn't work out the accelerated payment amount. If the member pays accelerated weekly, choose **Weekly (52/yr)**. If they pay accelerated bi-weekly, choose **Bi-weekly (26/yr)**. In both cases enter the accelerated payment amount yourself in **Payment amount ($)**, taken from the loan documents. The payment dates and the figures are the same as for the regular frequency. The results line, the **Contract terms** summary and the printout will say Weekly or Bi-weekly.
 
-**Personal loans are monthly only.** A personal loan can only have **Monthly** payments. If a personal loan is sent with any other frequency, the calculator rejects it in every flow, including Renewal and Payment change (see section 9). The Excel workbook accepted any frequency for a personal loan; the calculator doesn't.
+**Personal loans at any frequency.** A personal loan can be paid at any frequency in the list, in **New mortgage or loan**, **Renewal** and **Payment change**. Its interest uses the contract rate exactly as entered, whatever the frequency. Only a fixed-rate mortgage has its rate converted to the payment frequency (see **Calculated rate** in section 10). The semi-monthly date rule below applies to personal loans too.
 
 **Semi-monthly first payment dates are moved.** Semi-monthly payments fall on the 15th and the last day of the month. If you choose **Semi-monthly (24/yr)** and enter a first payment date that is on neither, the calculator moves it forward to the next one in the same month:
 
@@ -142,9 +142,9 @@ You never lose sight of this. The date you typed stays in the box. A note appear
 
 For Payment change the note starts "Next payment moved to". The same note appears under the **Contract terms** summary. It disappears when the date is not moved, and when an error message is showing.
 
-The moved date is payment 1. The **Contract term** runs from it, and every later payment follows from it. The **End date** must be after the moved date, not the typed one. The start date (**Disbursal date**, **Renewal date** or **Date of change**) may fall between the typed date and the moved date, because the moved date is the one that counts. The Excel workbook did not move the date: it kept the pattern of the day you typed (for example the 10th and 25th). The calculator's schedule and figures can therefore differ from the workbook for a semi-monthly first date that is not the 15th or month-end.
+The moved date is payment 1, and every later payment follows from it. The **Contract term** still starts at the start date, so the move does not change where the term starts. The **End date** must be after the moved date, not the typed one. The start date (**Disbursal date**, **Renewal date** or **Date of change**) may fall between the typed date and the moved date, because the moved date is the one that counts. The Excel workbook did not move the date: it kept the pattern of the day you typed (for example the 10th and 25th). The calculator's schedule and figures can therefore differ from the workbook for a semi-monthly first date that is not the 15th or month-end.
 
-**Time-span rule for Contract term.** The calculator counts whole months first and then the leftover days. A monthly schedule of N payments reads N-1 months. If the first payment is on the 29th, 30th or 31st, a shorter month counts to its last day.
+**Time-span rule for Contract term.** The calculator counts whole months from the start date first, and then the leftover days up to the last payment. If the start date is on the 29th, 30th or 31st, a shorter month counts to its last day. For example, a **Renewal date** of 2026-01-31 with a last payment on 2027-02-28 reads "1 year, 1 month, 0 days".
 
 ---
 
@@ -236,7 +236,6 @@ In the messages, *X* stands for the value you entered.
 | `flow 'newMortgageOrLoan' requires disbursalDate` | **Disbursal date** | Enter the disbursal date. |
 | `disbursalDate must be on or before firstPaymentDate` | **Disbursal date** | The disbursal date can't be after the first payment date. |
 | `flow 'renewal' requires renewalDate` (also shown with `'paymentChange'`) | **Renewal date**, or **Date of change** for Payment change | Enter the date. |
-| `paymentFrequency 'weekly' is not allowed for productType 'personalLoan' (allowed: monthly)` (the frequency named may differ) | **Payment frequency** and **Product type** | A personal loan can only be paid monthly. Choose **Monthly (12/yr)**. You can't normally see this message, because choosing **Personal loan** sets and locks **Payment frequency** to **Monthly**. |
 | `renewalDate must be on or before firstPaymentDate` | **Renewal date**, or **Date of change** | The date can't be after the first payment date (**Next payment date** for a payment change). |
 | `flow 'renewal' requires accruedInterest (enter 0 if there is none)` (also shown with `'paymentChange'`) | **Accrued interest ($)** | The box is blank. Enter the accrued interest, or 0 if there is none. |
 | `accruedInterest must be >= 0, got X` | **Accrued interest ($)** | Accrued interest can't be negative. Enter 0 if there is none. |
@@ -258,24 +257,27 @@ The **Results** panel starts with a line that sums up the calculation, for examp
 
 ### Other figures
 
+These figures are listed under the headline figures, in this order.
+
 | Figure | What it means |
 |---|---|
-| **Calculated rate** | The rate used for interest. For a fixed-rate mortgage, this is the contract rate converted from semi-annual compounding to the payment frequency. For variable-rate mortgages and all personal loans, it is the contract rate as entered. |
-| **Trigger rate** | Shown for variable-rate mortgages only. In Payment change it appears once you have entered **Accrued interest ($)**. "If the contract rate rises above this, the payment no longer covers the interest." It is the payment × payments per year ÷ loan amount, as a percentage. |
-| **Number of payments** | How many payments are in the schedule. |
 | **Total of all payments** | The total of the schedule's **Payment** column. See "The last payment" in section 11. |
-| **Total interest** | "Interest charged over the term, including any not yet paid." This is the interest charged by the schedule, the same amount that goes into the cost of borrowing. It is not the total of the **Interest paid** column, and it can be higher than that total if some interest was still unpaid at the end. Accrued interest you entered for a Renewal or change counts only as far as the payments repay it. |
+| **Cost of borrowing amount** | The same amount as the headline figure. Its hint is shown on the headline card only. |
 | **Total principal paid** | The total of the schedule's **Principal paid** column. |
+| **Total interest** | "Interest charged over the term, including any not yet paid." This is the interest charged by the schedule, the same amount that goes into the cost of borrowing. It is not the total of the **Interest paid** column, and it can be higher than that total if some interest was still unpaid at the end. Accrued interest you entered for a Renewal or change counts only as far as the payments repay it. |
+| **Trigger rate** | Shown for variable-rate mortgages only. In Payment change it appears once you have entered **Accrued interest ($)**. "If the contract rate rises above this, the payment no longer covers the interest." It is the payment × payments per year ÷ loan amount, as a percentage. |
 
 ### More figures
 
-Select **More figures** to open this section.
+Select **More figures** to open this section. It is closed when the page opens. The figures are in this order.
 
 | Figure | What it means |
 |---|---|
-| **Balance at end date** | The loan balance after the last payment in the schedule. It is $0.00 if the loan is paid off within the term. It doesn't include unpaid interest. If interest is still unpaid, the next line shows it. |
-| **Unpaid interest at end date** | Hint: "Owed in addition to the balance at end date". Shown only when interest is still unpaid after the last payment in the schedule (the last row's **Accrued interest (closing)** is more than $0). It isn't shown when the loan ends fully paid, for example the REF-01 example. It appears on screen and on the printout, but not in the CSV file. The wording may change. **(Change in progress: the hint is being reworded to "Unpaid after the last payment; interest since then is not included". Today's screen still shows the old hint above.)** |
+| **Calculated rate** | The rate used for interest. Hint: "Fixed-rate mortgages: contract rate converted to the payment frequency. Otherwise the contract rate." For a fixed-rate mortgage, this is the contract rate converted from semi-annual compounding to the payment frequency. For variable-rate mortgages and all personal loans, it is the contract rate as entered. |
+| **Number of payments** | How many payments are in the schedule. |
 | **Term in days** | The number of days from the start date (disbursal date, renewal date or date of change) to the date of the final payment in the schedule. |
+| **Balance at end date** | The loan balance after the last payment in the schedule. It is $0.00 if the loan is paid off within the term. It doesn't include unpaid interest. If interest is still unpaid, the next line shows it. |
+| **Unpaid interest at end date** | Hint: "Unpaid after the last payment; interest since then is not included". Shown only when interest is still unpaid after the last payment in the schedule (the last row's **Accrued interest (closing)** is more than $0). It isn't shown when the loan ends fully paid, for example the REF-01 example. It appears on screen and on the printout, but not in the CSV file. The wording may change. |
 
 **Limit of "Unpaid interest at end date".** This line covers interest that was charged on the payment dates and not paid. It does **not** include interest that builds up between the **last payment date** and the **End Date**. That interest is in neither **Balance at end date** nor this line. Example: the last payment is on 2028-04-01 and the End Date is 2028-04-15. That is about 14 days, roughly $380 on a $200,000 balance. So **Balance at end date** plus **Unpaid interest at end date** is not the complete amount owed on the End Date. Don't quote the sum as a payout figure.
 
@@ -283,7 +285,7 @@ Select **More figures** to open this section.
 
 ### Contract terms
 
-Under the form, **Contract terms** lists the inputs behind the results shown: flow, product type, rate type, loan amount, contract rate, payment amount, accrued interest (for renewals and payment changes), payment frequency, contract term (as years, months and days), the start date and first payment date (named for the flow, for example **Date of change** and **Next payment date** for a payment change), end date, and each fee with its amount ("No fees" if there are none). Use it to check that the results match what you meant to enter.
+Under the form, **Contract terms** lists the inputs behind the results shown: flow, product type, rate type, loan amount, contract rate, payment amount, accrued interest (for renewals and payment changes), payment frequency, contract term (as years, months and days; labelled **Remaining contract term** for Renewal and Payment change), the start date and first payment date (named for the flow, for example **Date of change** and **Next payment date** for a payment change), end date, and each fee with its amount ("No fees" if there are none). Use it to check that the results match what you meant to enter.
 
 ---
 
@@ -380,10 +382,10 @@ The printed schedule is prepared when you open the print window, from the result
 The printout is headed "Alterna Savings — Cost of borrowing calculation" and shows:
 
 - when it was printed and the engine version, and the time of the calculation;
-- **Inputs**: every input, including the use case and the **Contract term**. The date rows use the same names as the screen for the flow. Dollar amounts are in money format, for example $227,829.65. The printout keeps the first payment date you typed. If the calculator moved a semi-monthly first date, one extra row, **Moved first date**, sits right under it and holds the same note as the screen. The row is not there when nothing moved;
+- **Inputs**: every input, including the use case and the **Contract term** (**Remaining contract term** for Renewal and Payment change). The date rows use the same names as the screen for the flow. Dollar amounts are in money format, for example $227,829.65. The printout keeps the first payment date you typed. If the calculator moved a semi-monthly first date, one extra row, **Moved first date**, sits right under it and holds the same note as the screen. The row is not there when nothing moved;
 - **Fees**: each fee with its name and amount, or "No fees." if there are none;
 - the note "* Payment amount does not include taxes.";
-- **Results**: every figure, including the **More figures**;
+- **Results**: every figure, including the **More figures**, in two columns. Read each column from top to bottom. The left column has **Cost of borrowing rate (APR)**, **Calculated rate**, **Number of payments**, **Term in days**, **Balance at end date**, and **Unpaid interest at end date** when there is any. The right column has **Total of all payments**, **Cost of borrowing amount** (with its hint), **Total principal paid**, **Total interest**, and **Trigger rate** for a variable-rate mortgage. Each figure appears once;
 - the **Amortization schedule** with the columns you chose.
 
 **Column headings in the printed schedule.** So that every column fits on the page, the printed schedule uses short column headings. The group headings above them (**Opening**, **Interest**, **Payment breakdown**, **Closing**) tell you which is which. This applies to both **All** and **Compact**. The screen and the CSV download keep the full headings.
@@ -434,7 +436,7 @@ Keep printed or saved records according to Alterna's record-keeping rules for me
 1. Choose the **Flow**, **Product type** and **Rate type**.
 2. Replace the sample values: loan amount, contract rate, payment amount, frequency, dates. The **Contract term** fills in by itself.
 3. Enter the flow's start date (**Disbursal date**, **Renewal date** or **Date of change**) and, for renewals and payment changes, the **Accrued interest ($)** (0 if none; for a payment change, arrears only).
-4. Check the **Contract term** that appears. It should match the contract you expect (it runs from the first payment to the last).
+4. Check the **Contract term** (or **Remaining contract term**) that appears. It should match the contract you expect (it runs from the start date to the last payment).
 5. Add the member's fees, if any. There is no **Financed?** box: every fee is a separate fee.
 6. Check there is no red error message.
 7. Check the **Contract terms** summary.

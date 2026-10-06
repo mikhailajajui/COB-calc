@@ -7,6 +7,7 @@
  * import does not exist (TS2305 / TS2339), so the gate is red.
  *   - termYears / termMonths are OPTIONAL on every flow's input (a caller may leave them out); numbers still compile.
  *   - `contractTerm` and the type `ContractTerm` are on BOTH barrels; `termBetween` returns a `ContractTerm`.
+ *     B32 (DEC-B32-TERM): re-baselined by QA 2026-10-05 for contractTerm(input, result) (f11, f11b, f11c, f12, f12b, f12c).
  *   - the UI's `RawForm` no longer has the term keys; `contractDate` and `semiAnnualCompoundingDate` are optional there.
  * The @deprecated tag on the two fields is checked in tests/ca/b24-term-rule.test.ts (source text).
  * Every declaration is exported so unused-local settings never matter.
@@ -58,13 +59,20 @@ export const t9: ContractTerm = { years: 2, months: 11 };
 // @ts-expect-error B24-T5-10 years is a number
 export const t10: ContractTerm = { years: '2', months: 11, days: 17 };
 
-/** B24-T5-11 (compiles): contractTerm takes the whole result or just its schedule, and returns a ContractTerm. */
-export const f11 = (r: CobCanadaResult): ContractTerm => contractTerm(r);
-export const f11b = (): ContractTerm => contractTerm({ amortizationSchedule: [] });
-export const f11c = (r: CobCanadaResult): RootContractTerm => rootContractTerm(r);
-/** B24-T5-12 (error): a bare array is not a result. */
-// @ts-expect-error B24-T5-12 contractTerm takes an object with amortizationSchedule
-export const f12 = (r: CobCanadaResult) => contractTerm(r.amortizationSchedule);
+/** B24-T5-11 (compiles): contractTerm takes the input and the whole result or just its schedule, and returns a ContractTerm.
+ *  B32 (DEC-B32-TERM, B32-R1): contractTerm(input, result), the input first (was contractTerm(result)). */
+export const f11 = (i: CobCanadaInput, r: CobCanadaResult): ContractTerm => contractTerm(i, r);
+export const f11b = (): ContractTerm => contractTerm(a1, { amortizationSchedule: [] });
+export const f11c = (i: CobCanadaInput, r: CobCanadaResult): RootContractTerm => rootContractTerm(i, r);
+/** B24-T5-12 (error): the one-argument call no longer compiles (B32-R1, breaking, recorded). */
+// @ts-expect-error B24-T5-12 contractTerm needs the input and the result (B32)
+export const f12 = (r: CobCanadaResult) => contractTerm(r);
+/** B24-T5-12b (error): a bare array is not a result. */
+// @ts-expect-error B24-T5-12b contractTerm takes an object with amortizationSchedule
+export const f12b = (i: CobCanadaInput, r: CobCanadaResult) => contractTerm(i, r.amortizationSchedule);
+/** B24-T5-12c (error, B32): swapped arguments (a result is not an input). */
+// @ts-expect-error B24-T5-12c the input comes first
+export const f12c = (i: CobCanadaInput, r: CobCanadaResult) => contractTerm(r, i);
 
 /** B24-T5-13 (compiles): termBetween(from, to) returns a ContractTerm. */
 export const f13: ContractTerm = termBetween(d, d);

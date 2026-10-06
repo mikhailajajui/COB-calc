@@ -16,6 +16,8 @@ export interface UiSwitches { readonly financedOption: boolean; readonly acceler
   readonly variableRatePaymentChangeFlow?: boolean }
 export interface ViewContext { spec: FlowSpec; semiAnnual: boolean; switches: UiSwitches }
 export type Figure = [label: string, value: string] | [label: string, value: string, hint: string];
+/** B31 (DEC-B31-LAYOUT): the printout's two figure columns, each read top to bottom. */
+export interface FigureColumns { left: Figure[]; right: Figure[] }
 export interface ViewNode { tag: string; attrs: [string, string][]; children: (ViewNode | string)[] }
 export type ColumnsMode = 'all' | 'compact';
 export type TableTarget = 'screen' | 'print';
@@ -36,17 +38,25 @@ export function paymentsText(n: number): string;
 export function parseDateInput(value: string): Date | undefined;
 export function numOrUndefined(value: string | null | undefined): number | undefined;
 export function toInput(raw: RawForm, ctx: ViewContext): CobCanadaInput;
-/** B22-R2: the per-flow texts of the form, the contract-terms tiles and the print record. accruedHint is null when spec.accruedInterest is 'hidden'. */
-export interface FlowLabels { legend: string; startDate: string; firstPaymentDate: string; accruedHint: string | null }
+/**
+ * B22-R2: the per-flow texts of the form, the contract-terms tiles and the print record. accruedHint is null when spec.accruedInterest is 'hidden'.
+ * B32 (DEC-B32-TERM): contractTerm is 'Remaining contract term' for renewal and paymentChange, else 'Contract term'
+ * (the label of the read-only field, the Contract terms tile and the print row). Key order: legend, startDate, firstPaymentDate, contractTerm, accruedHint.
+ */
+export interface FlowLabels { legend: string; startDate: string; firstPaymentDate: string; contractTerm: string; accruedHint: string | null }
 export function flowLabels(flow: string, spec: FlowSpec): FlowLabels;
-/** B24-R6: `termText` (required) is the Contract term text, the same string that is in the read-only field (`contractTermText(term)`). */
+/** B24-R6: `termText` (required) is the Contract term text, the same string that is in the read-only field (`contractTermText(term)`).
+ *  B32 (DEC-B32-TERM): the term row's label is flowLabels(raw.flow, ctx.spec).contractTerm. */
 export function printInputRows(raw: RawForm, ctx: ViewContext, termText: string, moveNote?: string): [string, string][];
 export function printInputNodes(rows: [string, string][]): ViewNode[];
 export function printFeesNodes(rawFees: RawFee[], ctx: ViewContext): ViewNode[];
 export function headlineFigures(result: CobCanadaResult): Figure[];
+/** B31: the amounts group (printout right column); on screen Cost of borrowing amount is a 2-tuple (no hint; Q-B31-DUP-HINT). */
 export function mainFigures(result: CobCanadaResult): Figure[];
+/** B31: the rates-and-term group (printout left column under the APR; screen "More figures"). */
 export function moreFigures(result: CobCanadaResult, ctx: ViewContext): Figure[];
-export function printFigures(result: CobCanadaResult, ctx: ViewContext): Figure[];
+/** B31-R3: left = [APR, ...moreFigures], right = the amounts group with the Cost of borrowing amount hint. */
+export function printFigures(result: CobCanadaResult, ctx: ViewContext): FigureColumns;
 export function figureNodes(list: Figure[]): ViewNode[];
 export const COLUMNS: readonly (readonly [key: keyof CobScheduleRow, header: string, format: 'count' | 'date' | 'currency', group: string | null, printHeader: string])[];
 export const CSV_COLUMNS: readonly (readonly [key: keyof CobScheduleRow, header: string])[];
@@ -62,17 +72,6 @@ export function scheduleCsv(rows: readonly CobScheduleRow[], columns: ColumnsMod
 export function csvFileName(firstPaymentIso: string): string;
 export function h(tag: string, attrs: [string, string][], children: (ViewNode | string)[]): ViewNode;
 export function html(nodes: readonly (ViewNode | string)[]): string;
-/**
- * B27-R7 (DEV-FB24): the Payment frequency lock. `allowed` is the engine catalogue's list for the product
- * (`allowedPaymentFrequencies(productType)` from the barrel); `current` is the select's value now.
- * A product with a single allowed frequency (Personal loan: Monthly) gives { value: that frequency, locked: true,
- * hint: FREQUENCY_LOCK_HINT }; any other product gives { value: current, locked: false, hint: '' } (the value is
- * left as it is, including Monthly after a personal loan).
- */
-export interface FrequencyLock { value: string; locked: boolean; hint: string }
-export function frequencyLock(productType: string, allowed: readonly string[], current: string): FrequencyLock;
-/** B27-R7: the interim hint text (Q-MSG), one string: 'Personal loans are paid monthly.' */
-export const FREQUENCY_LOCK_HINT: string;
 
 /** B24-R1 (calendar.ts): the derived Contract term; all three are non-negative integers. */
 export interface ContractTermLike { years: number; months: number; days: number }
@@ -85,9 +84,9 @@ export function contractTermParts(term: ContractTermLike): [years: string, month
 export function contractTermText(term: ContractTermLike): string;
 /**
  * B24-R6: the hint under the field (interim wording, Q-MSG): `Calculated from the ${label} to the last scheduled payment date.`,
- * label = flowLabels(flow, spec).firstPaymentDate lower-cased.
+ * label = flowLabels(flow, spec).startDate lower-cased (B32, DEC-B32-TERM; was the first payment date label).
  */
-export function contractTermHint(firstPaymentLabel: string): string;
+export function contractTermHint(startDateLabel: string): string;
 
 /**
  * B25-R6 (UI step, user decisions 2026-10-01): the note shown when a semi-monthly first payment date was moved.

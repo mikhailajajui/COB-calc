@@ -10,8 +10,14 @@
 // be <= 965 px, and the heading texts must be Q-PRINT-HEAD's print headings. Exit code 1 on any failure.
 // B24 (DEV-OQP): the script no longer fills #termYears, #termMonths, #contractDate or #semiAnnualCompoundingDate (removed or hidden
 // behind switches); every page that calculates must show a non-empty read-only #contractTerm whose text is the printed 'Contract term' row.
+// B32 (DEC-B32-TERM): the printed row is found by the label element's text, which must be 'Remaining contract term' on the
+// Renewal and Payment change scenarios and 'Contract term' otherwise.
 // B26: the SHORTFALL scenario (unpaid interest at the End Date) also asserts the 'Unpaid interest at end date' figure ($3,015.17) in #printFigures.
 // B28: the DEFAULT scenario also asserts the shipped page has four Payment frequency options.
+// B31 (DEC-B31-LAYOUT, revision 49; B31-INV-PAGE print part): per scenario and mode, under print media at the same 965 px
+// viewport, #printFiguresLeft and #printFiguresRight share a top edge, the left one ends at or before the right one starts,
+// neither extends past #printBody, no .figure overflows, each column's figures run top to bottom in DOM order, and the
+// '#printFigures .figure' labels read left then right in the decided order (typed from the decision, below).
 import { createRequire } from 'node:module';
 import { execSync, spawn } from 'node:child_process';
 import { createServer } from 'node:net';
@@ -71,6 +77,51 @@ const SCENARIOS = [
   { id: 'LARGE_7D', ...LARGE('9999999.99', '60000', '999999.99') },
   { id: 'LARGE_8D', ...LARGE('99999999.99', '600000', '9999999.99') },
 ];
+
+// B31-R2: the decided order of each printed column; the bracketed entries of the decision are conditional.
+const B31_LEFT = ['Cost of borrowing rate (APR)', 'Calculated rate', 'Number of payments', 'Term in days', 'Balance at end date',
+  'Unpaid interest at end date', 'Fees recovered through payments', 'Disbursal amount'];
+const B31_RIGHT = ['Total of all payments', 'Cost of borrowing amount', 'Total principal paid', 'Total interest', 'Trigger rate'];
+const B31_LEFT_HEAD = B31_LEFT.slice(0, 5);
+const B31_RIGHT_HEAD = B31_RIGHT.slice(0, 4);
+const b31Expected = (sc, left) => ({
+  // shipped page: Financed option off, so neither financed figure; Unpaid interest only where the page shows it (required on SHORTFALL);
+  // Trigger rate only for the variable mortgage (VRPC_zero_accrued is the only variable scenario here).
+  left: [...B31_LEFT_HEAD, ...(sc.id === 'SHORTFALL' || left.includes('Unpaid interest at end date') ? ['Unpaid interest at end date'] : [])],
+  right: [...B31_RIGHT_HEAD, ...(sc.id === 'VRPC_zero_accrued' ? ['Trigger rate'] : [])],
+});
+const b31Layout = (page) => page.evaluate(() => {
+  const r = (el) => { const b = el.getBoundingClientRect(); return { top: b.top, left: b.left, right: b.right, bottom: b.bottom }; };
+  const L = document.getElementById('printFiguresLeft');
+  const R = document.getElementById('printFiguresRight');
+  const body = document.getElementById('printBody');
+  if (!L || !R || !body) return { missing: [!L && 'printFiguresLeft', !R && 'printFiguresRight', !body && 'printBody'].filter(Boolean) };
+  const labels = (sel) => [...document.querySelectorAll(sel)].map((f) => f.querySelector('dt').firstChild.textContent);
+  const tops = (el) => [...el.querySelectorAll('.figure')].map((f) => f.getBoundingClientRect().top);
+  return {
+    L: r(L), R: r(R), body: r(body),
+    left: labels('#printFiguresLeft .figure'), right: labels('#printFiguresRight .figure'), all: labels('#printFigures .figure'),
+    overflow: [...document.querySelectorAll('#printFigures .figure')].filter((f) => f.scrollWidth > f.clientWidth).map((f) => f.querySelector('dt').firstChild.textContent),
+    topsL: tops(L), topsR: tops(R),
+  };
+});
+const b31Check = (sc, m) => {
+  if (m.missing) return [`missing #${m.missing.join(', #')}`];
+  const why = [];
+  const want = b31Expected(sc, m.left);
+  if (Math.abs(m.L.top - m.R.top) > 0.5) why.push(`tops ${m.L.top} / ${m.R.top}`);
+  if (m.L.right > m.R.left + 0.5) why.push(`left column ends at ${m.L.right}, right starts at ${m.R.left}`);
+  for (const [n, b] of [['left', m.L], ['right', m.R]]) {
+    if (b.left < m.body.left - 0.5 || b.right > m.body.right + 0.5) why.push(`${n} column outside #printBody`);
+  }
+  if (m.L.right - m.L.left < 1 || m.R.right - m.R.left < 1) why.push('a column has no width');
+  if (m.overflow.length) why.push(`overflowing figures ${m.overflow.join('|')}`);
+  for (const [n, t] of [['left', m.topsL], ['right', m.topsR]]) if (t.some((y, i) => i > 0 && y <= t[i - 1])) why.push(`${n} column not top to bottom in DOM order`);
+  if (JSON.stringify(m.left) !== JSON.stringify(want.left)) why.push(`left labels ${m.left.join('|')}`);
+  if (JSON.stringify(m.right) !== JSON.stringify(want.right)) why.push(`right labels ${m.right.join('|')}`);
+  if (JSON.stringify(m.all) !== JSON.stringify([...m.left, ...m.right])) why.push(`#printFigures reads ${m.all.join('|')}`);
+  return why;
+};
 
 async function freePort() {
   return new Promise((resolve, reject) => {
@@ -155,9 +206,12 @@ try {
         field: document.getElementById('contractTerm')?.value ?? null,
         readonly: document.getElementById('contractTerm')?.hasAttribute('readonly') ?? false,
         removed: ['termYears', 'termMonths', 'contractDate'].every((id) => document.getElementById(id) === null),
-        printed: [...document.querySelectorAll('#printInputs .print-input')].filter((r) => r.querySelector('dt').textContent === 'Contract term').map((r) => r.querySelector('dd').textContent),
+        // B32 (DEC-B32-TERM): the row is found by the label element's text (per flow), not the literal 'Contract term'.
+        label: document.querySelector('label[for="contractTerm"]')?.textContent ?? null,
+        printed: [...document.querySelectorAll('#printInputs .print-input')].filter((r) => r.querySelector('dt').textContent === document.querySelector('label[for="contractTerm"]')?.textContent).map((r) => r.querySelector('dd').textContent),
       }));
-      const okTerm = t.readonly && t.removed && /^\d+ years?, \d+ months?, \d+ days?$/.test(t.field ?? '') && t.printed.length === 1 && t.printed[0] === t.field;
+      const wantLabel = ['renewal', 'paymentChange'].includes(sc.selects?.flow) ? 'Remaining contract term' : 'Contract term'; // B32 (DEC-B32-TERM)
+      const okTerm = t.readonly && t.removed && t.label === wantLabel && /^\d+ years?, \d+ months?, \d+ days?$/.test(t.field ?? '') && t.printed.length === 1 && t.printed[0] === t.field;
       if (!okTerm) failures++;
       console.log(`${sc.id.padEnd(19)} term    ${okTerm ? `ok  ${t.field}` : `FAIL  ${JSON.stringify(t)}`}`);
     }
@@ -204,6 +258,10 @@ try {
       const why = [fits ? '' : `over by ${(m.natural - MAX_WIDTH).toFixed(1)} px`, headsOk ? '' : `headings ${m.leaves.join('|')}`, m.bodies > 0 ? '' : 'no rows']
         .filter(Boolean).join('; ');
       console.log(`${sc.id.padEnd(19)} ${mode.padEnd(8)} ${m.natural.toFixed(1).padStart(7)} px  ${ok ? 'ok' : `FAIL  ${why}`}`);
+      // B31-INV-PAGE (print): the two figure columns, same print media and viewport.
+      const b31 = b31Check(sc, await b31Layout(page));
+      if (b31.length) failures++;
+      console.log(`${sc.id.padEnd(19)} ${mode.padEnd(8)} figures ${b31.length ? `FAIL  ${b31.join('; ')}` : 'ok  two columns, left then right'}`);
     }
     await page.close();
   }

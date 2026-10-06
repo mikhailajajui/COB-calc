@@ -94,9 +94,7 @@ const describeCase = (p) =>
   `first=${iso(p.first)} ${p.frequency} ${p.productType}/${p.rateType} fees=${p.feeSet} flow=${p.flowKey}` +
   (p.payment !== undefined ? ` payment=${p.payment}` : '');
 
-// B27 (DEV-FB24): a personal loan is Monthly only, so the shipped engine rejects every personal-loan case
-// at another frequency. buildGroups() drops those cases (and any group left empty); the pre-B27 corpus
-// lives on only as the frozen test-only copies in legacy/. There is no mode that builds the old corpus.
+// B33 (DEC-B33-FREQ): every product at every frequency again; B27's personal-loan filter is removed.
 /** The full pre-filter corpus (internal). */
 function buildGroupsAll() {
   const groups = [];
@@ -164,10 +162,9 @@ function buildGroupsAll() {
   return groups;
 }
 
-/** Returns [{ key, extra, cases: [{ label, params }] }] in a fixed order (B27: personal loans at Monthly only). */
+/** Returns [{ key, extra, cases: [{ label, params }] }] in a fixed order (B33: every product at every frequency). */
 export function buildGroups() {
   return buildGroupsAll()
-    .map((g) => ({ ...g, cases: g.cases.filter((c) => !(c.params.productType === 'personalLoan' && c.params.frequency !== 'monthly')) }))
     .filter((g) => g.cases.length > 0);
 }
 

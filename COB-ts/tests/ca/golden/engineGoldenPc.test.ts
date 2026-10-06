@@ -101,30 +101,29 @@ beforeAll(() => {
 });
 
 describe('B18 golden master (PC/VRPC): corpus shape', () => {
-  // B27 (DEV-FB24, approved 2026-09-30): personal loans are Monthly only, so 36 regular pc groups
-  // (936 cases) are gone (120 -> 84 groups, 3,120 -> 2,184 cases), pcx:underpayment is trimmed to its
-  // Monthly cases (208 -> 52), and the weekly personal-loan long case is replaced by the monthly one.
-  it('B18-S1 (B27): 84 regular groups (2,184 cases) + pcx:underpayment (52) and vrpcx:minimumPayment (208); 86 groups / 2,444 cases; fixture keys = corpus keys; 2 long cases', () => {
+  // B27 (DEV-FB24, approved 2026-09-30) dropped 36 regular pc personal-loan groups (120 -> 84), trimmed pcx:underpayment
+  // to Monthly (208 -> 52) and replaced the weekly personal-loan long case by a monthly one. B33 (DEC-B33-FREQ, 2026-10-05,
+  // approved regeneration B33-R8) restores all of it: the fixture is the pre-B27 one again (= the archived copy, byte for byte).
+  it('B18-S1 (B33): 120 regular groups (3,120 cases) + pcx:underpayment (208) and vrpcx:minimumPayment (208); 122 groups / 3,536 cases; fixture keys = corpus keys; 2 long cases', () => {
     const regular = groupsDef.filter((g) => !g.extra);
-    expect(regular).toHaveLength(84);
-    expect(regular.filter((g) => g.key.startsWith('pc|'))).toHaveLength(60);
+    expect(regular).toHaveLength(120);
+    expect(regular.filter((g) => g.key.startsWith('pc|'))).toHaveLength(96);
     expect(regular.filter((g) => g.key.startsWith('vrpc|'))).toHaveLength(24);
     expect(regular.every((g) => g.cases.length === 26)).toBe(true);
-    expect(regular.reduce((s, g) => s + g.cases.length, 0)).toBe(2184);
-    expect(groupsDef).toHaveLength(86);
-    expect(groupsDef.reduce((s, g) => s + g.cases.length, 0)).toBe(2444);
+    expect(regular.reduce((s, g) => s + g.cases.length, 0)).toBe(3120);
+    expect(groupsDef).toHaveLength(122);
+    expect(groupsDef.reduce((s, g) => s + g.cases.length, 0)).toBe(3536);
     const extras = groupsDef.filter((g) => g.extra);
     expect(extras.map((g) => g.key)).toEqual(['pcx:underpayment', 'vrpcx:minimumPayment']);
-    expect(extras.map((g) => g.cases.length)).toEqual([52, 208]);
+    expect(extras.map((g) => g.cases.length)).toEqual([208, 208]);
     expect(groupsDef[0]!.key).toBe('pc|weekly|mortgage/fixed|none|acc0');
-    expect(groupsDef[83]!.key).toBe('vrpc|monthly|mortgage/variable|fin2000cash400|acc850');
+    expect(groupsDef[119]!.key).toBe('vrpc|monthly|mortgage/variable|fin2000cash400|acc850');
     expect(golden.version).toBe('golden_engine_pc_v1');
     expect(Object.keys(golden.groups)).toEqual(groupsDef.map((g) => g.key));
-    // B27: no corpus input is a personal loan at a non-monthly frequency.
-    for (const g of groupsDef)
-      for (const c of g.cases)
-        expect(c.params.productType === 'personalLoan' && c.params.frequency !== 'monthly', `${g.key}: ${c.label}`).toBe(false);
-    expect(Object.keys(golden.long)).toEqual(['long:vrpc:monthly:acc850', 'long:pc:monthly:acc850:underpayment']);
+    // B33: personal loans at weekly / biweekly / semiMonthly are back: 36 regular groups x 26 + 156 of pcx:underpayment.
+    const plNonMonthly = groupsDef.flatMap((g) => g.cases).filter((c) => c.params.productType === 'personalLoan' && c.params.frequency !== 'monthly');
+    expect(plNonMonthly).toHaveLength(36 * 26 + 156);
+    expect(Object.keys(golden.long)).toEqual(['long:vrpc:monthly:acc850', 'long:pc:weekly:acc850:underpayment']);
   });
 
   it('B18-S2: SEMI_FIRST_DATES alternate 15th / month end and contain 2028-02-29; lastPaymentDate gives the 9 worked examples', () => {
@@ -197,7 +196,7 @@ describe('B18 golden master (PC/VRPC): design facts (B18-P1..P6)', () => {
       expect(rows[rows.length - 1]!.carriedAccruedInterestClosing, r.label).toBe(0);
       n += 1;
     }
-    expect(n).toBe(2184);
+    expect(n).toBe(3120); // B33 (DEC-B33-FREQ): was 2,184 under B27
   });
 
   it('B18-P2: every semi-monthly row date in the corpus is the 15th or the last day of its month', () => {
@@ -222,9 +221,9 @@ describe('B18 golden master (PC/VRPC): design facts (B18-P1..P6)', () => {
     }
   });
 
-  it('B18-P4: pcx:underpayment (B27: Monthly only): row 1 payment < period interest and the accrued pool is not cleared, in all 52 cases', () => {
+  it('B18-P4: pcx:underpayment (B33: all four frequencies again; B27 had 52): row 1 payment < period interest and the accrued pool is not cleared, in all 208 cases', () => {
     const rs = runs.filter((x) => x.key === 'pcx:underpayment');
-    expect(rs).toHaveLength(52);
+    expect(rs).toHaveLength(208);
     for (const r of rs) {
       const rows = r.result.amortizationSchedule;
       expect(rows[0]!.paymentAmount, r.label).toBeLessThan(rows[0]!.periodInterest);
@@ -251,9 +250,10 @@ describe('B18 golden master (PC/VRPC): design facts (B18-P1..P6)', () => {
     expect([flat, grown]).toEqual([104, 104]);
   });
 
-  it('B18-P6: long cases: both end with a balance; the pc monthly underpayment case (B27: replaces the weekly one) ends at exactly 250,000 with the accrued pool not cleared', () => {
+  // B33 (DEC-B33-FREQ): the weekly personal-loan long case is back (B27 had replaced it by a monthly one).
+  it('B18-P6: long cases: both end with a balance; the pc weekly underpayment case ends at exactly 250,000 with the accrued pool not cleared', () => {
     for (const v of Object.values(golden.long)) expect(v.scalars.endingBalance as number).toBeGreaterThan(0);
-    const pc = computed.long['long:pc:monthly:acc850:underpayment'] as CobCanadaResult;
+    const pc = computed.long['long:pc:weekly:acc850:underpayment'] as CobCanadaResult;
     expect(pc.endingBalance).toBe(250000);
     const rows = pc.amortizationSchedule;
     expect(rows[rows.length - 1]!.carriedAccruedInterestClosing).toBeGreaterThan(0);

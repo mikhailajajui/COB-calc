@@ -1,18 +1,17 @@
 /**
- * B27 (COB-architecture.md section 5 B27, revision 29; user decisions 2026-09-30, COB-user-stories.md 7.5
- * "B27 answers"; DEV-FB24): a personal loan may only have the Monthly payment frequency.
+ * B27 rule reversed by B33 (DEC-B33-FREQ, 2026-10-05). This file keeps its name (Q-B33-B27FILE default: rewritten in place,
+ * no rename or deletion); its tests now pin the B33 facts where B27's rule was, and keep B27's still-true pins.
  *
- * Engine: `validate.ts` rejects productType 'personalLoan' with any of the five other frequencies in EVERY flow and
- * for BOTH rate types (a fixed rule: no switch, no parameter); the rule lives in the product catalogue
- * `src/ca/products.ts` `allowedPaymentFrequencies(productType)` (interim Q-MSG message below). Mortgages are unchanged.
- * Page: Product type = Personal loan sets Payment frequency to Monthly and disables the select with a hint; going
- * back to Mortgage keeps Monthly and re-enables the select (`frequencyLock` in ui/ca-view.js).
- * Goldens reshaped (first 148 -> 94 groups, PC 122 -> 86); the pre-B27 corpus lives on only as the frozen
- * test-only generators in fixtures/legacy/ (run through the `rehome` twin).
+ * History: B27 (COB-architecture.md section 5 B27, revision 29; user decisions 2026-09-30; DEV-FB24) made a personal loan
+ * Monthly only (engine rejection in validate.ts through the catalogue src/ca/products.ts, page lock `frequencyLock` with the
+ * hint "Personal loans are paid monthly.", goldens reshaped 148 -> 94 / 122 -> 86 groups). B33 (section 5 B33, revision 51)
+ * removes the rule outright, no switch: the catalogue `allowedPaymentFrequencies` stays exported and gives the same six
+ * frequencies for both products; validate.ts no longer reads it; the page lock, its hint and the hint span are deleted;
+ * the goldens regain the personal-loan groups (the Payment Change golden equals the archived pre-B27 fixture again).
  *
- * QA red tests, 2026-09-30. Ids: B27-T1 .. T14 (T6 and T10 are the "no off state" pins; revision 27 dropped the
- * switch), B27-INV-*. Red until sr-dev adds products.ts, the validation block, the barrel export, the page lock and
- * regenerates the two golden fixtures. Green from the start (characterisation): T3, T5, T6 (partly), T10, T12, T13, T14.
+ * Kept as they were (still true after B33): T5 (mortgages), T10 (no full mode in the live generators), T12 (rehome helper,
+ * Q-B33-LEGACY), T13 (frozen pre-B27 generators), T14 (equation basis). Inverted to B33 (QA red step, 2026-10-05): T1, T2,
+ * T3, T4, INV, T6 (last test), T7, T8, T9, T11. Red until sr-dev applies B33-R1 / R2 / R5 and regenerates the goldens (R8).
  */
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -42,9 +41,7 @@ const NON_MONTHLY = ALL_FREQS.filter((f) => f !== 'monthly');
 const FLOW_IDS: CobFlow[] = ['newMortgageOrLoan', 'renewal', 'paymentChange', 'variableRatePaymentChange'];
 const RATES: RateType[] = ['fixed', 'variable'];
 
-/** The exact interim message (Q-MSG) of the new rule. */
-const rejection = (f: string, p: string, allowed: string) => `paymentFrequency '${f}' is not allowed for productType '${p}' (allowed: ${allowed})`;
-const plRejection = (f: string) => rejection(f, 'personalLoan', 'monthly');
+// B33 (DEC-B33-FREQ): B27's interim message "paymentFrequency '<f>' is not allowed for productType '<p>' (allowed: ...)" is retired.
 
 /** A valid input for (flow, product, rate, frequency); fixed mortgages carry their semi-annual date. */
 function input(flow: CobFlow, productType: ProductType, rateType: RateType, paymentFrequency: string, over: Record<string, unknown> = {}): CobCanadaInput {
@@ -75,14 +72,16 @@ function flowLockOk(flow: CobFlow, productType: ProductType, rateType: RateType)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-describe('B27-T1 catalogue: allowedPaymentFrequencies (src/ca/products.ts, read through the barrel)', () => {
+describe('B27-T1 catalogue: allowedPaymentFrequencies (src/ca/products.ts, read through the barrel); B33 (DEC-B33-FREQ): both products give the six', () => {
   it('mortgage allows all six frequencies, in PAYMENTS_PER_YEAR order', () => {
     expect([...frequenciesFor('mortgage')]).toEqual(Object.keys(PAYMENTS_PER_YEAR));
     expect(frequenciesFor('mortgage')).toHaveLength(6);
   });
 
-  it("personal loan allows exactly ['monthly'] (an explicit list, not derived from n = 12)", () => {
-    expect([...frequenciesFor('personalLoan')]).toEqual(['monthly']);
+  // B33 (DEC-B33-FREQ): was ['monthly'] (B27). The personal loan's list is the mortgage's list, the same object.
+  it('personal loan allows all six frequencies, the same list object as the mortgage', () => {
+    expect([...frequenciesFor('personalLoan')]).toEqual(Object.keys(PAYMENTS_PER_YEAR));
+    expect(frequenciesFor('personalLoan')).toBe(frequenciesFor('mortgage'));
   });
 
   it('every allowed frequency is a key of PAYMENTS_PER_YEAR', () => {
@@ -99,31 +98,29 @@ describe('B27-T1 catalogue: allowedPaymentFrequencies (src/ca/products.ts, read 
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-describe('B27-T2 rejection matrix: personal loan + a non-monthly frequency (5 frequencies x 2 rate types x 3 flows: new, renewal, paymentChange)', () => {
+// B33 (DEC-B33-FREQ): B27-T2 was the rejection matrix; the same 30 cases are now ACCEPTED, with the contract rate unconverted.
+describe('B27-T2 (B33) acceptance matrix: personal loan + a non-monthly frequency (5 frequencies x 2 rate types x 3 flows: new, renewal, paymentChange)', () => {
   const CASES: [PaymentFrequency, RateType, CobFlow][] = NON_MONTHLY.flatMap((f) =>
     RATES.flatMap((r) => (['newMortgageOrLoan', 'renewal', 'paymentChange'] as const).map((fl) => [f, r, fl] as [PaymentFrequency, RateType, CobFlow])),
   );
   it('the matrix has 30 cases', () => expect(CASES).toHaveLength(30));
 
-  it.each(CASES)('%s / %s / %s: one paymentFrequency issue with the exact message; validateCobCanadaInput and calculateCobCanada throw that RangeError', (f, r, fl) => {
+  it.each(CASES)('%s / %s / %s: no issue; validateCobCanadaInput does not throw; calculates with the contract rate exactly and no trigger rate', (f, r, fl) => {
     const x = input(fl, 'personalLoan', r, f);
-    const message = plRejection(f);
-    expect(collectInputIssues(x)).toEqual([{ field: 'paymentFrequency', message }]);
-    const exact = new RegExp(`^${message.replace(/[()]/g, '\\$&')}$`);
-    expectRangeErrorMatching(() => validateCobCanadaInput(x), exact);
-    expectRangeErrorMatching(() => calculateCobCanada(x), exact);
+    expect(collectInputIssues(x)).toEqual([]);
+    expect(() => validateCobCanadaInput(x)).not.toThrow();
+    const res = calculateCobCanada(x);
+    expect(res.calculatedRatePercent).toBe(6);
+    expect(res.triggerRatePercent).toBeNull();
   });
 
-  it('the message is built from the catalogue (quoted product, quoted frequency, allowed list joined by "/")', () => {
-    expect(plRejection('weekly')).toBe("paymentFrequency 'weekly' is not allowed for productType 'personalLoan' (allowed: monthly)");
-    expect(collectInputIssues(input('newMortgageOrLoan', 'personalLoan', 'fixed', 'acceleratedWeekly'))[0]!.message).toBe(
-      "paymentFrequency 'acceleratedWeekly' is not allowed for productType 'personalLoan' (allowed: monthly)",
-    );
+  it("B27's message is gone: no case of the matrix yields 'is not allowed for productType'", () => {
+    for (const [f, r, fl] of CASES) for (const i of collectInputIssues(input(fl, 'personalLoan', r, f))) expect(i.message).not.toContain('is not allowed for productType');
   });
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-describe('B27-T3 acceptance: personal loan + monthly', () => {
+describe('B27-T3 acceptance: personal loan + monthly (unchanged by B33)', () => {
   const CASES: [RateType, CobFlow][] = RATES.flatMap((r) => (['newMortgageOrLoan', 'renewal', 'paymentChange'] as const).map((fl) => [r, fl] as [RateType, CobFlow]));
 
   it.each(CASES)('%s / %s: valid, and the Calculated rate equals the contract rate exactly (MONTHLY basis)', (r, fl) => {
@@ -137,40 +134,40 @@ describe('B27-T3 acceptance: personal loan + monthly', () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-describe('B27-T4 check order: flow lock, then payment frequency, then dates; fees first; enum message alone', () => {
-  it('renewal + personal loan + weekly (2026-10-01: no Renewal lock): the one issue is paymentFrequency, and it is the thrown message', () => {
+// B33 (DEC-B33-FREQ): the B27 frequency issue no longer exists; what is left of the check order is the flow lock and the
+// existing enum / fees / date checks.
+describe('B27-T4 (B33) check order without the frequency rule: flow lock, fees, dates; enum message alone', () => {
+  it('renewal + personal loan + weekly (no Renewal lock since 2026-10-01, no frequency rule since B33): no issue', () => {
     const x = input('renewal', 'personalLoan', 'fixed', 'weekly');
-    expect(collectInputIssues(x).map((i) => i.field)).toEqual(['paymentFrequency']);
-    expect(collectInputIssues(x)[0]!.message).toBe(plRejection('weekly'));
-    expect(() => validateCobCanadaInput(x)).toThrow(plRejection('weekly'));
+    expect(collectInputIssues(x)).toEqual([]);
+    expect(() => validateCobCanadaInput(x)).not.toThrow();
   });
 
-  it('variable rate payment change + personal loan (fixed) + biweekly: [flow, paymentFrequency]; the flow message is thrown', () => {
+  it('variable rate payment change + personal loan (fixed) + biweekly: [flow] only; the flow message is thrown', () => {
     const x = input('variableRatePaymentChange', 'personalLoan', 'fixed', 'biweekly');
-    expect(collectInputIssues(x).map((i) => i.field)).toEqual(['flow', 'paymentFrequency']);
-    expect(() => validateCobCanadaInput(x)).toThrow(/^flow 'variableRatePaymentChange' is mortgage \+ variable-rate only, got productType='personalLoan', rateType='fixed'$/);
+    expect(collectInputIssues(x).map((i) => i.field)).toEqual(['flow']);
+    expectRangeErrorMatching(() => validateCobCanadaInput(x), /^flow 'variableRatePaymentChange' is mortgage \+ variable-rate only, got productType='personalLoan', rateType='fixed'$/);
   });
 
-  it('a fees problem is reported before the frequency', () => {
+  it('a fees problem on a weekly personal loan is the only issue', () => {
     const x = input('newMortgageOrLoan', 'personalLoan', 'fixed', 'weekly', { fees: { fees: [{ name: 'Big', amount: 200000, financed: true }] } });
-    expect(collectInputIssues(x).map((i) => i.field)).toEqual(['fees', 'paymentFrequency']);
+    expect(collectInputIssues(x).map((i) => i.field)).toEqual(['fees']);
     expect(() => validateCobCanadaInput(x)).toThrow(/^total fees /);
   });
 
-  it('the frequency is reported before the date checks', () => {
+  it('a semi-monthly personal loan with an end date before the first payment: the date issue only', () => {
     const x = input('newMortgageOrLoan', 'personalLoan', 'fixed', 'semiMonthly', { endDate: utcDate('2027-01-15') });
-    expect(collectInputIssues(x).map((i) => i.field)).toEqual(['paymentFrequency', 'endDate']);
-    expect(() => validateCobCanadaInput(x)).toThrow(new RegExp(`^${plRejection('semiMonthly').replace(/[()]/g, '\\$&')}$`));
+    expect(collectInputIssues(x).map((i) => i.field)).toEqual(['endDate']);
   });
 
-  it('a frequency string that is not one of the six gives only the existing enum message (no catalogue lookup)', () => {
+  it('a frequency string that is not one of the six gives only the existing enum message', () => {
     const enumMessage = `paymentFrequency must be one of ${Object.keys(PAYMENTS_PER_YEAR).join('/')}, got fortnightly`;
     for (const p of ['personalLoan', 'mortgage'] as const) {
       expect(collectInputIssues(input('newMortgageOrLoan', p, 'variable', 'fortnightly'))).toEqual([{ field: 'paymentFrequency', message: enumMessage }]);
     }
   });
 
-  it('a bad product type gives only its own enum message (the rule needs both enums valid)', () => {
+  it('a bad product type gives only its own enum message', () => {
     const issues = collectInputIssues(input('newMortgageOrLoan', 'car' as ProductType, 'variable', 'weekly'));
     expect(issues.map((i) => i.field)).toEqual(['productType']);
   });
@@ -193,27 +190,28 @@ describe('B27-T5 mortgages are unchanged: all six frequencies x fixed/variable x
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-describe('B27-INV-reject / INV-accept / INV-order: the whole cross product (4 flows x 2 products x 2 rates x 6 frequencies = 96) against an independent oracle', () => {
-  it('issue fields are exactly [flow?] + [paymentFrequency iff personal loan and not monthly]', () => {
+// B33 (DEC-B33-FREQ): the oracle loses the "[paymentFrequency iff personal loan and not monthly]" term; 0 rejections.
+describe('B27-INV-reject / INV-accept / INV-order (B33): the whole cross product (4 flows x 2 products x 2 rates x 6 frequencies = 96) against an independent oracle', () => {
+  it('issue fields are exactly [flow?]; no paymentFrequency issue for any product', () => {
     let n = 0;
     let rejected = 0;
     for (const fl of FLOW_IDS)
       for (const p of ['mortgage', 'personalLoan'] as const)
         for (const r of RATES)
           for (const f of ALL_FREQS) {
-            const want = [...(flowLockOk(fl, p, r) ? [] : ['flow']), ...(p === 'personalLoan' && f !== 'monthly' ? ['paymentFrequency'] : [])];
+            const want = flowLockOk(fl, p, r) ? [] : ['flow'];
             const got = collectInputIssues(input(fl, p, r, f)).map((i) => i.field);
             expect(got, `${fl}/${p}/${r}/${f}`).toEqual(want);
             n += 1;
             if (want.includes('paymentFrequency')) rejected += 1;
           }
     expect(n).toBe(96);
-    expect(rejected).toBe(4 * 2 * 5); // 4 flows x 2 rate types x 5 non-monthly frequencies
+    expect(rejected).toBe(0); // B33: was 4 flows x 2 rate types x 5 non-monthly frequencies = 40
   });
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-describe('B27-T6 no off state (revision 27: a fixed rule, no switch, no parameter)', () => {
+describe('B27-T6 no off state (revision 27: a fixed rule, no switch, no parameter; B33-R10: the removal adds no switch either)', () => {
   it('policies.ts exports exactly the same names as before B27 (B24 adds SEMI_ANNUAL_DATE_REQUIRED)', async () => {
     const mod = (await import('../../src/ca/policies.js')) as Record<string, unknown>;
     expect(Object.keys(mod).sort()).toEqual([
@@ -242,189 +240,145 @@ describe('B27-T6 no off state (revision 27: a fixed rule, no switch, no paramete
     expect(collectInputIssues.length).toBe(1);
   });
 
-  it('validate.ts compares no product or frequency literal (the rule is a catalogue lookup) and reads products.js', () => {
+  // B33 (DEC-B33-FREQ, B33-R2): validate.ts no longer imports products.js or calls the catalogue.
+  it('validate.ts compares no product or frequency literal and no longer reads products.js (B33)', () => {
     const code = stripComments(read(join(ROOT, 'src', 'ca', 'validate.ts')));
     const LIT = "['\"`](?:personalLoan|mortgage|weekly|acceleratedWeekly|biweekly|acceleratedBiweekly|semiMonthly|monthly)['\"`]";
     expect(code).not.toMatch(new RegExp(`[=!]==?\\s*${LIT}|${LIT}\\s*[=!]==?|case\\s+${LIT}`));
-    // The only product literal is the existing PRODUCT_TYPES enum list; no frequency name appears at all.
     expect(code.match(/'personalLoan'/g) ?? []).toHaveLength(1);
     expect(code).not.toMatch(/['"`](weekly|acceleratedWeekly|biweekly|acceleratedBiweekly|semiMonthly|monthly)['"`]/);
-    expect(code).toMatch(/from '\.\/products\.js'/);
-    expect(code).toMatch(/allowedPaymentFrequencies\(/);
+    expect(code).not.toMatch(/products\.js/);
+    expect(code).not.toMatch(/allowedPaymentFrequencies/);
+    expect(code).not.toContain('is not allowed for productType');
   });
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-describe('B27-T7 UI view logic: frequencyLock(productType, allowed, current) -> { value, locked, hint }', () => {
-  const PL_ALLOWED = ['monthly'];
-  const M_ALLOWED = Object.keys(PAYMENTS_PER_YEAR);
-
-  it('the interim hint text is one exported string', async () => {
-    const v = await loadView();
-    expect(v.FREQUENCY_LOCK_HINT).toBe('Personal loans are paid monthly.');
+// B33 (DEC-B33-FREQ, B33-R5 / R6, D3): the lock is deleted, not neutralised. Was: frequencyLock / FREQUENCY_LOCK_HINT pins.
+describe('B27-T7 (B33) UI view logic: frequencyLock and FREQUENCY_LOCK_HINT no longer exist', () => {
+  it('ui/ca-view.js exports neither frequencyLock nor FREQUENCY_LOCK_HINT', async () => {
+    const v = (await loadView()) as unknown as Record<string, unknown>;
+    expect('frequencyLock' in v).toBe(false);
+    expect('FREQUENCY_LOCK_HINT' in v).toBe(false);
   });
 
-  it.each(ALL_FREQS)('Personal loan + %s: value monthly, locked, with the hint', async (current) => {
-    const v = await loadView();
-    expect(v.frequencyLock('personalLoan', PL_ALLOWED, current)).toEqual({ value: 'monthly', locked: true, hint: 'Personal loans are paid monthly.' });
-  });
-
-  it.each(ALL_FREQS)('Mortgage + %s: not locked, no hint, the value is kept', async (current) => {
-    const v = await loadView();
-    expect(v.frequencyLock('mortgage', M_ALLOWED, current)).toEqual({ value: current, locked: false, hint: '' });
-  });
-
-  it('Mortgage (weekly) -> Personal loan -> Mortgage ends at monthly, enabled, no hint (user answer 2: no restore of weekly)', async () => {
-    const v = await loadView();
-    let value: string = 'weekly';
-    const a = v.frequencyLock('personalLoan', PL_ALLOWED, value);
-    value = a.value;
-    expect([a.locked, value]).toEqual([true, 'monthly']);
-    const b = v.frequencyLock('mortgage', M_ALLOWED, value);
-    expect(b).toEqual({ value: 'monthly', locked: false, hint: '' });
-  });
-
-  it('the lock is driven by the catalogue list, not by the product name (a one-item list locks to that item)', async () => {
-    const v = await loadView();
-    expect(v.frequencyLock('anything', ['monthly'], 'weekly')).toMatchObject({ value: 'monthly', locked: true });
-    expect(v.frequencyLock('anything', M_ALLOWED, 'weekly')).toMatchObject({ value: 'weekly', locked: false });
-  });
-
-  it('with the engine catalogue: the lock agrees with allowedPaymentFrequencies for both products', async () => {
-    const v = await loadView();
-    expect(v.frequencyLock('personalLoan', frequenciesFor('personalLoan'), 'biweekly')).toMatchObject({ value: 'monthly', locked: true });
-    expect(v.frequencyLock('mortgage', frequenciesFor('mortgage'), 'biweekly')).toMatchObject({ value: 'biweekly', locked: false });
+  it('ui/ca-view.d.ts declares neither (nor the FrequencyLock interface), and no ui/ calculator file holds the retired hint text', () => {
+    const dts = read(join(ROOT, 'ui', 'ca-view.d.ts'));
+    for (const t of ['frequencyLock', 'FREQUENCY_LOCK_HINT', 'FrequencyLock']) expect(dts, t).not.toContain(t);
+    for (const name of ['ca.js', 'ca-view.js', 'ca.html']) expect(read(join(ROOT, 'ui', name)), name).not.toContain('Personal loans are paid monthly.');
   });
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-describe('B27-T8 static: ui/ca.js and ui/ca.html carry the lock without a product literal', () => {
+// B33 (DEC-B33-FREQ, B33-R5): was "ca.js and ca.html carry the lock"; now the lock is absent and the select is plain.
+describe('B27-T8 (B33) static: ui/ca.js and ui/ca.html carry no lock', () => {
   const js = stripComments(read(join(ROOT, 'ui', 'ca.js')));
   const html = read(join(ROOT, 'ui', 'ca.html'));
 
-  it('ca.js imports allowedPaymentFrequencies from the barrel and frequencyLock from ca-view.js', () => {
-    expect(js).toMatch(/import \{[^}]*\ballowedPaymentFrequencies\b[^}]*\} from '\/dist\/ca\/index\.js'/);
-    expect(js).toMatch(/import \{[^}]*\bfrequencyLock\b[^}]*\} from '\.\/ca-view\.js'/);
+  it('ca.js imports neither allowedPaymentFrequencies nor frequencyLock, and has no paymentFrequencyHint element', () => {
+    expect(js).not.toMatch(/\ballowedPaymentFrequencies\b/);
+    expect(js).not.toMatch(/\bfrequencyLock\b/);
+    expect(js).not.toMatch(/paymentFrequencyHint/);
   });
 
-  it('ca.js holds no personalLoan literal and calls frequencyLock(…, allowedPaymentFrequencies(…), …) from updateConditionalVisibility after the flow and rate locks', () => {
+  it('ca.js holds no personalLoan literal and updateConditionalVisibility still applies the flow and rate locks but never sets the Payment frequency select', () => {
     expect(js).not.toMatch(/['"`]personalLoan['"`]/);
-    const bodyOf = (name: string): string => {
-      const start = js.indexOf(`function ${name}(`);
-      expect(start, `function ${name}`).toBeGreaterThan(-1);
-      return js.slice(start, js.indexOf('\n}\n', start));
-    };
-    const ucv = bodyOf('updateConditionalVisibility');
-    // The lock may sit inline or in one helper that updateConditionalVisibility calls (B27-R7).
-    const helper = ucv.includes('frequencyLock(')
-      ? null
-      : [...js.matchAll(/function (\w+)\(/g)].map((m) => m[1]!).find((n) => n !== 'updateConditionalVisibility' && ucv.includes(`${n}(`) && bodyOf(n).includes('frequencyLock('));
-    if (helper == null) expect(ucv).toContain('frequencyLock(');
-    const lockCall = helper == null ? 'frequencyLock(' : `${helper}(`;
-    const iProduct = ucv.indexOf('forcedProduct');
-    const iRate = ucv.indexOf('forcedRate');
-    const iLock = ucv.indexOf(lockCall);
-    expect(iProduct).toBeGreaterThan(-1);
-    expect(iRate).toBeGreaterThan(iProduct);
-    expect(iLock).toBeGreaterThan(iRate);
-    const lockBody = helper == null ? ucv : ucv + bodyOf(helper);
-    expect(lockBody).toMatch(/frequencyLock\(\s*[\w.]+\s*,\s*allowedPaymentFrequencies\(/);
-    // value, disabled and hint are all applied (the product and rate locks already use .value / .disabled: 2 + 2).
-    expect((lockBody.match(/\.disabled\s*=/g) ?? []).length).toBeGreaterThanOrEqual(5);
-    expect((lockBody.match(/\.value\s*=/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    const start = js.indexOf('function updateConditionalVisibility(');
+    expect(start).toBeGreaterThan(-1);
+    const ucv = js.slice(start, js.indexOf('\n}\n', start));
+    expect(ucv.indexOf('forcedProduct')).toBeGreaterThan(-1);
+    expect(ucv.indexOf('forcedRate')).toBeGreaterThan(ucv.indexOf('forcedProduct'));
+    expect(ucv).not.toMatch(/paymentFrequencyEl\.(?:value|disabled)\s*=/);
   });
 
-  it('ca.html: select#paymentFrequency has aria-describedby pointing at a hint element that is hidden until locked', () => {
+  it('ca.html: select#paymentFrequency has no aria-describedby and there is no #paymentFrequencyHint element', () => {
     const sel = /<select\b[^>]*\bid="paymentFrequency"[^>]*>/.exec(html);
     expect(sel, 'select#paymentFrequency').not.toBeNull();
-    const id = /\baria-describedby="([^"]+)"/.exec(sel![0])?.[1];
-    expect(id, 'aria-describedby on the select').toBeTruthy();
-    const el = new RegExp(`<[a-z]+\\b[^>]*\\bid="${id}"[^>]*>`).exec(html);
-    expect(el, `element #${id}`).not.toBeNull();
-    expect(el![0]).toMatch(/\bhint\b/);
-    expect(el![0]).toMatch(/\bhidden\b|\blocked\b/);
-    // The hint sits in the field next to the select, not in a recorded print/result element.
-    const fieldStart = html.lastIndexOf('<div class="field">', sel!.index);
-    const fieldEnd = html.indexOf('</div>', sel!.index);
-    expect(html.slice(fieldStart, fieldEnd)).toContain(`id="${id}"`);
+    expect(sel![0]).not.toMatch(/aria-describedby/);
+    expect(html).not.toContain('id="paymentFrequencyHint"');
   });
 
-  it('ca.html keeps Monthly in the list (the lock works whatever the accelerated switch says)', () => {
+  it('ca.html keeps Monthly in the list (not behind the accelerated switch)', () => {
     const block = /<select\b[^>]*\bid="paymentFrequency"[^>]*>([\s\S]*?)<\/select>/.exec(html)![1]!;
     expect(block).toMatch(/<option value="monthly"(?![^>]*data-switch)/);
   });
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-describe('B27-T9 golden shape: the live (reshaped) generators and the fixtures', () => {
+// B33 (DEC-B33-FREQ, B33-R7 / R8): the B27 filter is gone; the shape is back to the full corpus (the R8 numbers). Was:
+// v1 94 groups / 2,817 cases, PC 86 / 2,444, the 54 + 36 personal-loan groups dropped, PC long case monthly.
+describe('B27-T9 (B33) golden shape: the live generators and the fixtures', () => {
   type G = { key: string; extra: boolean; cases: { label: string; params: { productType: string; frequency: string } }[] }[];
   const v1: G = gen1.buildGroups();
   const pc: G = genPc.buildGroups();
   const fix = (name: string) => JSON.parse(readFileSync(join(FIXTURES_DIR, name), 'utf8')) as { groups: Record<string, unknown>; long: Record<string, unknown> };
   const count = (g: G) => g.reduce((s, x) => s + x.cases.length, 0);
 
-  const DROPPED_V1 = ['weekly', 'biweekly', 'semiMonthly'].flatMap((f) =>
+  const RESTORED_V1 = ['weekly', 'biweekly', 'semiMonthly'].flatMap((f) =>
     RATES.flatMap((r) => ['none', 'fin2000', 'fin2000cash400'].flatMap((fee) => ['new', 'renewal0', 'renewal850'].map((fl) => `${f}|personalLoan/${r}|${fee}|${fl}`))),
   );
-  const DROPPED_PC = ['weekly', 'biweekly', 'semiMonthly'].flatMap((f) =>
+  const RESTORED_PC = ['weekly', 'biweekly', 'semiMonthly'].flatMap((f) =>
     RATES.flatMap((r) => ['none', 'fin2000', 'fin2000cash400'].flatMap((fee) => ['acc0', 'acc850'].map((a) => `pc|${f}|personalLoan/${r}|${fee}|${a}`))),
   );
 
-  it('v1: 94 groups / 2,817 cases; 90 core groups (2,340 cases); extra:underpayment trimmed to 78', () => {
-    expect(v1).toHaveLength(94);
-    expect(count(v1)).toBe(2817);
-    expect(v1.filter((g) => !g.extra)).toHaveLength(90);
-    expect(count(v1.filter((g) => !g.extra))).toBe(2340);
-    expect(v1.find((g) => g.key === 'extra:underpayment')!.cases).toHaveLength(78);
+  it('v1: 148 groups / 4,455 cases; 144 core groups (3,744 cases); extra:underpayment 312', () => {
+    expect(v1).toHaveLength(148);
+    expect(count(v1)).toBe(4455);
+    expect(v1.filter((g) => !g.extra)).toHaveLength(144);
+    expect(count(v1.filter((g) => !g.extra))).toBe(3744);
+    expect(v1.find((g) => g.key === 'extra:underpayment')!.cases).toHaveLength(312);
   });
 
-  it('PC: 86 groups / 2,444 cases; 84 regular groups (2,184 cases); pcx:underpayment trimmed to 52', () => {
-    expect(pc).toHaveLength(86);
-    expect(count(pc)).toBe(2444);
-    expect(pc.filter((g) => !g.extra)).toHaveLength(84);
-    expect(count(pc.filter((g) => !g.extra))).toBe(2184);
-    expect(pc.find((g) => g.key === 'pcx:underpayment')!.cases).toHaveLength(52);
+  it('PC: 122 groups / 3,536 cases; 120 regular groups (3,120 cases); pcx:underpayment 208', () => {
+    expect(pc).toHaveLength(122);
+    expect(count(pc)).toBe(3536);
+    expect(pc.filter((g) => !g.extra)).toHaveLength(120);
+    expect(count(pc.filter((g) => !g.extra))).toBe(3120);
+    expect(pc.find((g) => g.key === 'pcx:underpayment')!.cases).toHaveLength(208);
   });
 
-  it('the 54 (v1) and 36 (PC) dropped group keys are absent from the corpus', () => {
-    expect(DROPPED_V1).toHaveLength(54);
-    expect(DROPPED_PC).toHaveLength(36);
+  it('the 54 (v1) and 36 (PC) personal-loan group keys B27 dropped are back in the corpus', () => {
+    expect(RESTORED_V1).toHaveLength(54);
+    expect(RESTORED_PC).toHaveLength(36);
     const k1 = new Set(v1.map((g) => g.key));
     const k2 = new Set(pc.map((g) => g.key));
-    expect(DROPPED_V1.filter((k) => k1.has(k))).toEqual([]);
-    expect(DROPPED_PC.filter((k) => k2.has(k))).toEqual([]);
+    expect(RESTORED_V1.filter((k) => !k1.has(k))).toEqual([]);
+    expect(RESTORED_PC.filter((k) => !k2.has(k))).toEqual([]);
   });
 
-  it('the fixtures do not hold the dropped keys and their keys equal the corpus keys (red until sr-dev regenerates)', () => {
+  it('the fixtures hold the restored keys and their keys equal the corpus keys (red until sr-dev regenerates)', () => {
     const f1 = fix('golden_engine_v1.json');
     const f2 = fix('golden_engine_pc_v1.json');
-    expect(DROPPED_V1.filter((k) => k in f1.groups)).toEqual([]);
-    expect(DROPPED_PC.filter((k) => k in f2.groups)).toEqual([]);
+    expect(RESTORED_V1.filter((k) => !(k in f1.groups))).toEqual([]);
+    expect(RESTORED_PC.filter((k) => !(k in f2.groups))).toEqual([]);
     expect(Object.keys(f1.groups)).toEqual(v1.map((g) => g.key));
     expect(Object.keys(f2.groups)).toEqual(pc.map((g) => g.key));
   });
 
-  it('PC long cases: the weekly personal-loan case is replaced by the monthly one (same inputs, monthly, payment 300)', () => {
+  it('PC long cases: the weekly personal-loan case is back (payment 200, as before B27)', () => {
     const longs = genPc.buildLongCases() as { key: string; params: Record<string, unknown> }[];
-    expect(longs.map((c) => c.key)).toEqual(['long:vrpc:monthly:acc850', 'long:pc:monthly:acc850:underpayment']);
+    expect(longs.map((c) => c.key)).toEqual(['long:vrpc:monthly:acc850', 'long:pc:weekly:acc850:underpayment']);
     const c = longs[1]!.params;
-    expect(c).toMatchObject({ frequency: 'monthly', productType: 'personalLoan', rateType: 'fixed', feeSet: 'fin2000', flowKey: 'pc', accKey: 'acc850', payment: 300, years: 30 });
+    expect(c).toMatchObject({ frequency: 'weekly', productType: 'personalLoan', rateType: 'fixed', feeSet: 'fin2000', flowKey: 'pc', accKey: 'acc850', payment: 200, years: 30 });
     expect(Object.keys(fix('golden_engine_pc_v1.json').long)).toEqual(longs.map((l) => l.key));
   });
 
-  it('no corpus input (groups and long cases) is a personal loan at a non-monthly frequency, and every input validates on the shipped engine', () => {
+  it('the corpus holds personal loans at non-monthly frequencies again (groups and the PC long case), and a stride of it validates on the shipped engine', () => {
     for (const [gen, groups] of [[gen1, v1], [genPc, pc]] as const) {
       const inputs = [
         ...groups.flatMap((g) => g.cases.map((c) => ({ k: `${g.key} ${c.label}`, p: c.params }))),
         ...(gen.buildLongCases() as { key: string; params: { productType: string; frequency: string } }[]).map((c) => ({ k: c.key, p: c.params })),
       ];
-      for (const { k, p } of inputs) {
-        expect(p.productType === 'personalLoan' && p.frequency !== 'monthly', k).toBe(false);
-      }
-      // Validate a stride (every 7th) plus every group's first case: the full corpus is validated by the golden suites.
+      expect(inputs.filter(({ p }) => p.productType === 'personalLoan' && p.frequency !== 'monthly').length).toBeGreaterThan(0);
       const sample = inputs.filter((_, i) => i % 7 === 0);
       for (const { k, p } of sample) expect(collectInputIssues(gen.makeInput(p) as CobCanadaInput), k).toEqual([]);
     }
+  });
+
+  it('the Payment Change golden is byte-identical to the archived pre-B27 fixture again (B33-R8; red until sr-dev regenerates)', () => {
+    const archived = readFileSync(join(ROOT, 'archive' + '/pre-b27', 'golden_engine_pc_v1.json'), 'utf8');
+    expect(sha256(archived)).toBe('5ab1c6a6c086ba737d790bb1e42f2eb36ccd61c3c256e2634a6d5cc312fa7df5');
+    expect(readFileSync(join(FIXTURES_DIR, 'golden_engine_pc_v1.json'), 'utf8') === archived).toBe(true);
   });
 });
 
@@ -449,7 +403,7 @@ describe('B27-T10 the live generators have no "full" mode (revision 27: no rule-
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-describe('B27-T11 the Chrome scripts do not drive a disabled select and assert the locked state', () => {
+describe('B27-T11 (B33) the Chrome scripts do not drive a disabled select and assert the UNLOCKED state', () => {
   const capture = read(join(FIXTURES_DIR, 'capture_a10_ui.mjs'));
   const printWidth = read(join(ROOT, 'tests', 'ui', 'check_print_width.mjs'));
 
@@ -459,16 +413,30 @@ describe('B27-T11 the Chrome scripts do not drive a disabled select and assert t
     expect(capture).toMatch(/sort\(\(\[a\], \[b\]\) => selectOrder\(a\) - selectOrder\(b\)\)/);
   });
 
-  it('capture_a10_ui.mjs asserts the locked state (disabled, monthly, hint text) and the unlock after switching back to Mortgage', () => {
-    expect(capture).toContain("{ disabled: true, value: 'monthly', hintShown: true, hintText: 'Personal loans are paid monthly.' }");
-    expect(capture).toContain("{ disabled: false, value: 'monthly', hintShown: false }");
+  // B33 (DEC-B33-FREQ, B33-R9): was "asserts the locked state (disabled, monthly, hint text)".
+  it('capture_a10_ui.mjs asserts the unlocked state for a personal-loan scenario (enabled, no aria-describedby, the scenario frequency kept across Mortgage and back)', () => {
+    expect(capture).not.toContain('Personal loans are paid monthly.');
+    expect(capture).not.toMatch(/disabled: true/);
+    expect(capture).toContain('const want = { disabled: false, value: sc.selects.paymentFrequency, describedBy: null, hintNode: 0 };');
     expect(capture).toMatch(/selectOption\('#productType', 'mortgage'\)/);
     expect(capture).toMatch(/selectOption\('#productType', 'personalLoan'\)/);
   });
 
-  it('the personal-loan scenario of the capture already sends Monthly (fixture pinned at its B24 regeneration; B27 itself did not change it)', () => {
+  it('capture_a10_ui.mjs appends PL_WEEKLY last (personal loan, fixed, weekly) with its expected Contract term', () => {
+    expect(capture).toMatch(/id: 'PL_WEEKLY',[^\n]*\n\s*selects: \{ flow: 'newMortgageOrLoan', productType: 'personalLoan', rateType: 'fixed', paymentFrequency: 'weekly' \}/);
+    expect(capture).toContain("PL_WEEKLY: '2 years, 10 months, 13 days'");
+    expect(capture.indexOf("id: 'PL_WEEKLY'")).toBeGreaterThan(capture.indexOf("id: 'ERR_blank_rate'"));
+  });
+
+  it('the capture fixture sha pin; ERR_blank_rate still sends a monthly personal loan (B33 re-pins the sha after the approved regeneration with PL_WEEKLY)', () => {
     const fixture = readFileSync(join(FIXTURES_DIR, 'a10_ui_capture_v1.json'), 'utf8');
-    expect(sha256(fixture)).toBe('171f8a33bf02bc0dd21c200945dfb16586bd64121ba631e2f1146b8b62a5f6d5');
+    // Re-pinned 2026-10-05 by QA (B31 verify): capture regenerated for B31 (DEC-B31-LAYOUT, approved; result-figure order
+    // and structure only, the personal-loan inputs unchanged); sha 171f8a33... -> ac76408a....
+    // Re-pinned 2026-10-05 by QA (B32 verify, DEC-B32-TERM): capture regenerated (approved; term hint, label and value
+    // strings only, the personal-loan inputs unchanged); sha ac76408a... -> 9877c0c6....
+    // Re-pinned 2026-10-05 by QA (B33 verify, DEC-B33-FREQ): capture regenerated (approved; scenario PL_WEEKLY appended,
+    // the six earlier scenarios unchanged); sha 9877c0c6... -> 4d5a64c1....
+    expect(sha256(fixture)).toBe('4d5a64c1978424b777ea99580f9cbf52659f983ef7c820da268c38e8d88ea575');
     expect(capture).toMatch(/productType: 'personalLoan', rateType: 'variable', paymentFrequency: 'monthly'/);
   });
 

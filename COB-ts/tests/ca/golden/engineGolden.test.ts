@@ -83,16 +83,16 @@ beforeAll(() => {
 });
 
 describe('A0 golden master: corpus shape', () => {
-  // B27 (DEV-FB24, approved 2026-09-30): a personal loan is Monthly only, so the 54 personal-loan
-  // weekly/biweekly/semiMonthly core groups (1,404 cases) are gone: 144 -> 90 core groups and
-  // 3,744 -> 2,340 core cases; extra:underpayment is trimmed to its Monthly cases (312 -> 78); 94 groups, 2,817 cases.
-  it('2,340 core cases in 90 groups (26 dates x 12 of the 16 freq x product/rate pairs x 3 fees x 3 flows) + 4 extra groups; 94 groups / 2,817 cases in all (B27)', () => {
+  // B27 (DEV-FB24, approved 2026-09-30) dropped the 54 personal-loan weekly/biweekly/semiMonthly core groups (144 -> 90;
+  // 94 groups, 2,817 cases). B33 (DEC-B33-FREQ, 2026-10-05, approved regeneration B33-R8) restores them: 144 core groups,
+  // 3,744 core cases, extra:underpayment back to 312; 148 groups, 4,455 cases (spec A0's full corpus).
+  it('3,744 core cases in 144 groups (26 dates x 16 freq x product/rate pairs x 3 fees x 3 flows) + 4 extra groups; 148 groups / 4,455 cases in all (B33)', () => {
     const core = groupsDef.filter((g) => !g.extra);
-    expect(core).toHaveLength(90);
-    expect(core.reduce((s, g) => s + g.cases.length, 0)).toBe(2340);
-    expect(groupsDef).toHaveLength(94);
-    expect(groupsDef.reduce((s, g) => s + g.cases.length, 0)).toBe(2817);
-    expect(groupsDef.find((g) => g.key === 'extra:underpayment')!.cases).toHaveLength(78);
+    expect(core).toHaveLength(144);
+    expect(core.reduce((s, g) => s + g.cases.length, 0)).toBe(3744);
+    expect(groupsDef).toHaveLength(148);
+    expect(groupsDef.reduce((s, g) => s + g.cases.length, 0)).toBe(4455);
+    expect(groupsDef.find((g) => g.key === 'extra:underpayment')!.cases).toHaveLength(312);
     expect(groupsDef.filter((g) => g.extra).map((g) => g.key)).toEqual([
       'extra:minimumPayment',
       'extra:underpayment',
@@ -101,12 +101,12 @@ describe('A0 golden master: corpus shape', () => {
     ]);
     expect(Object.keys(golden.groups)).toEqual(groupsDef.map((g) => g.key));
     expect(Object.keys(golden.long)).toHaveLength(6);
-    // B27: no corpus input is a personal loan at a non-monthly frequency.
-    for (const g of groupsDef)
-      for (const c of g.cases) {
-        const p = c.params as { productType: string; frequency: string };
-        expect(p.productType === 'personalLoan' && p.frequency !== 'monthly', `${g.key}: ${c.label}`).toBe(false);
-      }
+    // B33 (DEC-B33-FREQ): personal loans at weekly / biweekly / semiMonthly are in the corpus again (B27 had none).
+    const plNonMonthly = groupsDef.flatMap((g) => g.cases).filter((c) => {
+      const p = c.params as { productType: string; frequency: string };
+      return p.productType === 'personalLoan' && p.frequency !== 'monthly';
+    });
+    expect(plNonMonthly).toHaveLength(54 * 26 + 234); // 54 core groups + extra:underpayment's restored 234 (312 - 78)
   });
 
   it('the 26 first-payment dates are every 29th day from 2027-01-01 and cross Feb 29 2028', () => {

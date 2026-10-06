@@ -63,8 +63,8 @@ export function calculatedRate(
  *     (Interest Act s. 6).
  *   - Variable-rate mortgage and personal loan (either rate type): MONTHLY -- the
  *     contract rate itself, unconverted, at every payment frequency.
- *   A personal loan is Monthly only in the engine (B27, DEV-FB24), so for it this applies
- *   at n = 12; a variable mortgage still uses it at every frequency.
+ *   A personal loan accepts every payment frequency (B33, DEC-B33-FREQ; B27's Monthly-only
+ *   rule removed), so this applies at every n for it, as for a variable mortgage.
  */
 export type RateBasis = 'MONTHLY' | 'SEMI-ANNUAL';
 

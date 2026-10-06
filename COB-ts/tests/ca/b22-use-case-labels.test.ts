@@ -37,13 +37,13 @@ const PAYMENT_CHANGE_HINT = 'Interest accrued since the last payment date.';
 const ARREARS_HINT =
   'Only interest due at earlier payments and not yet paid (arrears), usually $0.00. Interest since the last payment date is already charged.';
 
-// B22-R2 table, verbatim.
+// B22-R2 table, verbatim. B32 (DEC-B32-TERM): plus contractTerm (key order legend, startDate, firstPaymentDate, contractTerm, accruedHint).
 const EXPECTED: Record<CobFlow, View.FlowLabels> = {
-  newMortgageOrLoan: { legend: 'New mortgage or loan', startDate: 'Disbursal date', firstPaymentDate: 'First payment date', accruedHint: null },
-  renewal: { legend: 'Renewal', startDate: 'Renewal date', firstPaymentDate: 'First payment date', accruedHint: RENEWAL_HINT },
-  paymentChange: { legend: 'Payment change', startDate: 'Date of change', firstPaymentDate: 'Next payment date', accruedHint: PAYMENT_CHANGE_HINT },
+  newMortgageOrLoan: { legend: 'New mortgage or loan', startDate: 'Disbursal date', firstPaymentDate: 'First payment date', contractTerm: 'Contract term', accruedHint: null },
+  renewal: { legend: 'Renewal', startDate: 'Renewal date', firstPaymentDate: 'First payment date', contractTerm: 'Remaining contract term', accruedHint: RENEWAL_HINT },
+  paymentChange: { legend: 'Payment change', startDate: 'Date of change', firstPaymentDate: 'Next payment date', contractTerm: 'Remaining contract term', accruedHint: PAYMENT_CHANGE_HINT },
   variableRatePaymentChange: {
-    legend: 'Variable rate payment change', startDate: 'Date of change', firstPaymentDate: 'Next payment date', accruedHint: ARREARS_HINT,
+    legend: 'Variable rate payment change', startDate: 'Date of change', firstPaymentDate: 'Next payment date', contractTerm: 'Contract term', accruedHint: ARREARS_HINT,
   },
 };
 
@@ -57,10 +57,11 @@ const RAW = (flow: CobFlow): View.RawForm => ({
 
 describe('B22-INV-labels: flowLabels is the one pure source of the per-flow texts (B22-R2)', () => {
   for (const flow of FLOW_IDS) {
-    it(`B22-1: flowLabels('${flow}', FLOWS.${flow}) equals the R2 table (exactly four keys, no accruedRow)`, async () => {
+    // B32 (DEC-B32-TERM): five keys (contractTerm added); was exactly four.
+    it(`B22-1: flowLabels('${flow}', FLOWS.${flow}) equals the R2 table (exactly five keys since B32, no accruedRow)`, async () => {
       const v = await loadView();
       const t = v.flowLabels(flow, FLOWS[flow]);
-      expect(Object.keys(t).sort()).toEqual(['accruedHint', 'firstPaymentDate', 'legend', 'startDate']);
+      expect(Object.keys(t).sort()).toEqual(['accruedHint', 'contractTerm', 'firstPaymentDate', 'legend', 'startDate']);
       expect(t).toStrictEqual(EXPECTED[flow]);
     });
   }
@@ -80,10 +81,11 @@ describe('B22-INV-labels: flowLabels is the one pure source of the per-flow text
 describe('B22-INV-print: printInputRows names, order and values per flow (B22-R3)', () => {
   // B24-R5: the Contract date row exists only while contractDateField is on (shipped off); both states run.
   const HEAD = ['Use case', 'Product type', 'Rate type', 'Mortgage or loan amount', 'Interest rate', 'Payment amount *', 'Payment frequency'];
+  // B32 (DEC-B32-TERM): the term row's label is per flow ("Remaining contract term" for renewal and paymentChange).
   const NAMES: Record<CobFlow, string[]> = {
     newMortgageOrLoan: [...HEAD, 'First payment date', 'End date', 'Contract term', 'Disbursal date'],
-    renewal: [...HEAD, 'First payment date', 'End date', 'Contract term', 'Renewal date', 'Accrued interest'],
-    paymentChange: [...HEAD, 'Next payment date', 'End date', 'Contract term', 'Date of change', 'Accrued interest'],
+    renewal: [...HEAD, 'First payment date', 'End date', 'Remaining contract term', 'Renewal date', 'Accrued interest'],
+    paymentChange: [...HEAD, 'Next payment date', 'End date', 'Remaining contract term', 'Date of change', 'Accrued interest'],
     variableRatePaymentChange: [...HEAD, 'Next payment date', 'End date', 'Contract term', 'Date of change', 'Accrued interest'],
   };
   // Then the semi-annual row when the product is a fixed mortgage (any flow; never VRPC, which is variable).
@@ -106,7 +108,7 @@ describe('B22-INV-print: printInputRows names, order and values per flow (B22-R3
       const at = sw.contractDateField ? 1 : 0; // index shift of every row after the optional Contract date
       expect(rows.map(([k]) => k)).toEqual(semiAnnual ? [...names, SEMI] : names);
       expect(rows[7 + at], 'first-payment row').toEqual([EXPECTED[flow].firstPaymentDate, 'May 1, 2026']);
-      expect(rows[9 + at], 'term row').toEqual(['Contract term', TERM_TEXT]);
+      expect(rows[9 + at], 'term row').toEqual([EXPECTED[flow].contractTerm, TERM_TEXT]); // B32 (DEC-B32-TERM): per-flow label
       expect(rows[10 + at], 'start-date row').toEqual([EXPECTED[flow].startDate, START_VALUE[flow]]);
       if (flow !== 'newMortgageOrLoan') expect(rows[11 + at], 'accrued row keeps its name').toEqual(['Accrued interest', '$12.34']);
       if (semiAnnual) expect(rows[rows.length - 1]).toEqual([SEMI, 'Apr 15, 2026']);
@@ -168,7 +170,10 @@ describe('B22-INV-screen: what Chrome showed per flow (capture fixture flowScree
       const want: Record<string, string> = { legend: t.legend, startDate: t.startDate, firstPaymentDate: t.firstPaymentDate };
       if (t.accruedHint !== null) want.accruedInterestHint = t.accruedHint;
       // B24-R6: the capture also records the hint under the read-only Contract term field (key order: after the accrued hint).
-      want.termHint = `Calculated from the ${t.firstPaymentDate.toLowerCase()} to the last scheduled payment date.`;
+      // B32 (DEC-B32-TERM): the hint names the start date (was the first payment date), and the capture records the
+      // field's label as termLabel right after termHint.
+      want.termHint = `Calculated from the ${t.startDate.toLowerCase()} to the last scheduled payment date.`;
+      want.termLabel = (t as unknown as Record<string, string>)['contractTerm']!;
       expect(cap.flowScreens?.[flow]).toStrictEqual(want);
     });
   }

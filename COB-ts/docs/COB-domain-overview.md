@@ -1,7 +1,7 @@
 # COB Calculator: domain overview for review
 
 **Audience:** lending and Credit Ops staff reviewing how the Cost of Borrowing (COB) calculator works. It is not a developer document.
-**State:** 2026-10-02, after every planned item (B19 to B28, A11, A14) was delivered. Nothing is planned any more, so every box below is **today** or **open**. How each change came about is in `COB-ts/CHANGES.md`; this page does not repeat it.
+**State:** 2026-10-02, after every planned item (B19 to B28, A11, A14) was delivered. Every box below is **today** or **open**. How each change came about is in `COB-ts/CHANGES.md`; this page does not repeat it. *2026-10-05:* B32 (Contract term from the start date, DEC-B32-TERM) is delivered and QA-verified (CHANGES §71) and is shown as today. *2026-10-05:* B33 (personal loans at every payment frequency, DEC-B33-FREQ; removes B27's Monthly-only rule, no switch) is delivered and QA-verified (CHANGES §72) and is shown as today.
 
 ## How to read this
 
@@ -98,7 +98,7 @@ flowchart TD
     classDef today fill:#e6f4ea,stroke:#1e7e34,color:#111
 ```
 
-Every use case also asks for product type, rate type, contract rate, Loan amount, payment amount, payment frequency, First payment date, End date and fees. For Renewal, Payment change and VRPC, the Loan amount is the balance on the start date. A personal loan is Monthly only, in every use case (FB-24). Sources: `flows.ts`, `validate.ts`; decisions 2, 4, 5, 9 and the 2026-10-01 changes (CHANGES §59, §60).
+Every use case also asks for product type, rate type, contract rate, Loan amount, payment amount, payment frequency, First payment date, End date and fees. For Renewal, Payment change and VRPC, the Loan amount is the balance on the start date. A personal loan takes any payment frequency, in every use case it can use (DEC-B33-FREQ, CHANGES §72; the earlier Monthly-only rule, FB-24, is removed). Sources: `flows.ts`, `validate.ts`; decisions 2, 4, 5, 9, the 2026-10-01 changes (CHANGES §59, §60) and DEC-B33-FREQ.
 
 ### 2.2 Payment change: which date, and what "Accrued interest" holds
 
@@ -142,10 +142,10 @@ The checks (source `validate.ts`, `fees.ts`):
 | Each fee amount ≥ 0; all fees together < Loan amount | BRD §6, OQ-M |
 | Start date on or before the First payment date; End date after it | BRD §6 |
 | Accrued interest (Renewal, Payment change, VRPC) entered, ≥ 0 ($0 valid) | IN-11, decision 4 |
-| Personal loan: Monthly only; VRPC: mortgage + variable only | FB-24; `flows.ts` |
+| Any payment frequency for either product (a personal loan's earlier Monthly-only rule was removed by B33, DEC-B33-FREQ, CHANGES §72); VRPC: mortgage + variable only | DEC-B33-FREQ (reverses FB-24); `flows.ts` |
 | With fees, the start date cannot equal the only payment date (0-day term) | B13 |
 
-The Contract term is not an input: it is a result, from the First payment date to the last scheduled payment date, shown on screen and in the printout (decision 8, DEV-OQP).
+The Contract term is not an input: it is a result, from the flow's start date (Disbursal date, Renewal date or Date of change) to the last scheduled payment date, the same span as "Term in days", shown on screen and in the printout but not in the CSV (decision 8, DEV-OQP; start point DEC-B32-TERM, B32, CHANGES §71). It reads "Remaining contract term" for Renewal and Payment change and "Contract term" for New mortgage or loan (and the hidden VRPC). A moved semi-monthly first date does not change it.
 
 ### 3.2 Which rate the schedule uses
 
@@ -270,8 +270,8 @@ Everything else matches Excel: REF-01 matches on 2,193 values.
 | 0% contract rate | Accepted | Refused (must be > 0) | OQ-AA revised, DEV-OQAA | Today |
 | Unpaid interest | Added to the balance; earns interest | Held aside; earns none; paid first, oldest first; all charged interest counts in C | Decision 1, DEV-OQL | Today (a switch can restore the workbook rule) |
 | Accrued interest input | Does not exist | Required for Renewal, Payment change, VRPC ($0 allowed); outside the balance; earns no interest | OQ-W interim, DEV-W; decision 4 | Today; OQ-W2 parked |
-| Contract term | An input | Read-only result; End date required | Decision 8, OQ-P, DEV-OQP | Today |
-| Personal-loan frequency | Any | Monthly only | FB-24, DEV-FB24 | Today |
+| Contract term | An input | Read-only result; End date required | Decision 8, OQ-P, DEV-OQP | Today: measured from the start date, "Remaining contract term" for Renewal and Payment change (DEC-B32-TERM, B32, CHANGES §71) |
+| Personal-loan frequency | Any | Any, contract rate as entered (matches the workbook again; was Monthly only from B27 to B33) | DEC-B33-FREQ (reverses FB-24); DEV-FB24 retired | Today (B33, CHANGES §72); no difference left |
 | Use cases | Do not exist | Three on screen (VRPC hidden), own start dates and labels; Renewal takes Mortgage or Personal loan | BRD IN-01, OQ-A; CHANGES §59 | Today (no workbook equivalent) |
 | Financed option; accelerated frequencies; contract rate entry | Offered; offered; typed on a second sheet | Not offered; hidden; one contract-rate field | Decision 7; B28; OQ-N | Today (same results, no DEV ID) |
 | P in the COB rate | Average opening principal | Average opening balance (BRD wording) | OQ-Q, candidate DEV-OQQ | Today; **open** |
@@ -284,8 +284,8 @@ Sources: `COB-architecture.md` §2.1 (register of deviations); `COB-user-stories
 ## 5. What to check
 
 1. **Scope.** Is a printout the record kept on file (the CSV holds the schedule only; export format OQ-J is open)? Is the payment always worked out elsewhere and typed in? Should an invalid input show no result, or a result with a warning?
-2. **Use cases.** Renewal accepts Mortgage and Personal loan (Monthly only); is that right? Should VRPC come back to the Flow list? Will staff know the arrears figure for Payment change, or is $0 too easy to type? The disclosed rate for the same loan moves about −0.09 points in the FB-16 example because the term starts earlier; acceptable?
-3. **Rate and dates.** Variable mortgages are never converted. Monthly from Apr 30 goes May 31, Jun 30. Semi-monthly start days are moved (10th to 15th, 20th to month-end). No weekend or holiday shifting. Personal loans Monthly only. Accelerated options hidden. Is each right for your contracts?
+2. **Use cases.** Renewal accepts Mortgage and Personal loan (at any payment frequency, since B33); is that right? Should VRPC come back to the Flow list? Will staff know the arrears figure for Payment change, or is $0 too easy to type? The disclosed rate for the same loan moves about −0.09 points in the FB-16 example because the term starts earlier; acceptable?
+3. **Rate and dates.** Variable mortgages are never converted. Monthly from Apr 30 goes May 31, Jun 30. Semi-monthly start days are moved (10th to 15th, 20th to month-end). No weekend or holiday shifting. Personal loans at any frequency, using the contract rate as entered (B33). Accelerated options hidden. Is each right for your contracts?
 4. **Period.** Interest then principal, for every product; leap-year days over 366; a shortfall earns no interest. Does this match how arrears work in the banking system?
 5. **Ending.** Is a balance still owing at the End date expected? Is the workbook's payoff-row display acceptable on a disclosure? Is the line "Unpaid interest at end date" (hint: "Unpaid after the last payment; interest since then is not included") clear, given the interest since the last payment is not in it?
 6. **COB rate.** With no fees the rate is the calculated rate even if C includes accrued interest paid (QA F-2; FB-11 on hold). Should P include financed fees (OQ-Q) and should entered accrued interest count in C (FB-25 W2, parked)?

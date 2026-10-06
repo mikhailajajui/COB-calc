@@ -1,6 +1,6 @@
-import { allowedPaymentFrequencies, calculateCobCanada, contractTerm, FLOWS, requiresSemiAnnualDate } from '/dist/ca/index.js';
+import { calculateCobCanada, contractTerm, FLOWS, requiresSemiAnnualDate } from '/dist/ca/index.js';
 import {
-  contractTermHint, contractTermParts, contractTermText, csvFileName, firstDateMoveNote, isoDay, figureNodes, flowLabels, formatAmount, frequencyLock, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures,
+  contractTermHint, contractTermParts, contractTermText, csvFileName, firstDateMoveNote, isoDay, figureNodes, flowLabels, formatAmount, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures,
   moreFigures, parseDateInput, paymentsText, printFeesNodes, printFigures, printInputNodes, printInputRows, scheduleCsv,
   scheduleTableNodes, toInput, switchedOut, UI_SWITCHES,
 } from './ca-view.js';
@@ -29,7 +29,6 @@ const flowEl = document.getElementById('flow');
 const productTypeEl = document.getElementById('productType');
 const rateTypeEl = document.getElementById('rateType');
 const paymentFrequencyEl = document.getElementById('paymentFrequency');
-const paymentFrequencyHintEl = document.getElementById('paymentFrequencyHint');
 
 const contractDateEl = document.getElementById('contractDate');
 const loanAmountEl = document.getElementById('loanAmount');
@@ -39,6 +38,7 @@ const firstPaymentDateEl = document.getElementById('firstPaymentDate');
 const endDateEl = document.getElementById('endDate');
 const contractTermEl = document.getElementById('contractTerm');
 const contractTermHintEl = document.getElementById('contractTerm-hint');
+const contractTermLabelEl = document.getElementById('contractTerm-label');
 
 const firstPaymentLabelEl = document.getElementById('firstPaymentDate-label');
 
@@ -73,7 +73,8 @@ const printEngineEl = document.getElementById('printEngine');
 const printBodyEl = document.getElementById('printBody');
 const printInputsEl = document.getElementById('printInputs');
 const printFeesEl = document.getElementById('printFees');
-const printFiguresEl = document.getElementById('printFigures');
+const printFiguresLeftEl = document.getElementById('printFiguresLeft');
+const printFiguresRightEl = document.getElementById('printFiguresRight');
 const printScheduleSectionEl = document.getElementById('printScheduleSection');
 const printScheduleCountEl = document.getElementById('printScheduleCount');
 const printScheduleTableEl = document.getElementById('printScheduleTable');
@@ -106,12 +107,6 @@ function updateConditionalVisibility() {
     rateTypeEl.disabled = false;
   }
 
-  const frequency = frequencyLock(productTypeEl.value, allowedPaymentFrequencies(productTypeEl.value), paymentFrequencyEl.value);
-  paymentFrequencyEl.value = frequency.value;
-  paymentFrequencyEl.disabled = frequency.locked;
-  paymentFrequencyHintEl.textContent = frequency.hint;
-  paymentFrequencyHintEl.hidden = !frequency.locked;
-
   const isNew = spec.startDateField === 'disbursalDate';
   newFlowFieldsEl.style.display = isNew ? '' : 'none';
   existingFlowFieldsEl.style.display = isNew ? 'none' : '';
@@ -123,7 +118,8 @@ function updateConditionalVisibility() {
   existingFlowLegendEl.textContent = texts.legend;
   renewalLabelEl.textContent = texts.startDate;
   if (texts.accruedHint !== null) accruedHintEl.textContent = texts.accruedHint;
-  contractTermHintEl.textContent = contractTermHint(texts.firstPaymentDate.toLowerCase());
+  contractTermLabelEl.textContent = texts.contractTerm;
+  contractTermHintEl.textContent = contractTermHint(texts.startDate.toLowerCase());
 
   semiAnnualFieldEl.style.display = requiresSemiAnnualDate(productTypeEl.value, rateTypeEl.value) ? '' : 'none';
 }
@@ -200,7 +196,7 @@ function renderContractTerms(input, contractDate, ctx, result) {
   }
   items.push(
     ['Payment frequency', label('paymentFrequency', input.paymentFrequency)],
-    ['Contract term', contractTermParts(contractTerm(result)).map(noBreak).join(', '), false],
+    [texts.contractTerm, contractTermParts(contractTerm(input, result)).map(noBreak).join(', '), false],
     [texts.startDate, formatInputDate(input[spec.startDateField])],
     [texts.firstPaymentDate, formatInputDate(input.firstPaymentDate)],
     ['End date', formatInputDate(input.endDate)],
@@ -334,7 +330,9 @@ function el(tag, text, className) {
 function renderPrintRecord(raw, ctx, result, termText, moveNote) {
   printInputsEl.innerHTML = html(printInputNodes(printInputRows(raw, ctx, termText, moveNote)));
   printFeesEl.innerHTML = html(printFeesNodes(raw.fees, ctx));
-  printFiguresEl.innerHTML = html(figureNodes(printFigures(result, ctx)));
+  const printColumns = printFigures(result, ctx);
+  printFiguresLeftEl.innerHTML = html(figureNodes(printColumns.left));
+  printFiguresRightEl.innerHTML = html(figureNodes(printColumns.right));
 }
 
 // --- on-screen results and schedule: the app's results panel and schedule table ---
@@ -473,7 +471,7 @@ function recompute() {
     const input = toInput(raw, ctx);
     const result = calculateCobCanada(input);
     const calculatedAt = new Date();
-    const termText = contractTermText(contractTerm(result));
+    const termText = contractTermText(contractTerm(input, result));
     const texts = flowLabels(raw.flow, ctx.spec);
     const moveNote = firstDateMoveNote(texts.firstPaymentDate, raw.firstPaymentDate, result.amortizationSchedule[0]?.date);
     renderContractTerms(input, parseDateInput(raw.contractDate), ctx, result);

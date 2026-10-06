@@ -3,10 +3,10 @@
  *   types      <- everyone; imports nothing in src/ca
  *   calendar, fees, policies -> types only
  *   flows      -> types, policies (B24-R5: requiresSemiAnnualDate's defaulted parameter reads SEMI_ANNUAL_DATE_REQUIRED)
- *   products   -> types only (B27, DEV-FB24: the product catalogue)
+ *   products   -> types only (B27: the product catalogue; B33, DEC-B33-FREQ: read only through the barrel index)
  *   equations  -> types, calendar
- *   validate   -> types, calendar, fees, flows, products  (B27: products edge; calendar edge added by A4, revision 6:
- *                 utcDateOnly for date ordering; QA A4 step 4, 2026-09-28)
+ *   validate   -> types, calendar, fees, flows  (calendar edge added by A4, revision 6: utcDateOnly for date ordering;
+ *                 QA A4 step 4, 2026-09-28. B27 added a products edge; B33 (DEC-B33-FREQ) removed it again)
  *   cobCanada  -> anything in src/ca
  *   index      -> anything in src/ca (the barrel; §6 does not list it, simplest reading)
  *   nothing imports cobCanada except index.
@@ -30,7 +30,7 @@ const ALLOWED: Record<string, string[] | typeof ANY> = {
   flows: ['types', 'policies'], // B24-R5: the defaulted parameter of requiresSemiAnnualDate
   products: ['types'], // B27 (DEV-FB24): the product catalogue allowedPaymentFrequencies
   equations: ['types', 'calendar'],
-  validate: ['types', 'calendar', 'fees', 'flows', 'products'], // B27: + products
+  validate: ['types', 'calendar', 'fees', 'flows'], // B33 (DEC-B33-FREQ): the B27 products edge is gone
   cobCanada: ANY,
   index: ANY,
 };
@@ -72,11 +72,13 @@ describe('F5 layering inside src/ca', () => {
     expect(fmt(fromTypes as ImportEdge[])).toEqual([]);
   });
 
-  // B27 (DEV-FB24; red until sr-dev adds src/ca/products.ts): the product rule has one home, read by validate.ts.
-  it('F5 [B27]: products.ts exists, imports only types, and validate.ts imports it', () => {
+  // B27 added products.ts, read by validate.ts. B33 (DEC-B33-FREQ, B33-R2 / D2; red until sr-dev applies R2): the
+  // catalogue stays as a public description, imports only types, and is imported only by the barrel index.ts.
+  it('F5 [B27/B33]: products.ts exists, imports only types, and only index.ts imports it', () => {
     expect(files.some((f) => moduleName(f) === 'products')).toBe(true);
     const fromProducts = internal.filter((e) => moduleName(e.file) === 'products');
     expect(fmt(fromProducts as ImportEdge[]).every((e) => /\.\/types\.js$/.test(e))).toBe(true);
-    expect(internal.some((e) => moduleName(e.file) === 'validate' && moduleName(e.resolved!) === 'products')).toBe(true);
+    const importers = [...new Set(internal.filter((e) => moduleName(e.resolved!) === 'products').map((e) => moduleName(e.file)))];
+    expect(importers).toEqual(['index']);
   });
 });

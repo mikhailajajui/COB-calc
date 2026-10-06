@@ -2,7 +2,7 @@
 // Vitest cannot load ui/ca.js, so this loads the real page. Not part of vitest.
 // Expected (user decisions 2026-10-01): on-screen note under the First payment date field, the same note in the printed
 // inputs (typed date kept) and under the Contract terms tiles (typed date kept), CSV file name = the moved date,
-// Contract term from the moved date, 'Next payment moved to ...' on the Next payment flows, nothing at all when not moved.
+// Contract term from the start date (B32, DEC-B32-TERM; was from the moved date), 'Next payment moved to ...' on the Next payment flows, nothing at all when not moved.
 // usage (from COB-ts/, after `npm run build`):  node tests/ui/check_semimonthly_move.mjs [baseUrl]
 import { createRequire } from 'node:module';
 import { execSync, spawn } from 'node:child_process';
@@ -57,7 +57,8 @@ try {
   same(norm(await visibleText('#firstDateNote')), NOTE1, 'S1 on-screen note');
   same(await page.evaluate(() => document.getElementById('firstDateNote')?.getAttribute('role') ?? null), 'status', 'S1 note role');
   same(await page.inputValue('#firstPaymentDate'), '2027-01-10', 'S1 typed field value is kept');
-  same(await page.inputValue('#contractTerm'), '2 years, 0 months, 0 days', 'S1 Contract term runs from the moved date');
+  // B32 (DEC-B32-TERM, superseding Q-CT-B25): the term runs from the disbursal date 2027-01-01 (was 2 years, 0 months, 0 days from the moved date).
+  same(await page.inputValue('#contractTerm'), '2 years, 0 months, 14 days', 'S1 Contract term runs from the disbursal date');
   const cap = norm(await page.textContent('#scheduleTable caption'));
   same(/from Jan 15, 2027 to /.test(cap), true, 'S1 schedule caption starts at the moved date: ' + cap);
   const tile1 = (await tiles()).find(([k]) => norm(k) === 'First payment date');
@@ -125,7 +126,10 @@ try {
   same(norm(pin5[j]?.[1]), 'Jan 20, 2027', 'S5 printed row keeps the typed date');
   same(norm(pin5[j + 1]?.[1]), NOTE5, 'S5 printed note under the Next payment date row');
   same((await csv()).name, 'cost-of-borrowing-schedule-2027-01-31.csv', 'S5 CSV name uses the moved date');
+  // B32 (DEC-B32-TERM): from the Date of change 2027-01-01 the term is the same as S1; the label reads "Remaining contract term".
+  same(await page.inputValue('#contractTerm'), '2 years, 0 months, 14 days', 'S5 Contract term runs from the date of change');
+  same(await page.evaluate(() => document.querySelector('label[for="contractTerm"]')?.textContent ?? null), 'Remaining contract term', 'S5 term label (Payment change)');
 } catch (e) { fail('script error (a missing element or timeout is a failed check): ' + String(e.message).split('\n')[0]); }
 finally { await browser.close(); child?.kill(); }
 if (problems.length) { console.log('F17 FAIL\n' + problems.join('\n')); process.exit(1); }
-console.log(`F17 PASS: ${checks} checks; semi-monthly move shown on screen, in the printout and the tiles; CSV name and Contract term from the moved date; no note when unmoved, for other frequencies, or after an error; Next payment wording on the Payment change flow; no console errors`);
+console.log(`F17 PASS: ${checks} checks; semi-monthly move shown on screen, in the printout and the tiles; CSV name from the moved date; Contract term from the start date (B32); no note when unmoved, for other frequencies, or after an error; Next payment wording on the Payment change flow; no console errors`);

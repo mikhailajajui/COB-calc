@@ -1,5 +1,6 @@
 /**
  * B27 (COB-architecture.md section 5 B27; DEV-FB24): the engine's product catalogue as tests see it. QA-owned.
+ * B33 (DEC-B33-FREQ): the catalogue now gives the same six frequencies for both products; the helper is unchanged.
  *
  * `frequenciesFor(productType)` reads `allowedPaymentFrequencies` from the public barrel AT CALL TIME, so in the
  * red step (before sr-dev adds src/ca/products.ts and exports it) each test that needs it fails on its own

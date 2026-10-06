@@ -1,6 +1,10 @@
 /**
  * B27 (COB-architecture.md section 5 B27, revision 29; DEV-FB24): the "twin" helper. QA-owned.
  *
+ * B33 (DEC-B33-FREQ, 2026-10-05): the Monthly-only rule is removed, so a personal loan at any frequency is valid again and
+ * the twin is no longer needed; it is kept, unchanged, with its users (Q-B33-LEGACY default). The twin stays exact
+ * (B33-T5 measures it on the shipped engine). The text below describes the B27 period.
+ *
  * A personal loan may only pay Monthly, so a test that needs a schedule at another frequency
  * uses the TWIN: the same input as a mortgage / variable at the same frequency. The twin is exact
  * because the rate basis of a personal loan (either rate type) and of a variable mortgage is the

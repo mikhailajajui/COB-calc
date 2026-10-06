@@ -24,6 +24,7 @@ import { loadFixture } from './support/fixtures.js';
 import { ON, OFF } from './support/uiSwitches.js';
 import type { TestUiSwitches } from './support/uiSwitches.js';
 import { createHash } from 'node:crypto';
+import { LEGACY_MORE, LEGACY_PRINT, inLegacyOrder } from './support/legacyFigureOrder.js';
 
 interface CapturedMode {
   html: Record<string, string>;
@@ -63,8 +64,11 @@ const ctxOf = (raw: View.RawForm, switches: TestUiSwitches = ON): View.ViewConte
 
 // B20 (decision 4): VRPC_blank_accrued is now an error case (the engine rejects the blank); the
 // printed VRPC page is captured by the new VRPC_zero_accrued scenario.
-const CAPTURED_IDS = ['REF-01', 'S1_fees', 'RENEWAL', 'VRPC_blank_accrued', 'VRPC_zero_accrued', 'ERR_blank_rate'];
+// B33 (DEC-B33-FREQ, B33-R9): the capture gains PL_WEEKLY last (a weekly personal loan). It has no pre-B23 ON pin
+// (b23_on_state_pins.json is unchanged), so it joins the shipped (OFF) replay only: OFF_IDS.
+const CAPTURED_IDS = ['REF-01', 'S1_fees', 'RENEWAL', 'VRPC_blank_accrued', 'VRPC_zero_accrued', 'ERR_blank_rate', 'PL_WEEKLY'];
 const OK_IDS = ['REF-01', 'S1_fees', 'RENEWAL', 'VRPC_zero_accrued'];
+const OFF_IDS = [...OK_IDS, 'PL_WEEKLY'];
 const MODES: View.ColumnsMode[] = ['all', 'compact'];
 
 interface OnPins {
@@ -88,22 +92,30 @@ describe('A10-C characterisation: ca-view reproduces the page byte for byte', ()
         const raw = pin.raw;
         const ctx = ctxOf(raw, ON);
         const r = calculateCobCanada(v.toInput(raw, ctx));
+        // B31 (DEC-B31-LAYOUT): the figure lists are re-arranged, not changed; replayed in the pre-B31
+        // order (tests/ca/support/legacyFigureOrder.ts) they still hash to the untouched pre-B23 pins.
+        const { left, right } = v.printFigures(r, ctx);
+        const printed = inLegacyOrder([...left, ...right], LEGACY_PRINT);
+        expect(printed, 'every printed figure has a legacy place').toHaveLength(left.length + right.length);
+        const screen = [...v.mainFigures(r), ...v.moreFigures(r, ctx)];
         expect(sha(v.html(v.printFeesNodes(raw.fees, ctx))), 'printFees').toBe(p.printFees);
-        expect(sha(v.html(v.figureNodes(v.printFigures(r, ctx)))), 'printFigures').toBe(p.printFigures);
-        expect(sha(v.html(v.figureNodes(v.moreFigures(r, ctx)))), 'moreFigures').toBe(p.moreFigures);
+        expect(sha(v.html(v.figureNodes(printed))), 'printFigures (legacy order)').toBe(p.printFigures);
+        expect(sha(v.html(v.figureNodes(inLegacyOrder(screen, LEGACY_MORE)))), 'moreFigures (legacy order)').toBe(p.moreFigures);
         expect(sha(v.html(v.scheduleTableNodes(r, 'print', mode as View.ColumnsMode, ctx))), 'printScheduleTable').toBe(p.printScheduleTable);
         expect(sha(v.html(v.scheduleTableNodes(r, 'screen', mode as View.ColumnsMode, ctx))), 'scheduleTable').toBe(p.scheduleTable);
-        expect(sha(JSON.stringify(v.printFigures(r, ctx))), 'figures list').toBe(p.figures);
+        expect(sha(JSON.stringify(printed)), 'figures list (legacy order)').toBe(p.figures);
         expect(sha(v.scheduleCsv(r.amortizationSchedule, mode as View.ColumnsMode, ctx)), 'CSV').toBe(p.csv);
         expect(v.csvFileName(raw.firstPaymentDate), 'CSV file name').toBe(p.csvFileName);
       });
     }
   }
 
-  // B23-T6 OFF: the shipped page, against the regenerated capture. RED until QA regenerates
-  // a10_ui_capture_v1.json after sr-dev's code (approved 2026-09-30).
+  // B23-T6 OFF: the shipped page, against the capture. B31 (revision 49): the print figures are two
+  // elements (#printFiguresLeft, #printFiguresRight) and the captured `figures` list is left then right.
+  // RED until QA regenerates a10_ui_capture_v1.json after sr-dev's B31 code (approved 2026-10-05,
+  // order and structure only; the pre-B31 strings are pinned in b31_pre_layout_pins.json, B31-T4).
   k = 9; // A10-C9 below is the error scenario
-  for (const id of OK_IDS) {
+  for (const id of OFF_IDS) {
     for (const mode of MODES) {
       k += 1;
       it(`A10-C${k} (switch off, shipped): ${id} / ${mode}: print record, figures, both schedule tables, counts and CSV equal the capture`, async () => {
@@ -116,14 +128,17 @@ describe('A10-C characterisation: ca-view reproduces the page byte for byte', ()
 
         expect(v.html(v.printInputNodes(v.printInputRows(raw, ctx, contractTermField as string))), 'printInputs').toBe(cap.html.printInputs);
         expect(v.html(v.printFeesNodes(raw.fees, ctx)), 'printFees').toBe(cap.html.printFees);
-        expect(v.html(v.figureNodes(v.printFigures(r, ctx))), 'printFigures').toBe(cap.html.printFigures);
+        const columns = v.printFigures(r, ctx);
+        expect(cap.html.printFigures, 'the capture no longer has a single print figure list (B31-R9a)').toBeUndefined();
+        expect(v.html(v.figureNodes(columns.left)), 'printFiguresLeft').toBe(cap.html.printFiguresLeft);
+        expect(v.html(v.figureNodes(columns.right)), 'printFiguresRight').toBe(cap.html.printFiguresRight);
         expect(v.html(v.figureNodes(v.mainFigures(r))), 'mainFigures').toBe(cap.html.mainFigures);
         expect(v.html(v.figureNodes(v.moreFigures(r, ctx))), 'moreFigures').toBe(cap.html.moreFigures);
         expect(v.html(v.scheduleTableNodes(r, 'print', mode, ctx)), 'printScheduleTable').toBe(cap.html.printScheduleTable);
         expect(v.html(v.scheduleTableNodes(r, 'screen', mode, ctx)), 'scheduleTable').toBe(cap.html.scheduleTable);
         expect(v.paymentsText(n), 'printScheduleCount').toBe(cap.html.printScheduleCount);
         expect(v.paymentsText(n), 'scheduleCount').toBe(cap.html.scheduleCount);
-        expect(v.printFigures(r, ctx), 'figures list').toEqual(cap.figures);
+        expect([...columns.left, ...columns.right], 'figures list (print left then right)').toEqual(cap.figures);
         expect(v.scheduleCsv(r.amortizationSchedule, mode, ctx), 'CSV').toBe(Buffer.from(cap.csvBase64, 'base64').toString('utf8'));
         expect(v.csvFileName(raw.firstPaymentDate), 'CSV file name').toBe(cap.csvFileName);
       });
@@ -133,7 +148,7 @@ describe('A10-C characterisation: ca-view reproduces the page byte for byte', ()
   it('A10-C9: ERR_blank_rate: the engine rejects toInput(raw) with the captured #error text', async () => {
     // Fixture shape first (a truncated or re-captured fixture must not pass quietly).
     expect(CAPTURE.scenarios.map((s) => s.id)).toEqual(CAPTURED_IDS);
-    for (const id of OK_IDS) {
+    for (const id of OFF_IDS) {
       expect(scenario(id).error, id).toBeNull();
       expect(Object.keys(scenario(id).modes), id).toEqual(MODES);
     }
@@ -262,7 +277,7 @@ describe('A10-P source guards', () => {
     expect(tableBuilds).toEqual([]);
   });
 
-  it('A10-P3 (A10-R2): ui/ca-view.js exports exactly the 41 names of ui/ca-view.d.ts (B22 adds flowLabels, B23 adds UI_SWITCHES and FEE_KEYS, B28 adds switchedOut, B27 adds frequencyLock and FREQUENCY_LOCK_HINT, B24 adds contractTermParts, contractTermText and contractTermHint, B25 adds firstDateMoveNote), and pins the branches no capture reaches', async () => {
+  it('A10-P3 (A10-R2): ui/ca-view.js exports exactly the 39 names of ui/ca-view.d.ts (B22 adds flowLabels, B23 adds UI_SWITCHES and FEE_KEYS, B28 adds switchedOut, B27 added frequencyLock and FREQUENCY_LOCK_HINT and B33 (DEC-B33-FREQ) removed them, B24 adds contractTermParts, contractTermText and contractTermHint, B25 adds firstDateMoveNote), and pins the branches no capture reaches', async () => {
     const v = await loadView();
     // Pre-A10 values (ui/ca.js) for branches the 5 captured scenarios never take; the escaping
     // string is Chrome 154's own outerHTML of the same td (checked 2026-09-29), i.e. A10-R3.
@@ -281,10 +296,10 @@ describe('A10-P source guards', () => {
 
     expect(Object.keys(v).sort()).toEqual(
       [
-        'COLUMNS', 'COMPACT_KEYS', 'CSV_COLUMNS', 'FEE_KEYS', 'FREQUENCY_LOCK_HINT', 'LABELS', 'UI_SWITCHES', 'csvFileName', 'figureNodes', 'formatAmount', 'formatCurrency',
+        'COLUMNS', 'COMPACT_KEYS', 'CSV_COLUMNS', 'FEE_KEYS', 'LABELS', 'UI_SWITCHES', 'csvFileName', 'figureNodes', 'formatAmount', 'formatCurrency',
         'flowLabels', 'formatInputDate', 'formatIsoDate', 'formatRate', 'h', 'headlineFigures', 'html', 'isoDay', 'label',
         'mainFigures', 'moreFigures', 'numOrUndefined', 'parseAmount', 'parseDateInput', 'parseMoney', 'paymentsText',
-        'frequencyLock', 'printFeesNodes', 'printFigures', 'printInputNodes', 'printInputRows', 'scheduleCsv', 'scheduleTableNodes',
+        'printFeesNodes', 'printFigures', 'printInputNodes', 'printInputRows', 'scheduleCsv', 'scheduleTableNodes',
         'switchedOut', 'toInput', 'typedMoney', 'contractTermParts', 'contractTermText', 'contractTermHint', 'firstDateMoveNote',
       ].sort(),
     );

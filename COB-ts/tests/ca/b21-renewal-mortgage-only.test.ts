@@ -79,11 +79,13 @@ describe('B21 reversed 2026-10-01: Renewal is open to personal loans (was mortga
       expect(res.triggerRatePercent).toBeNull();
     });
 
-    it(`B21-2b: renewal + personalLoan/${rate} + weekly: the only issue is paymentFrequency (B27), no flow issue`, () => {
+    // B33 (DEC-B33-FREQ): B27's Monthly-only rule is removed, so a weekly personal-loan renewal has no issue at all
+    // (was: the one B27 paymentFrequency issue). Still no flow issue (Renewal open to personal loans since 2026-10-01).
+    it(`B21-2b: renewal + personalLoan/${rate} + weekly: no issue (B33), no flow issue; it calculates`, () => {
       const x = base('renewal', { productType: 'personalLoan', rateType: rate, paymentFrequency: 'weekly' });
-      const msg = "paymentFrequency 'weekly' is not allowed for productType 'personalLoan' (allowed: monthly)";
-      expect(collectInputIssues(x)).toEqual([{ field: 'paymentFrequency', message: msg }]);
-      expect(thrown(() => validateCobCanadaInput(x)).message).toBe(msg);
+      expect(collectInputIssues(x)).toEqual([]);
+      expect(() => validateCobCanadaInput(x)).not.toThrow();
+      expect(calculateCobCanada(x).amortizationSchedule.length).toBeGreaterThan(0);
     });
   }
 

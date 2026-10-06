@@ -3,7 +3,6 @@ import { PAYMENTS_PER_YEAR, isFiniteNumber } from './types.js';
 import { effectiveFirstPaymentDate, utcDateOnly } from './calendar.js';
 import { totalCashFees, totalFinancedFees, validateFeeSchedule } from './fees.js';
 import { FLOWS, FLOW_IDS, requiresSemiAnnualDate } from './flows.js';
-import { allowedPaymentFrequencies } from './products.js';
 
 /**
  * Validates a CobCanadaInput against BRD §6 (validation and error handling) and UC-05
@@ -132,18 +131,6 @@ function checkInput(input: CobCanadaInput, report: Report): Date | undefined {
       report({
         field: 'flow',
         message: `flow '${input.flow}' is ${allowed} only, got productType='${input.productType}', rateType='${input.rateType}'`,
-      });
-    }
-  }
-
-  // The product catalogue restricts the payment frequency (personal loan: monthly only;
-  // B27, DEV-FB24). Every flow and rate type; runs only when both enums passed.
-  if (productOk && freqOk) {
-    const allowedFrequencies = allowedPaymentFrequencies(input.productType);
-    if (!allowedFrequencies.includes(input.paymentFrequency)) {
-      report({
-        field: 'paymentFrequency',
-        message: `paymentFrequency '${input.paymentFrequency}' is not allowed for productType '${input.productType}' (allowed: ${allowedFrequencies.join('/')})`,
       });
     }
   }

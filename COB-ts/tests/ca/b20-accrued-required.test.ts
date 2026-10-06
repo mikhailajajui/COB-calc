@@ -256,8 +256,10 @@ describe('B20-11 the A10 capture fixture (B20-FIX, user-approved 2026-09-29)', (
     expect(() => calculateCobCanada(v.toInput(zero.raw, ctxOf(zero.raw)))).not.toThrow();
 
     for (const id of ['REF-01', 'S1_fees', 'ERR_blank_rate']) expect(scenario(id).raw.accruedInterest, id).toBe('');
+    // B33 (DEC-B33-FREQ, B33-R9): PL_WEEKLY appended last (a new-loan scenario, Accrued interest hidden and blank).
     expect(CAPTURE.scenarios.map((s) => s.id)).toEqual([
-      'REF-01', 'S1_fees', 'RENEWAL', 'VRPC_blank_accrued', 'VRPC_zero_accrued', 'ERR_blank_rate',
+      'REF-01', 'S1_fees', 'RENEWAL', 'VRPC_blank_accrued', 'VRPC_zero_accrued', 'ERR_blank_rate', 'PL_WEEKLY',
     ]);
+    expect(scenario('PL_WEEKLY').raw.accruedInterest).toBe('');
   });
 });

@@ -138,17 +138,6 @@ export function switchedOut(ctx, name) {
   return ctx.switches[name] !== true;
 }
 
-export const FREQUENCY_LOCK_HINT = 'Personal loans are paid monthly.';
-
-/**
- * B27-R7 (DEV-FB24): the Payment frequency lock. `allowed` is the engine catalogue's list for the product;
- * a product with one allowed frequency locks the select to it, any other leaves the value as it is.
- */
-export function frequencyLock(productType, allowed, current) {
-  if (allowed.length === 1) return { value: allowed[0], locked: true, hint: FREQUENCY_LOCK_HINT };
-  return { value: current, locked: false, hint: '' };
-}
-
 export const FEE_KEYS = Object.freeze(['feesOpening', 'feesPaid', 'feesClosing']);
 
 // --- input parsing ---
@@ -205,12 +194,20 @@ const ACCRUED_TEXT = Object.freeze({
     'Only interest due at earlier payments and not yet paid (arrears), usually $0.00. Interest since the last payment date is already charged.',
 });
 
-// The fieldset legend, both date labels and the Accrued interest hint (null when the flow hides the field).
+// Label of the derived term (field, Contract terms tile, print row) per flow (DEC-B32-TERM): "Remaining contract term"
+// where the loan is already running; every other flow, including the hidden one, keeps "Contract term".
+const CONTRACT_TERM_TEXT = Object.freeze({
+  renewal: 'Remaining contract term',
+  paymentChange: 'Remaining contract term',
+});
+
+// The fieldset legend, both date labels, the Contract term label and the Accrued interest hint (null when the flow hides the field).
 export function flowLabels(flow, spec) {
   return {
     legend: label('flow', flow),
     startDate: spec.startDateLabel,
     firstPaymentDate: spec.firstPaymentDateLabel,
+    contractTerm: Object.hasOwn(CONTRACT_TERM_TEXT, flow) ? CONTRACT_TERM_TEXT[flow] : 'Contract term',
     accruedHint: spec.accruedInterest === 'hidden' ? null : ACCRUED_TEXT[flow] ?? null,
   };
 }
@@ -230,9 +227,9 @@ export function contractTermText(term) {
   return contractTermParts(term).join(', ');
 }
 
-// Hint under the read-only Contract term field (interim wording, Q-MSG); the label is the flow's first payment date label, lower-cased.
-export function contractTermHint(firstPaymentLabel) {
-  return `Calculated from the ${firstPaymentLabel} to the last scheduled payment date.`;
+// Hint under the read-only Contract term field (interim wording, Q-MSG); the label is the flow's start date label, lower-cased (DEC-B32-TERM).
+export function contractTermHint(startDateLabel) {
+  return `Calculated from the ${startDateLabel} to the last scheduled payment date.`;
 }
 
 // Note shown when the engine moved the first payment date (semi-monthly: the 15th and month-end); '' when it did not.
@@ -258,7 +255,7 @@ export function printInputRows(raw, ctx, termText, moveNote = '') {
     [texts.firstPaymentDate, formatIsoDate(raw.firstPaymentDate)],
     ...(moveNote ? [['Moved first date', moveNote]] : []),
     ['End date', formatIsoDate(raw.endDate)],
-    ['Contract term', termText],
+    [texts.contractTerm, termText],
     [texts.startDate, formatIsoDate(raw[spec.startDateField])],
   ];
   if (spec.accruedInterest !== 'hidden') {
@@ -304,7 +301,10 @@ export function printFeesNodes(rawFees, ctx) {
   return nodes;
 }
 
-// --- figures: [label, value] or [label, value, hint], in the app's order ---
+// --- figures: [label, value] or [label, value, hint]; two groups, each read top to bottom (DEC-B31-LAYOUT) ---
+// Rates and term (moreFigures): printed as the left column under the APR; on screen under "More figures".
+// Amounts (mainFigures): printed as the right column; on screen the main list, where Cost of borrowing amount
+// shows without its hint (its headline card carries it; Q-B31-DUP-HINT).
 
 export function headlineFigures(result) {
   return [
@@ -313,40 +313,46 @@ export function headlineFigures(result) {
   ];
 }
 
-export function mainFigures(result) {
+function amountFigures(result, cobAmount) {
   const list = [
-    ['Calculated rate', formatRate(result.calculatedRatePercent), 'Fixed-rate mortgages: contract rate converted to the payment frequency. Otherwise the contract rate.'],
+    ['Total of all payments', printCurrency.format(result.totalPayment)],
+    cobAmount,
+    ['Total principal paid', printCurrency.format(result.principalPayment)],
+    ['Total interest', printCurrency.format(result.totalInterest), 'Interest charged over the term, including any not yet paid.'],
   ];
   if (result.triggerRatePercent !== null) {
     list.push(['Trigger rate', formatRate(result.triggerRatePercent), 'If the contract rate rises above this, the payment no longer covers the interest.']);
   }
-  list.push(
-    ['Number of payments', printCount.format(result.numberOfPayments)],
-    ['Total of all payments', printCurrency.format(result.totalPayment)],
-    ['Total interest', printCurrency.format(result.totalInterest), 'Interest charged over the term, including any not yet paid.'],
-    ['Total principal paid', printCurrency.format(result.principalPayment)],
-  );
   return list;
+}
+
+export function mainFigures(result) {
+  const [, [cobLabel, cobValue]] = headlineFigures(result);
+  return amountFigures(result, [cobLabel, cobValue]);
 }
 
 export function moreFigures(result, ctx) {
   const withFinanced = ctx.switches.financedOption;
-  const list = [];
-  if (withFinanced) list.push(['Fees recovered through payments', printCurrency.format(result.feesRecovered)]);
-  list.push(['Balance at end date', printCurrency.format(result.endingBalance)]);
+  const list = [
+    ['Calculated rate', formatRate(result.calculatedRatePercent), 'Fixed-rate mortgages: contract rate converted to the payment frequency. Otherwise the contract rate.'],
+    ['Number of payments', printCount.format(result.numberOfPayments)],
+    ['Term in days', `${printCount.format(result.termDays)} days`],
+    ['Balance at end date', printCurrency.format(result.endingBalance)],
+  ];
   const unpaidInterest = result.amortizationSchedule[result.amortizationSchedule.length - 1].carriedAccruedInterestClosing;
   if (unpaidInterest > 0) {
     list.push(['Unpaid interest at end date', printCurrency.format(unpaidInterest), 'Unpaid after the last payment; interest since then is not included']);
   }
+  if (withFinanced) list.push(['Fees recovered through payments', printCurrency.format(result.feesRecovered)]);
   if (withFinanced && ctx.spec.startDateField === 'disbursalDate') {
     list.push(['Disbursal amount', printCurrency.format(result.disbursalAmount), 'Loan amount less financed fees.']);
   }
-  list.push(['Term in days', `${printCount.format(result.termDays)} days`]);
   return list;
 }
 
 export function printFigures(result, ctx) {
-  return [...headlineFigures(result), ...mainFigures(result), ...moreFigures(result, ctx)];
+  const [apr, cobAmount] = headlineFigures(result);
+  return { left: [apr, ...moreFigures(result, ctx)], right: amountFigures(result, cobAmount) };
 }
 
 export function figureNodes(list) {

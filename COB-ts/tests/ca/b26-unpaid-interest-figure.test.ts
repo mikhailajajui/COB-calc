@@ -10,6 +10,12 @@
  * strings are literals typed here from the user's decision and from runs of the built engine; nothing
  * is imported from the view. The Chrome steps (capture_a10_ui.mjs, check_print_width.mjs) are the
  * browser half of this task; they are not vitest.
+ *
+ * B31 edits (QA, 2026-10-05; COB-architecture.md §5 B31, revision 49; DEC-B31-LAYOUT): `printFigures`
+ * returns { left, right }; the line is in `left` (= [APR, ...moreFigures]). moreFigures now starts with
+ * Calculated rate, Number of payments, Term in days, Balance at end date; the switch-on order is
+ * Balance, Unpaid interest, Fees recovered, Disbursal amount (Q-B31-ON-ORDER). The rule "directly
+ * after Balance at end date" is unchanged.
  */
 import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -68,6 +74,10 @@ function withLastClosing(result: CobCanadaResult, value: number): CobCanadaResul
 }
 
 const names = (list: View.Figure[]) => list.map((f) => f[0]);
+/** B31: both printed columns, left then right (for "contained / not contained" checks). */
+const printedAll = (c: View.FigureColumns): View.Figure[] => [...c.left, ...c.right];
+/** B31-R2: the fixed head of moreFigures. */
+const MORE_HEAD = ['Calculated rate', 'Number of payments', 'Term in days', 'Balance at end date'];
 const without = (list: View.Figure[]) => list.filter((f) => f[0] !== LABEL);
 
 // --- B26-T1: the value table, both Financed states ---
@@ -119,38 +129,40 @@ describe('B26-T2: the entry is a 3-tuple right after "Balance at end date"; the 
     expect(without(list)).toEqual(v.moreFigures(withLastClosing(base, 0), ctx));
   });
 
-  it('Financed on, New flow: order is Fees recovered, Balance, Unpaid interest, Disbursal amount, Term in days', async () => {
+  it('Financed on, New flow (B31, Q-B31-ON-ORDER): order is ..., Balance, Unpaid interest, Fees recovered, Disbursal amount', async () => {
     const v = await loadView();
     const raw = { ...rawOf('REF-01'), fees: [{ name: 'Premium fee', amount: '2,000.00', financed: true }] };
     const list = v.moreFigures(withLastClosing(await engineResult(raw), 321.5), ctxOfRaw(raw, ON));
-    expect(names(list)).toEqual(['Fees recovered through payments', 'Balance at end date', LABEL, 'Disbursal amount', 'Term in days']);
+    expect(names(list)).toEqual([...MORE_HEAD, LABEL, 'Fees recovered through payments', 'Disbursal amount']);
   });
 
-  it('Financed off (shipped), New flow: order is Balance, Unpaid interest, Term in days', async () => {
+  it('Financed off (shipped), New flow (B31): order is ..., Balance, Unpaid interest', async () => {
     const v = await loadView();
     const list = v.moreFigures(withLastClosing(await engineResult(rawOf('REF-01')), 321.5), ctxOfRaw(rawOf('REF-01'), OFF));
-    expect(names(list)).toEqual(['Balance at end date', LABEL, 'Term in days']);
+    expect(names(list)).toEqual([...MORE_HEAD, LABEL]);
   });
 
-  it('Financed on, Renewal flow (no Disbursal amount): Fees recovered, Balance, Unpaid interest, Term in days', async () => {
+  it('Financed on, Renewal flow (no Disbursal amount; B31): ..., Balance, Unpaid interest, Fees recovered', async () => {
     const v = await loadView();
     const raw = rawOf('RENEWAL');
     const list = v.moreFigures(withLastClosing(await engineResult(raw), 321.5), ctxOfRaw(raw, ON));
-    expect(names(list)).toEqual(['Fees recovered through payments', 'Balance at end date', LABEL, 'Term in days']);
+    expect(names(list)).toEqual([...MORE_HEAD, LABEL, 'Fees recovered through payments']);
   });
 });
 
 // --- B26-T3: print equals screen ---
 
-describe('B26-T3: printFigures carries the same entry, at the same relative place, exactly when moreFigures does', () => {
+describe('B26-T3: printFigures (left column, B31) carries the same entry, at the same relative place, exactly when moreFigures does', () => {
   it.each(BOTH)('with a shortfall [%s]', async (_sw, s) => {
     const v = await loadView();
     const result = withLastClosing(await engineResult(rawOf('REF-01')), 3015.1683939843015);
     const ctx = ctxOfRaw(rawOf('REF-01'), s);
     const screen = v.moreFigures(result, ctx);
-    const print = v.printFigures(result, ctx);
-    expect(print.filter((f) => f[0] === LABEL)).toEqual([[LABEL, '$3,015.17', HINT]]);
-    expect(print.slice(print.length - screen.length)).toEqual(screen); // the tail of the printout is the screen list
+    const columns = v.printFigures(result, ctx);
+    const print = columns.left;
+    expect(printedAll(columns).filter((f) => f[0] === LABEL)).toEqual([[LABEL, '$3,015.17', HINT]]);
+    expect(names(columns.right)).not.toContain(LABEL);
+    expect(print.slice(1)).toEqual(screen); // B31: the left column under the APR is the screen "More figures" list
     const p = names(print);
     expect(p[p.indexOf('Balance at end date') + 1]).toBe(LABEL);
   });
@@ -160,7 +172,7 @@ describe('B26-T3: printFigures carries the same entry, at the same relative plac
     const result = withLastClosing(await engineResult(rawOf('REF-01')), 0);
     const ctx = ctxOfRaw(rawOf('REF-01'), s);
     expect(names(v.moreFigures(result, ctx))).not.toContain(LABEL);
-    expect(names(v.printFigures(result, ctx))).not.toContain(LABEL);
+    expect(names(printedAll(v.printFigures(result, ctx)))).not.toContain(LABEL);
   });
 
   it('figureNodes renders the hint as span.figure-hint inside the label, and the value in dd.figure-value', async () => {
@@ -188,7 +200,9 @@ describe('B26-T4: real engine, the shortfall example (200,000 at 5% monthly, pay
     expect(list[i]).toEqual(['Balance at end date', '$200,000.00']);
     expect(list[i + 1]).toEqual([LABEL, '$3,015.17', HINT]);
     const printed = v.printFigures(result, ctxOfRaw(SHORTFALL_RAW, s));
-    expect(printed.filter((f) => f[0] === LABEL)).toEqual([[LABEL, '$3,015.17', HINT]]);
+    expect(printedAll(printed).filter((f) => f[0] === LABEL)).toEqual([[LABEL, '$3,015.17', HINT]]);
+    const left = names(printed.left);
+    expect(left[left.indexOf('Balance at end date') + 1]).toBe(LABEL); // B31-INV-UNPAID: $3,015.17 after $200,000.00 in print left
   });
 });
 
@@ -205,9 +219,8 @@ describe('B26-T5: the four non-error capture scenarios end with no unpaid intere
     const ctx = ctxOfRaw(raw, s);
     const list = v.moreFigures(result, ctx);
     expect(names(list)).not.toContain(LABEL);
-    expect(names(v.printFigures(result, ctx))).not.toContain(LABEL);
-    expect(names(list)).toContain('Balance at end date');
-    expect(names(list).at(-1)).toBe('Term in days');
+    expect(names(printedAll(v.printFigures(result, ctx)))).not.toContain(LABEL);
+    expect(names(list).slice(0, MORE_HEAD.length)).toEqual(MORE_HEAD); // B31-R2: Term in days now precedes Balance at end date
   });
 });
 
@@ -240,7 +253,7 @@ describe('B26-FLOWS: the figure appears in every flow, product and frequency; th
     const ctx = ctxFor(i.flow as CobFlow, i.productType as ProductType, i.rateType as RateType, s);
     const list = v.moreFigures(result, ctx);
     expect(list.filter((f) => f[0] === LABEL)).toEqual([[LABEL, text, HINT]]);
-    expect(names(v.printFigures(result, ctx))).toContain(LABEL);
+    expect(names(v.printFigures(result, ctx).left)).toContain(LABEL);
     // it is the bucket alone: not the total interest, not the balance
     expect(list.find((f) => f[0] === LABEL)![1]).not.toBe(v.formatCurrency(result.totalInterest));
   });
@@ -290,18 +303,20 @@ describe('B26-T6: golden-corpus sweep (v1 and Payment Change): the line is prese
     return { present, bad };
   };
 
-  it.each(BOTH)('v1 corpus (2,817 cases): 390 positive, line iff > 0, value = the formatted number [%s]', async (_sw, s) => {
+  // B33 (DEC-B33-FREQ): the goldens regain the weekly / bi-weekly / semi-monthly personal-loan cases (B33-R8):
+  // v1 2,817 -> 4,455 cases, 390 -> 624 positive; PC 2,444 -> 3,536, 260 -> 416. The positive groups are unchanged.
+  it.each(BOTH)('v1 corpus (4,455 cases; B33, was 2,817): 624 positive (was 390), line iff > 0, value = the formatted number [%s]', async (_sw, s) => {
     const { present, bad } = await check(swept.v1!, s);
-    expect(swept.v1).toHaveLength(2817);
+    expect(swept.v1).toHaveLength(4455);
     expect(bad.slice(0, 5)).toEqual([]);
-    expect(present).toBe(390);
+    expect(present).toBe(624);
   }, 60_000);
 
-  it.each(BOTH)('Payment Change corpus (2,444 cases): 260 positive, line iff > 0, value = the formatted number [%s]', async (_sw, s) => {
+  it.each(BOTH)('Payment Change corpus (3,536 cases; B33, was 2,444): 416 positive (was 260), line iff > 0, value = the formatted number [%s]', async (_sw, s) => {
     const { present, bad } = await check(swept.pc!, s);
-    expect(swept.pc).toHaveLength(2444);
+    expect(swept.pc).toHaveLength(3536);
     expect(bad.slice(0, 5)).toEqual([]);
-    expect(present).toBe(260);
+    expect(present).toBe(416);
   }, 60_000);
 
   it('the positive cases sit in exactly these groups (a corpus change is noticed)', () => {
@@ -310,9 +325,16 @@ describe('B26-T6: golden-corpus sweep (v1 and Payment Change): the line is prese
     expect(keysOf(swept.pc!)).toEqual(['pcx:underpayment', 'vrpcx:minimumPayment']);
   });
 
-  it('no value in (0, 18775): the engine leaves no float residue that the strict test could show as $0.00', () => {
-    const tiny = [...swept.v1!, ...swept.pc!].filter((c) => c.value > 0 && c.value < 18775);
+  // B33 (DEC-B33-FREQ): the restored weekly personal-loan underpayment cases have real positive values from 5,092.19, so the
+  // old bound (0, 18775) is restated as the risk the test names: no value in (0, 0.005), i.e. nothing that prints as $0.00
+  // while the line is shown; plus the measured minimum as a pin (QA, sweep of both corpora on the B33 tree).
+  it('no value in (0, 0.005): the engine leaves no float residue that the strict test could show as $0.00; minimum positive pinned', () => {
+    const all = [...swept.v1!, ...swept.pc!];
+    const tiny = all.filter((c) => c.value > 0 && c.value < 0.005);
     expect(tiny.map((c) => `${c.key} ${c.label} ${c.value}`)).toEqual([]);
+    const min = all.filter((c) => c.value > 0).reduce((a, c) => (c.value < a.value ? c : a));
+    expect(min.value).toBe(5092.19178082191);
+    expect(`${min.key} ${min.label}`).toBe('pcx:underpayment first=2027-07-23 weekly personalLoan/fixed fees=fin2000 flow=pc acc0 payment=200');
   });
 
   it('named case: first=2028-02-11 monthly mortgage/variable fees=fin2000cash400 flow=renewal850 payment=0.01 shows $27,158.49', async () => {

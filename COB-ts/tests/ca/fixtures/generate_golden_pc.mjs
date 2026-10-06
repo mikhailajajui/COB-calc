@@ -35,7 +35,7 @@
  *     pcx:underpayment (pc, personalLoan/fixed, fin2000, payment weekly 200 / other 300: T6 and
  *     QA's F-1 path); vrpcx:minimumPayment (vrpc, fin2000cash400, payment 0.01: B14, trigger rate).
  *   Long cases (full JSON, first 2027-01-01, 30 years): long:vrpc:monthly:acc850,
- *   long:pc:weekly:acc850:underpayment.
+ *   long:pc:weekly:acc850:underpayment (personal loan, payment 200; B33 restores this pre-B27 case).
  *
  * All dates are built with Date.UTC so the corpus is timezone-independent.
  */
@@ -123,9 +123,7 @@ const describeCase = (p) =>
   `first=${iso(p.first)} ${p.frequency} ${p.productType}/${p.rateType} fees=${p.feeSet} flow=${p.flowKey} ${p.accKey}` +
   (p.payment !== undefined ? ` payment=${p.payment}` : '');
 
-// B27 (DEV-FB24): a personal loan is Monthly only, so the shipped engine rejects every personal-loan case
-// at another frequency. buildGroups() drops those cases (and any group left empty); the pre-B27 corpus
-// lives on only as the frozen test-only copies in legacy/. There is no mode that builds the old corpus.
+// B33 (DEC-B33-FREQ): every product at every frequency again; B27's personal-loan filter is removed.
 /** The full pre-filter corpus (internal). */
 function buildGroupsAll() {
   const groups = [];
@@ -168,10 +166,9 @@ function buildGroupsAll() {
   return groups;
 }
 
-/** Returns [{ key, extra, cases: [{ label, params }] }] in a fixed order (B27: personal loans at Monthly only). */
+/** Returns [{ key, extra, cases: [{ label, params }] }] in a fixed order (B33: every product at every frequency). */
 export function buildGroups() {
   return buildGroupsAll()
-    .map((g) => ({ ...g, cases: g.cases.filter((c) => !(c.params.productType === 'personalLoan' && c.params.frequency !== 'monthly')) }))
     .filter((g) => g.cases.length > 0);
 }
 
@@ -184,8 +181,8 @@ export function buildLongCases() {
       params: { first, frequency: 'monthly', productType: 'mortgage', rateType: 'variable', feeSet: 'fin2000cash400', flowKey: 'vrpc', accKey: 'acc850', payment: 1300, years: 30 },
     },
     {
-      key: 'long:pc:monthly:acc850:underpayment',
-      params: { first, frequency: 'monthly', productType: 'personalLoan', rateType: 'fixed', feeSet: 'fin2000', flowKey: 'pc', accKey: 'acc850', payment: 300, years: 30 },
+      key: 'long:pc:weekly:acc850:underpayment',
+      params: { first, frequency: 'weekly', productType: 'personalLoan', rateType: 'fixed', feeSet: 'fin2000', flowKey: 'pc', accKey: 'acc850', payment: 200, years: 30 },
     },
   ];
 }

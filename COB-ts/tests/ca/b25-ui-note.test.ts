@@ -93,12 +93,14 @@ describe('B25-T6: firstDateMoveNote (pure view function)', () => {
     expect(v.firstDateMoveNote('First payment date', '2027-12-20', utc('2027-12-31'))).toBe(`First payment moved to Dec 31, 2027 ${NOTE_TAIL}`);
   });
 
-  it('with the real engine: semi-monthly typed 2027-01-10 -> row 1 is Jan 15 and the note says so; Contract term runs from the moved date', async () => {
+  // B32 (DEC-B32-TERM): the Contract term runs from the Disbursal date 2027-01-01, contractTerm(input, result) (was from the moved date).
+  it('with the real engine: semi-monthly typed 2027-01-10 -> row 1 is Jan 15 and the note says so; Contract term runs from the disbursal date', async () => {
     const { v, raw, ctx, result } = await run();
     expect(v.isoDay(result.amortizationSchedule[0]!.date)).toBe('2027-01-15');
     expect(v.firstDateMoveNote(FLOWS[raw.flow as CobFlow].firstPaymentDateLabel, raw.firstPaymentDate, result.amortizationSchedule[0]!.date))
       .toBe(`First payment moved to Jan 15, 2027 ${NOTE_TAIL}`);
-    expect(v.contractTermText(contractTerm(result))).toBe('2 years, 0 months, 0 days');
+    const term2 = contractTerm as unknown as (i: unknown, r: unknown) => { years: number; months: number; days: number };
+    expect(v.contractTermText(term2(v.toInput(raw, ctx), result))).toBe('2 years, 0 months, 14 days');
     expect(ctx.spec.firstPaymentDateLabel).toBe('First payment date');
   });
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-LPlf8M2boSZhZAapz/OSMiasaKSf+h51mrwrSlC6eUg='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-I57EM95yf6qbt8SiCYyDsZmy2XGT7JWTY+3AxYWgNyQ='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
 <title>Cost of Borrowing Calculator | Alterna Savings</title>
 <style>
   :root {
@@ -499,7 +499,7 @@
     .print-record h3 { font: 700 11px/1.3 var(--font-display); color: var(--heading); margin: 8px 0 0; }
     .print-meta { color: var(--ink-muted); }
 
-    .print-record .print-inputs, .print-record .figures {
+    .print-record .print-inputs, .print-record .figure-columns {
       display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; margin: 4px 0;
     }
     .print-input { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding: 2px 0; }
@@ -580,7 +580,10 @@
       <div id="printFees"></div>
       <p class="print-taxes">* Payment amount does not include taxes.</p>
       <h2>Results</h2>
-      <dl class="figures" id="printFigures"></dl>
+      <div class="figure-columns" id="printFigures">
+        <dl class="figures" id="printFiguresLeft"></dl>
+        <dl class="figures" id="printFiguresRight"></dl>
+      </div>
     </div>
   </div>
   <section class="print-only print-schedule-section" id="printScheduleSection">
@@ -646,7 +649,7 @@
       </div>
       <div class="field">
         <label for="paymentFrequency">Payment frequency</label>
-        <select id="paymentFrequency" aria-describedby="paymentFrequencyHint">
+        <select id="paymentFrequency">
           <option value="weekly" selected>Weekly (52/yr)</option>
           <option value="acceleratedWeekly" data-switch="acceleratedFrequencies">Accelerated Weekly (52/yr)</option>
           <option value="biweekly">Bi-weekly (26/yr)</option>
@@ -654,7 +657,6 @@
           <option value="semiMonthly">Semi-monthly (24/yr)</option>
           <option value="monthly">Monthly (12/yr)</option>
         </select>
-        <span class="hint" id="paymentFrequencyHint" hidden></span>
       </div>
       <div class="field">
         <label for="firstPaymentDate" id="firstPaymentDate-label">First payment date</label>
@@ -667,7 +669,7 @@
         <span class="hint" id="endDate-hint">Payments are scheduled up to and including this date, or until the loan is paid off.</span>
       </div>
       <div class="field">
-        <label for="contractTerm">Contract term</label>
+        <label for="contractTerm" id="contractTerm-label">Contract term</label>
         <input type="text" id="contractTerm" readonly aria-describedby="contractTerm-hint" />
         <span class="hint" id="contractTerm-hint"></span>
       </div>
@@ -777,7 +779,7 @@
     </div>
   </section>
 
-  <footer id="shareFooter">COB Calculator v0.1.0 · built 2026-10-01 · single-file edition, works offline</footer>
+  <footer id="shareFooter">COB Calculator v0.1.0 · built 2026-10-06 · single-file edition, works offline</footer>
 
   <script type="module">
 const __cobModules = {};
@@ -1451,36 +1453,11 @@ function cobAmount(totalInterest, totalFinancedFees, totalCashFees) {
 }
 return { calculatedRate, selectRateBasis, selectCompoundingPeriodsPerYear, calculatedRateFor, daysBetween: __re0.daysBetween, dayCountFraction: __re0.dayCountFraction, periodInterest, applyPaymentWaterfall, triggerRatePercent, cobRatePercent, costOfBorrowingRatePercent, cobAmount };
 })();
-__cobModules["dist/ca/products.js"] = (() => {
-/**
- * The product catalogue: the payment frequencies each product type accepts.
- * @decision FB-24 (B27, DEV-FB24): a personal loan is paid monthly only, in every flow and
- * rate type. Fixed rule (no switch); the engine rejects any other frequency in validation.
- * A mortgage accepts all six payment frequencies.
- */
-const ALLOWED_PAYMENT_FREQUENCIES = Object.freeze({
-    mortgage: Object.freeze([
-        'monthly',
-        'semiMonthly',
-        'biweekly',
-        'weekly',
-        'acceleratedBiweekly',
-        'acceleratedWeekly',
-    ]),
-    personalLoan: Object.freeze(['monthly']),
-});
-/** The payment frequencies allowed for `productType` (the catalogue's own list; do not mutate). */
-function allowedPaymentFrequencies(productType) {
-    return ALLOWED_PAYMENT_FREQUENCIES[productType];
-}
-return { allowedPaymentFrequencies };
-})();
 __cobModules["dist/ca/validate.js"] = (() => {
 const { PAYMENTS_PER_YEAR, isFiniteNumber } = __cobModules["dist/ca/types.js"];
 const { effectiveFirstPaymentDate, utcDateOnly } = __cobModules["dist/ca/calendar.js"];
 const { totalCashFees, totalFinancedFees, validateFeeSchedule } = __cobModules["dist/ca/fees.js"];
 const { FLOWS, FLOW_IDS, requiresSemiAnnualDate } = __cobModules["dist/ca/flows.js"];
-const { allowedPaymentFrequencies } = __cobModules["dist/ca/products.js"];
 /**
  * Validates a CobCanadaInput against BRD §6 (validation and error handling) and UC-05
  * (COB-user-stories.md), with the input fields of BRD §3.1: field types (finite numbers, own-key enum values; 012 D-11) and
@@ -1587,17 +1564,6 @@ function checkInput(input, report) {
             });
         }
     }
-    // The product catalogue restricts the payment frequency (personal loan: monthly only;
-    // B27, DEV-FB24). Every flow and rate type; runs only when both enums passed.
-    if (productOk && freqOk) {
-        const allowedFrequencies = allowedPaymentFrequencies(input.productType);
-        if (!allowedFrequencies.includes(input.paymentFrequency)) {
-            report({
-                field: 'paymentFrequency',
-                message: `paymentFrequency '${input.paymentFrequency}' is not allowed for productType '${input.productType}' (allowed: ${allowedFrequencies.join('/')})`,
-            });
-        }
-    }
     const firstOk = isValidDate(input.firstPaymentDate);
     if (!firstOk) {
         report({ field: 'firstPaymentDate', message: 'firstPaymentDate must be a valid Date' });
@@ -1683,7 +1649,7 @@ return { validateCobCanadaInput, collectInputIssues };
 __cobModules["dist/ca/cobCanada.js"] = (() => {
 const { daysBetween, effectiveFirstPaymentDate, periodDateFor, termBetween } = __cobModules["dist/ca/calendar.js"];
 const { totalCashFees, totalFinancedFees } = __cobModules["dist/ca/fees.js"];
-const { FLOWS, computesTriggerRate } = __cobModules["dist/ca/flows.js"];
+const { FLOWS, FLOW_IDS, computesTriggerRate } = __cobModules["dist/ca/flows.js"];
 const { PRINCIPAL_PAID, PRIOR_ACCRUED_IN_COB, PRIOR_ACCRUED_IN_P, P_BASIS, UNPAID_INTEREST_CAPITALISED } = __cobModules["dist/ca/policies.js"];
 const { applyPaymentWaterfall, calculatedRateFor, cobAmount: cobAmountEquation, costOfBorrowingRatePercent, periodInterest, triggerRatePercent: triggerRatePercentEquation } = __cobModules["dist/ca/equations.js"];
 const { PAYMENTS_PER_YEAR } = __cobModules["dist/ca/types.js"];
@@ -1914,20 +1880,56 @@ function calculateCobCanadaWith(input, switches) {
     };
 }
 /**
- * The contract term (B24): whole years, months and leftover days from the first to the last
- * row of the calculated schedule. Unrelated to `termDays`, which runs from the flow's start date.
- * An empty schedule (the engine never returns one) throws a RangeError.
+ * The contract term (B24; start point changed by B32, DEC-B32-TERM): whole years, months and
+ * leftover days from the flow's start date (input[FLOWS[flow].startDateField]: Disbursal date,
+ * Renewal date or Date of change) to the last row of the calculated schedule. Same span as
+ * `termDays`: daysBetween(start, last row) === result.termDays for a pair from calculateCobCanada.
+ * RangeError for an empty schedule, an unknown flow, a start date that is not a valid Date, or a
+ * start date after the last row (none of which calculateCobCanada can produce).
  */
-function contractTerm(result) {
+function contractTerm(input, result) {
     const schedule = result.amortizationSchedule;
-    const first = schedule[0];
     const last = schedule[schedule.length - 1];
-    if (first === undefined || last === undefined) {
+    if (last === undefined) {
         throw new RangeError('amortizationSchedule must have at least one row');
     }
-    return termBetween(first.date, last.date);
+    if (!FLOW_IDS.includes(input.flow)) {
+        throw new RangeError(`flow must be one of ${FLOW_IDS.join('/')}`);
+    }
+    const startField = FLOWS[input.flow].startDateField;
+    const start = input[startField];
+    if (!(start instanceof Date) || Number.isNaN(start.getTime())) {
+        throw new RangeError(`${startField} must be a valid Date`);
+    }
+    return termBetween(start, last.date);
 }
 return { SHIPPED_SWITCHES, calculateCobCanada, calculateCobCanadaWith, contractTerm };
+})();
+__cobModules["dist/ca/products.js"] = (() => {
+/**
+ * The product catalogue: the payment frequencies each product type accepts.
+ * Both product types accept all six payment frequencies (DEC-B33-FREQ, 2026-10-05: the user
+ * removed the personal-loan Monthly-only rule of B27 / DEV-FB24 outright, no switch). Kept as a
+ * read-only public description (ADR-13); validation does not consult it, because the
+ * payment-frequency enum check already admits exactly these six for every product.
+ */
+const ALL_PAYMENT_FREQUENCIES = Object.freeze([
+    'monthly',
+    'semiMonthly',
+    'biweekly',
+    'weekly',
+    'acceleratedBiweekly',
+    'acceleratedWeekly',
+]);
+const ALLOWED_PAYMENT_FREQUENCIES = Object.freeze({
+    mortgage: ALL_PAYMENT_FREQUENCIES,
+    personalLoan: ALL_PAYMENT_FREQUENCIES,
+});
+/** The payment frequencies allowed for `productType` (the catalogue's own list; do not mutate). */
+function allowedPaymentFrequencies(productType) {
+    return ALLOWED_PAYMENT_FREQUENCIES[productType];
+}
+return { allowedPaymentFrequencies };
 })();
 __cobModules["dist/ca/index.js"] = (() => {
 // Canadian Cost of Borrowing (COB) engine: the public API. The UI imports only this
@@ -2080,17 +2082,6 @@ function switchedOut(ctx, name) {
   return ctx.switches[name] !== true;
 }
 
-const FREQUENCY_LOCK_HINT = 'Personal loans are paid monthly.';
-
-/**
- * B27-R7 (DEV-FB24): the Payment frequency lock. `allowed` is the engine catalogue's list for the product;
- * a product with one allowed frequency locks the select to it, any other leaves the value as it is.
- */
-function frequencyLock(productType, allowed, current) {
-  if (allowed.length === 1) return { value: allowed[0], locked: true, hint: FREQUENCY_LOCK_HINT };
-  return { value: current, locked: false, hint: '' };
-}
-
 const FEE_KEYS = Object.freeze(['feesOpening', 'feesPaid', 'feesClosing']);
 
 // --- input parsing ---
@@ -2147,12 +2138,20 @@ const ACCRUED_TEXT = Object.freeze({
     'Only interest due at earlier payments and not yet paid (arrears), usually $0.00. Interest since the last payment date is already charged.',
 });
 
-// The fieldset legend, both date labels and the Accrued interest hint (null when the flow hides the field).
+// Label of the derived term (field, Contract terms tile, print row) per flow (DEC-B32-TERM): "Remaining contract term"
+// where the loan is already running; every other flow, including the hidden one, keeps "Contract term".
+const CONTRACT_TERM_TEXT = Object.freeze({
+  renewal: 'Remaining contract term',
+  paymentChange: 'Remaining contract term',
+});
+
+// The fieldset legend, both date labels, the Contract term label and the Accrued interest hint (null when the flow hides the field).
 function flowLabels(flow, spec) {
   return {
     legend: label('flow', flow),
     startDate: spec.startDateLabel,
     firstPaymentDate: spec.firstPaymentDateLabel,
+    contractTerm: Object.hasOwn(CONTRACT_TERM_TEXT, flow) ? CONTRACT_TERM_TEXT[flow] : 'Contract term',
     accruedHint: spec.accruedInterest === 'hidden' ? null : ACCRUED_TEXT[flow] ?? null,
   };
 }
@@ -2172,9 +2171,9 @@ function contractTermText(term) {
   return contractTermParts(term).join(', ');
 }
 
-// Hint under the read-only Contract term field (interim wording, Q-MSG); the label is the flow's first payment date label, lower-cased.
-function contractTermHint(firstPaymentLabel) {
-  return `Calculated from the ${firstPaymentLabel} to the last scheduled payment date.`;
+// Hint under the read-only Contract term field (interim wording, Q-MSG); the label is the flow's start date label, lower-cased (DEC-B32-TERM).
+function contractTermHint(startDateLabel) {
+  return `Calculated from the ${startDateLabel} to the last scheduled payment date.`;
 }
 
 // Note shown when the engine moved the first payment date (semi-monthly: the 15th and month-end); '' when it did not.
@@ -2200,7 +2199,7 @@ function printInputRows(raw, ctx, termText, moveNote = '') {
     [texts.firstPaymentDate, formatIsoDate(raw.firstPaymentDate)],
     ...(moveNote ? [['Moved first date', moveNote]] : []),
     ['End date', formatIsoDate(raw.endDate)],
-    ['Contract term', termText],
+    [texts.contractTerm, termText],
     [texts.startDate, formatIsoDate(raw[spec.startDateField])],
   ];
   if (spec.accruedInterest !== 'hidden') {
@@ -2246,7 +2245,10 @@ function printFeesNodes(rawFees, ctx) {
   return nodes;
 }
 
-// --- figures: [label, value] or [label, value, hint], in the app's order ---
+// --- figures: [label, value] or [label, value, hint]; two groups, each read top to bottom (DEC-B31-LAYOUT) ---
+// Rates and term (moreFigures): printed as the left column under the APR; on screen under "More figures".
+// Amounts (mainFigures): printed as the right column; on screen the main list, where Cost of borrowing amount
+// shows without its hint (its headline card carries it; Q-B31-DUP-HINT).
 
 function headlineFigures(result) {
   return [
@@ -2255,40 +2257,46 @@ function headlineFigures(result) {
   ];
 }
 
-function mainFigures(result) {
+function amountFigures(result, cobAmount) {
   const list = [
-    ['Calculated rate', formatRate(result.calculatedRatePercent), 'Fixed-rate mortgages: contract rate converted to the payment frequency. Otherwise the contract rate.'],
+    ['Total of all payments', printCurrency.format(result.totalPayment)],
+    cobAmount,
+    ['Total principal paid', printCurrency.format(result.principalPayment)],
+    ['Total interest', printCurrency.format(result.totalInterest), 'Interest charged over the term, including any not yet paid.'],
   ];
   if (result.triggerRatePercent !== null) {
     list.push(['Trigger rate', formatRate(result.triggerRatePercent), 'If the contract rate rises above this, the payment no longer covers the interest.']);
   }
-  list.push(
-    ['Number of payments', printCount.format(result.numberOfPayments)],
-    ['Total of all payments', printCurrency.format(result.totalPayment)],
-    ['Total interest', printCurrency.format(result.totalInterest), 'Interest charged over the term, including any not yet paid.'],
-    ['Total principal paid', printCurrency.format(result.principalPayment)],
-  );
   return list;
+}
+
+function mainFigures(result) {
+  const [, [cobLabel, cobValue]] = headlineFigures(result);
+  return amountFigures(result, [cobLabel, cobValue]);
 }
 
 function moreFigures(result, ctx) {
   const withFinanced = ctx.switches.financedOption;
-  const list = [];
-  if (withFinanced) list.push(['Fees recovered through payments', printCurrency.format(result.feesRecovered)]);
-  list.push(['Balance at end date', printCurrency.format(result.endingBalance)]);
+  const list = [
+    ['Calculated rate', formatRate(result.calculatedRatePercent), 'Fixed-rate mortgages: contract rate converted to the payment frequency. Otherwise the contract rate.'],
+    ['Number of payments', printCount.format(result.numberOfPayments)],
+    ['Term in days', `${printCount.format(result.termDays)} days`],
+    ['Balance at end date', printCurrency.format(result.endingBalance)],
+  ];
   const unpaidInterest = result.amortizationSchedule[result.amortizationSchedule.length - 1].carriedAccruedInterestClosing;
   if (unpaidInterest > 0) {
     list.push(['Unpaid interest at end date', printCurrency.format(unpaidInterest), 'Unpaid after the last payment; interest since then is not included']);
   }
+  if (withFinanced) list.push(['Fees recovered through payments', printCurrency.format(result.feesRecovered)]);
   if (withFinanced && ctx.spec.startDateField === 'disbursalDate') {
     list.push(['Disbursal amount', printCurrency.format(result.disbursalAmount), 'Loan amount less financed fees.']);
   }
-  list.push(['Term in days', `${printCount.format(result.termDays)} days`]);
   return list;
 }
 
 function printFigures(result, ctx) {
-  return [...headlineFigures(result), ...mainFigures(result), ...moreFigures(result, ctx)];
+  const [apr, cobAmount] = headlineFigures(result);
+  return { left: [apr, ...moreFigures(result, ctx)], right: amountFigures(result, cobAmount) };
 }
 
 function figureNodes(list) {
@@ -2494,11 +2502,11 @@ function html(nodes) {
   return out;
 }
 
-return { LABELS, label, formatCurrency, formatInputDate, formatRate, isoDay, formatIsoDate, parseAmount, formatAmount, typedMoney, parseMoney, paymentsText, UI_SWITCHES, switchedOut, FREQUENCY_LOCK_HINT, frequencyLock, FEE_KEYS, parseDateInput, numOrUndefined, toInput, flowLabels, contractTermParts, contractTermText, contractTermHint, firstDateMoveNote, printInputRows, printInputNodes, printFeesNodes, headlineFigures, mainFigures, moreFigures, printFigures, figureNodes, COLUMNS, CSV_COLUMNS, COMPACT_KEYS, scheduleTableNodes, scheduleCsv, csvFileName, h, html };
+return { LABELS, label, formatCurrency, formatInputDate, formatRate, isoDay, formatIsoDate, parseAmount, formatAmount, typedMoney, parseMoney, paymentsText, UI_SWITCHES, switchedOut, FEE_KEYS, parseDateInput, numOrUndefined, toInput, flowLabels, contractTermParts, contractTermText, contractTermHint, firstDateMoveNote, printInputRows, printInputNodes, printFeesNodes, headlineFigures, mainFigures, moreFigures, printFigures, figureNodes, COLUMNS, CSV_COLUMNS, COMPACT_KEYS, scheduleTableNodes, scheduleCsv, csvFileName, h, html };
 })();
 __cobModules["ui/ca.js"] = (() => {
-const { allowedPaymentFrequencies, calculateCobCanada, contractTerm, FLOWS, requiresSemiAnnualDate } = __cobModules["dist/ca/index.js"];
-const { contractTermHint, contractTermParts, contractTermText, csvFileName, firstDateMoveNote, isoDay, figureNodes, flowLabels, formatAmount, frequencyLock, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures, moreFigures, parseDateInput, paymentsText, printFeesNodes, printFigures, printInputNodes, printInputRows, scheduleCsv, scheduleTableNodes, toInput, switchedOut, UI_SWITCHES } = __cobModules["ui/ca-view.js"];
+const { calculateCobCanada, contractTerm, FLOWS, requiresSemiAnnualDate } = __cobModules["dist/ca/index.js"];
+const { contractTermHint, contractTermParts, contractTermText, csvFileName, firstDateMoveNote, isoDay, figureNodes, flowLabels, formatAmount, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures, moreFigures, parseDateInput, paymentsText, printFeesNodes, printFigures, printInputNodes, printInputRows, scheduleCsv, scheduleTableNodes, toInput, switchedOut, UI_SWITCHES } = __cobModules["ui/ca-view.js"];
 
 // --- element refs ---
 
@@ -2524,7 +2532,6 @@ const flowEl = document.getElementById('flow');
 const productTypeEl = document.getElementById('productType');
 const rateTypeEl = document.getElementById('rateType');
 const paymentFrequencyEl = document.getElementById('paymentFrequency');
-const paymentFrequencyHintEl = document.getElementById('paymentFrequencyHint');
 
 const contractDateEl = document.getElementById('contractDate');
 const loanAmountEl = document.getElementById('loanAmount');
@@ -2534,6 +2541,7 @@ const firstPaymentDateEl = document.getElementById('firstPaymentDate');
 const endDateEl = document.getElementById('endDate');
 const contractTermEl = document.getElementById('contractTerm');
 const contractTermHintEl = document.getElementById('contractTerm-hint');
+const contractTermLabelEl = document.getElementById('contractTerm-label');
 
 const firstPaymentLabelEl = document.getElementById('firstPaymentDate-label');
 
@@ -2568,7 +2576,8 @@ const printEngineEl = document.getElementById('printEngine');
 const printBodyEl = document.getElementById('printBody');
 const printInputsEl = document.getElementById('printInputs');
 const printFeesEl = document.getElementById('printFees');
-const printFiguresEl = document.getElementById('printFigures');
+const printFiguresLeftEl = document.getElementById('printFiguresLeft');
+const printFiguresRightEl = document.getElementById('printFiguresRight');
 const printScheduleSectionEl = document.getElementById('printScheduleSection');
 const printScheduleCountEl = document.getElementById('printScheduleCount');
 const printScheduleTableEl = document.getElementById('printScheduleTable');
@@ -2601,12 +2610,6 @@ function updateConditionalVisibility() {
     rateTypeEl.disabled = false;
   }
 
-  const frequency = frequencyLock(productTypeEl.value, allowedPaymentFrequencies(productTypeEl.value), paymentFrequencyEl.value);
-  paymentFrequencyEl.value = frequency.value;
-  paymentFrequencyEl.disabled = frequency.locked;
-  paymentFrequencyHintEl.textContent = frequency.hint;
-  paymentFrequencyHintEl.hidden = !frequency.locked;
-
   const isNew = spec.startDateField === 'disbursalDate';
   newFlowFieldsEl.style.display = isNew ? '' : 'none';
   existingFlowFieldsEl.style.display = isNew ? 'none' : '';
@@ -2618,7 +2621,8 @@ function updateConditionalVisibility() {
   existingFlowLegendEl.textContent = texts.legend;
   renewalLabelEl.textContent = texts.startDate;
   if (texts.accruedHint !== null) accruedHintEl.textContent = texts.accruedHint;
-  contractTermHintEl.textContent = contractTermHint(texts.firstPaymentDate.toLowerCase());
+  contractTermLabelEl.textContent = texts.contractTerm;
+  contractTermHintEl.textContent = contractTermHint(texts.startDate.toLowerCase());
 
   semiAnnualFieldEl.style.display = requiresSemiAnnualDate(productTypeEl.value, rateTypeEl.value) ? '' : 'none';
 }
@@ -2695,7 +2699,7 @@ function renderContractTerms(input, contractDate, ctx, result) {
   }
   items.push(
     ['Payment frequency', label('paymentFrequency', input.paymentFrequency)],
-    ['Contract term', contractTermParts(contractTerm(result)).map(noBreak).join(', '), false],
+    [texts.contractTerm, contractTermParts(contractTerm(input, result)).map(noBreak).join(', '), false],
     [texts.startDate, formatInputDate(input[spec.startDateField])],
     [texts.firstPaymentDate, formatInputDate(input.firstPaymentDate)],
     ['End date', formatInputDate(input.endDate)],
@@ -2824,7 +2828,9 @@ function el(tag, text, className) {
 function renderPrintRecord(raw, ctx, result, termText, moveNote) {
   printInputsEl.innerHTML = html(printInputNodes(printInputRows(raw, ctx, termText, moveNote)));
   printFeesEl.innerHTML = html(printFeesNodes(raw.fees, ctx));
-  printFiguresEl.innerHTML = html(figureNodes(printFigures(result, ctx)));
+  const printColumns = printFigures(result, ctx);
+  printFiguresLeftEl.innerHTML = html(figureNodes(printColumns.left));
+  printFiguresRightEl.innerHTML = html(figureNodes(printColumns.right));
 }
 
 // --- on-screen results and schedule: the app's results panel and schedule table ---
@@ -2963,7 +2969,7 @@ function recompute() {
     const input = toInput(raw, ctx);
     const result = calculateCobCanada(input);
     const calculatedAt = new Date();
-    const termText = contractTermText(contractTerm(result));
+    const termText = contractTermText(contractTerm(input, result));
     const texts = flowLabels(raw.flow, ctx.spec);
     const moveNote = firstDateMoveNote(texts.firstPaymentDate, raw.firstPaymentDate, result.amortizationSchedule[0]?.date);
     renderContractTerms(input, parseDateInput(raw.contractDate), ctx, result);

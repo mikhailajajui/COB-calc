@@ -1,6 +1,6 @@
 # COB Calculator: Coverage Report
 
-For business owners, auditors and reviewers. Version of 2026-10-02 (after B30 and CHANGES §69). The history of each change is in `COB-ts/CHANGES.md`, one entry per task with What, Why and Evidence. This report does not repeat it.
+For business owners, auditors and reviewers. Version of 2026-10-05 (after B33 and CHANGES §72). The history of each change is in `COB-ts/CHANGES.md`, one entry per task with What, Why and Evidence. This report does not repeat it.
 
 How to read this report: each claim names the requirement, story or decision it comes from and the evidence for it. A claim without evidence is marked **Not verified**. A decision that is still open is shown as open, with what the calculator does today.
 
@@ -16,9 +16,9 @@ The COB Calculator replaces the Excel workbook "Cost of Borrowing Rate Calc_Curr
 |---|---|---|
 | User stories covered | 6 Covered, 4 Covered – differs from Excel, 7 Partly covered, 2 Open decision, 0 not covered (19 in all) | section 3.2 |
 | Use cases covered | 0 Covered, 2 Covered – differs from Excel, 7 Partly covered (9 in all) | section 3.3 |
-| Differences from Excel with a decision ID | 8 delivered (DEV-OQS, DEV-OQX, DEV-OQY, DEV-OQAA, DEV-OQL, DEV-OQP, DEV-OQZ, DEV-FB24); 3 possible ones waiting for a decision | section 4 |
-| Automated tests | 86 test files, 3133 tests passed, 0 failed (run `npx vitest run` in `COB-ts/` on 2026-10-01) | section 7 |
-| Tests in two time zones | 880 passed per zone (as recorded in CHANGES §66 to §69) | section 7 |
+| Differences from Excel with a decision ID | 7 delivered (DEV-OQS, DEV-OQX, DEV-OQY, DEV-OQAA, DEV-OQL, DEV-OQP, DEV-OQZ); 1 retired (DEV-FB24, by DEC-B33-FREQ); 3 possible ones waiting for a decision | section 4 |
+| Automated tests | 91 test files, 3666 tests passed, 0 failed (`npx vitest run`, as recorded in CHANGES §72 on 2026-10-05 and confirmed by the main session; not re-run for this report) | section 7 |
+| Tests in two time zones | 1256 passed per zone (as recorded in CHANGES §72) | section 7 |
 | Reference case from the workbook (REF-01) | 156 schedule rows, 2,193 values, largest relative error 1.3e-14 | section 3.1 |
 | Open decisions that change results | OQ-Q (the P basis), OQ-R (principal paid) | section 6 |
 
@@ -30,16 +30,16 @@ Everything the project delivers, with where it lives (paths are inside `COB-ts/`
 
 | Deliverable | What it is | Where it lives | Status | Produced by | Evidence |
 |---|---|---|---|---|---|
-| Calculator page | The web page staff use: input groups, results, schedule, print and CSV. The Flow list shows three flows (New mortgage / loan, Renewal, Payment change). | `ui/ca.html`, `ui/ca.js`, `ui/ca-view.js`; start with `npm run ui` | Delivered | sr-dev builds, QA verifies | CHANGES §44, §51–§56, §59–§64; `tests/ca/a10-ca-view.test.ts`; Chrome scripts in section 7 |
+| Calculator page | The web page staff use: input groups, results, schedule, print and CSV. The Flow list shows three flows (New mortgage / loan, Renewal, Payment change). | `ui/ca.html`, `ui/ca.js`, `ui/ca-view.js`; start with `npm run ui` | Delivered | sr-dev builds, QA verifies | CHANGES §44, §51–§56, §59–§64, §70–§72; `tests/ca/a10-ca-view.test.ts`; Chrome scripts in section 7 |
 | Single-file edition | The whole calculator in one file that opens offline from a double-click (no Help link, logo embedded, system fonts, version and build date in the footer). It is a snapshot: rebuild before sharing. | The file sits in the `COB-ts` folder; its own add-on folder holds the build script, tests and a README with the build and removal steps (named in CHANGES §66) | Delivered | sr-dev, QA | CHANGES §66; five test files and a 38-check Chrome script, passed on both copies; two builds with the same date are byte-identical (sha256 starts 58a8a866) |
 | Help page | A "Help" link in the calculator header opens a page built from the three documents in `docs/`. Not a BRD requirement; removable in three steps without touching the calculator. | `ui/help.html`; builder and tests in `help/` (steps in `help/README.md`) | Delivered | sr-dev, QA, ui-designer (design in `visual_design/help-page-design.md`) | CHANGES §58; `help/tests/`; `node help/tests/check_help_page.mjs` |
 | User manual | How staff use the calculator: use cases, each field, the messages, results, printing | `docs/COB-user-manual.md` | Delivered | doc-writer | Written from the code and the recorded decisions. The checklist's Phase 6 line "Short user guide" is still unticked (F25). |
 | Coverage report | This document | `docs/COB-coverage.md` | Delivered | doc-writer | This version |
 | Domain overview | Diagrams of the business rules for domain experts, each rule marked today or planned | `docs/COB-domain-overview.md` | Delivered | architect | CHANGES §65 |
 | Calculation engine | The rules: rate conversion, dates, interest, payments, fees, totals, validation | `src/ca/` (built to `dist/ca/`) | Delivered | sr-dev, QA | Tests in `tests/ca/`; golden masters; REF-01 |
-| Golden master, first (New, Renewal) | A saved copy of the engine's output for 94 groups of inputs. Any change in results fails a test. | `tests/ca/fixtures/golden_engine_v1.json`, sha256 starts 249651b2; test `tests/ca/golden/engineGolden.test.ts` | Delivered | QA | CHANGES §61 (regenerated once, for B25, with the user's approval: 20 groups changed) |
-| Golden master, Payment change | The same, for Payment change and Variable rate payment change | `tests/ca/fixtures/golden_engine_pc_v1.json`, sha256 starts acfe374c; test `tests/ca/golden/engineGoldenPc.test.ts` | Delivered | QA | CHANGES §47 (B18); unchanged since |
-| Page capture | A Chrome capture of the printout, the CSV and the figures for set scenarios. A script compares the live page with it. | `tests/ca/fixtures/a10_ui_capture_v1.json`, sha256 starts 171f8a33; script `tests/ca/fixtures/capture_a10_ui.mjs` | Delivered | QA | CHANGES §44; changed only with the user's approval |
+| Golden master, first (New, Renewal) | A saved copy of the engine's output for 148 groups of inputs (4,455 cases). Any change in results fails a test. | `tests/ca/fixtures/golden_engine_v1.json`, sha256 starts 922fd695; test `tests/ca/golden/engineGolden.test.ts` | Delivered | QA | Regenerated with the user's approval for B25 (CHANGES §61, 20 groups changed) and for B33 (CHANGES §72: 54 personal-loan groups at weekly, bi-weekly and semi-monthly added back, one group enlarged, 93 unchanged) |
+| Golden master, Payment change | The same, for Payment change and Variable rate payment change | `tests/ca/fixtures/golden_engine_pc_v1.json`, sha256 starts 5ab1c6a6 (122 groups, 3,536 cases); test `tests/ca/golden/engineGoldenPc.test.ts` | Delivered | QA | CHANGES §47 (B18); regenerated for B33 (CHANGES §72: 36 personal-loan groups added back; now byte-identical to the archived pre-B27 copy) |
+| Page capture | A Chrome capture of the printout, the CSV and the figures for set scenarios. A script compares the live page with it. | `tests/ca/fixtures/a10_ui_capture_v1.json`, sha256 starts 4d5a64c1; script `tests/ca/fixtures/capture_a10_ui.mjs` | Delivered | QA | CHANGES §44; regenerated with the user's approval for the figure order and structure (CHANGES §70), for the Contract term value, label and hint (CHANGES §71), and for B33 (CHANGES §72: one scenario added, a weekly personal loan; the six earlier scenarios unchanged); changed only with the user's approval |
 | Chrome checks | Scripts that open the real page in Chrome (not part of `npx vitest run`) | `tests/ui/`, `help/tests/`, and the single-file add-on's own tests | Delivered | QA | Section 7 |
 | Project records | Decisions, requirements, task list, architecture, change log | `COB-user-stories.md` (decisions §6–§7.5), `COB-business-requirement.md`, `COB-project-checklist.md`, `COB-architecture.md`, `COB-ts/CHANGES.md` (all in the project root except CHANGES) | Delivered | BA, architect, main session | Section 8 |
 | Field-level error messages in business language | Messages that name the screen field and show all problems at once | Not built | Planned | n/a | Q-MSG open (section 6) |
@@ -54,9 +54,9 @@ Everything the project delivers, with where it lives (paths are inside `COB-ts/`
 | Capability | BRD source | Built in | Proved by | Status |
 |---|---|---|---|---|
 | Manual input; flows New, Renewal, Payment change (Variable rate payment change is built but hidden behind a switch) | §1.1, IN-01 | `src/ca/flows.ts`, `ui/ca-view.js` | `tests/ca/flows-a6.test.ts`, `vrpc-flow-hidden.test.ts`, `b22-use-case-labels.test.ts`; CHANGES §34, §51, §59, §60 | Covered |
-| Rate selection: fixed mortgage converted twice a year; variable mortgage and personal loans use the contract rate as typed | OUT-01, BR-01, BR-02, §4.2 | `src/ca/` | `rateSelection-oqc.test.ts`; Appendix A fixture; CHANGES §12 | Covered |
+| Rate selection: fixed mortgage converted twice a year; variable mortgage and personal loans use the contract rate as typed | OUT-01, BR-01, BR-02, §4.2 | `src/ca/` | `rateSelection-oqc.test.ts`, `b33-personal-loan-frequencies.test.ts` (432-case sweep: a personal loan and a variable mortgage use the contract rate exactly at every frequency); Appendix A fixture; CHANGES §12, §72 | Covered |
 | Payment frequency: six values in the engine; the page offers Weekly, Bi-weekly, Semi-monthly, Monthly | IN-09, BR-09 | `src/ca/`, `ui/ca-view.js` | `b8-accelerated-frequencies.test.ts`, `b28-accelerated-hidden.test.ts`; CHANGES §37, §53 | Covered |
-| A personal loan is Monthly only | Decision FB-24 | `src/ca/products.ts`, `validate.ts`, page lock | `b27-personal-loan-monthly-only.test.ts`; CHANGES §54 | Covered – differs from Excel (DEV-FB24) |
+| A personal loan accepts every payment frequency in New mortgage or loan, Renewal and Payment change, with no lock on the page (Variable rate payment change stays mortgage and variable). The earlier Monthly-only rule (FB-24, B27, CHANGES §54) is removed, with no switch. Matches Excel. | DEC-B33-FREQ (reverses FB-24); IN-03, IN-09 | `src/ca/products.ts`, `validate.ts`, `ui/ca.html`, `ui/ca-view.js` | `b33-personal-loan-frequencies.test.ts`, `b33-frequency-unlocked.test.ts`, `b27-personal-loan-monthly-only.test.ts` (rewritten in place for B33); capture scenario for a weekly personal loan; CHANGES §72 | Covered |
 | Interest on actual days with the 365 / 366 split | BR-11, §4.4 | `src/ca/equations.ts` | `engineRules-t5.test.ts`, `calendar-a4.test.ts`; 2.3 million date pairs checked against the macro | Covered |
 | Payment dates by frequency; a monthly date on a month-end stays on month-ends; a semi-monthly first date off the 15th / month-end is moved forward | App. B.4 | `src/ca/` | `monthlyDates-t3`, `monthlyMonthEnd-oqx`, `semiMonthlyDates-t4`, `b15-semimonthly-time-of-day`, `b25-semimonthly-move`, `b25-ui-note`; CHANGES §13–§15, §61, §62 | Covered – differs from Excel (DEV-OQX, DEV-OQZ) |
 | Each payment pays interest, then fees, then principal; principal never goes below zero | BR-13, B.5 | `src/ca/cobCanada.ts` | `b11-waterfall-cap.test.ts`; CHANGES §29 | Covered |
@@ -70,10 +70,11 @@ Everything the project delivers, with where it lives (paths are inside `COB-ts/`
 | Totals: number of payments, total payments, total interest, total principal | OUT-04…OUT-07 | `src/ca/cobCanada.ts` | Checklist 2e (invariant test item unticked) | Open decision (OQ-R for principal paid) |
 | Full precision, no rounding in the calculation | §6 (OQ-H) | `src/ca/` | `tests/architecture/f4-no-rounding.test.ts` | Covered |
 | Accrued interest for Renewal and Payment change: required, $0 allowed, paid first | IN-11, BR-05, BR-10 | `src/ca/flows.ts`, `validate.ts` | `b20-accrued-required.test.ts`, `b19-unpaid-interest.test.ts`; CHANGES §49 | Partly covered (no Excel reference; OQ-W3 and OQ-W5 open) |
-| Contract term shown as a result, derived from the first payment date to the last scheduled payment date | IN-10…IN-13 | `ui/ca-view.js`, `src/ca/` | `b24-term-rule.test.ts`, `b24-form-cleanup.test.ts`; CHANGES §56 | Covered – differs from Excel (DEV-OQP) |
+| Contract term shown as a result, derived from the flow's start date (Disbursal date, Renewal date or Date of change) to the last scheduled payment date; labelled "Remaining contract term" for Renewal and Payment change | IN-10…IN-13 | `ui/ca-view.js`, `src/ca/` | `b24-term-rule.test.ts`, `b24-form-cleanup.test.ts`, `b32-term-start.test.ts`, `b32-term-labels.test.ts`; CHANGES §56, §71 (DEC-B32-TERM) | Covered – differs from Excel (DEV-OQP) |
 | Input validation | §6 | `src/ca/validate.ts` | `validate.test.ts`, `b2-fee-limit`, `b13-zero-term-message`, `b14-payment-rate-positive`, `b3b-date-validation`, `numericGuard-b3a`; CHANGES §19–§33 | Partly covered (messages are interim; payment and rate above zero differ from Excel: DEV-OQY, DEV-OQAA) |
 | Money format (227,199.00) in the amount inputs and the printout | UI display | `ui/ca-view.js` | `b16-money-format.test.ts`; CHANGES §45 | Covered |
 | Unpaid interest at the End Date shown as its own figure when above $0 | OUT-04…OUT-07 | `ui/ca-view.js` | `b26-unpaid-interest-figure.test.ts`; CHANGES §55, §57 | Covered |
+| Where the result figures appear. Printout: two columns read top to bottom. Left: Cost of borrowing rate (APR), Calculated rate, Number of payments, Term in days, Balance at end date, Unpaid interest at end date (when above $0); with the Financed option on (switched off today): Fees recovered through payments, then Disbursal amount (new loan only). Right: Total of all payments, Cost of borrowing amount (with its hint), Total principal paid, Total interest, Trigger rate (variable mortgage only, BR-08). Screen: the two headline cards are unchanged; the main list is the printout's right column, with Cost of borrowing amount shown without its hint; the collapsed "More figures" is the left column without the APR. Layout only: no figure, label, hint text, value or CSV change; both golden masters byte-identical. No DEV ID (no calculation differs from Excel). | OUT-02…OUT-09 (display) | `ui/ca-view.js`, `ui/ca.js`, `ui/ca.html` | `b31-figure-columns.test.ts`, pins `b31_pre_layout_pins.json`; capture fixture regenerated (approved); F12 16/16, smoke, F17, F18 pass; QA PASS WITH NOTES; checklist B31; CHANGES §70 | Covered (DEC-B31-LAYOUT) |
 | Amortization schedule on screen | OUT-08, B.6 | `ui/ca-view.js` | Checklist 3c unticked | Partly covered (columns differ from B.6, F12) |
 | Print / save as PDF and CSV (schedule only) | §2, §7 | `ui/ca.html`, `ui/ca-view.js` | `b17-print-headings.test.ts`, `a11-print-on-demand.test.ts`; `check_print_width.mjs`; CHANGES §45, §46, §63 | Partly covered (OQ-J open) |
 | No storage of member data | §1.2, §7 | whole page | Architecture review only (`COB-architecture.md` §1.8) | Partly covered (Not verified by QA) |
@@ -87,13 +88,13 @@ One row per BRD v2.3 item. "Covered" here means built and QA-verified; the evide
 |---|---|---|---|---|
 | IN-01 | Use case | `src/ca/flows.ts` | US-01 tests | Covered |
 | IN-02 | Mortgage / loan amount | `ui/ca.html`, `src/ca/validate.ts` | `validate.test.ts`, `b16-money-format.test.ts` | Covered |
-| IN-03 | Product type | `ui/ca.html`, `src/ca/products.ts` | `b27-personal-loan-monthly-only.test.ts`, `b21-renewal-mortgage-only.test.ts` | Covered |
+| IN-03 | Product type | `ui/ca.html`, `src/ca/products.ts` | `b33-personal-loan-frequencies.test.ts`, `b27-personal-loan-monthly-only.test.ts` (rewritten for B33), `b21-renewal-mortgage-only.test.ts` (rewritten for the 2026-10-01 reversal) | Covered |
 | IN-04 | Rate type | `ui/ca.html`, `src/ca/flows.ts` | `flows-a6.test.ts` | Covered |
 | IN-05 | Contract rate | `ui/ca.html`, `src/ca/validate.ts` | `b14-payment-rate-positive.test.ts` | Covered – differs from Excel (DEV-OQAA) |
 | IN-06 | Financed fees | `src/ca/fees.ts` (not offered on the page) | `spec011.test.ts`, `b23-fees-switch.test.ts` | Covered |
 | IN-07 | Non-financed fees | `src/ca/fees.ts` | `defects012.test.ts` | Covered – differs from Excel (DEV-OQS) |
 | IN-08 | Payment amount | `ui/ca.html`, `src/ca/validate.ts` | `b14-payment-rate-positive.test.ts` | Covered – differs from Excel (DEV-OQY) |
-| IN-09 | Payment frequency | `src/ca/`, `ui/ca-view.js` | `b8-accelerated-frequencies.test.ts`, `b28-accelerated-hidden.test.ts` | Covered |
+| IN-09 | Payment frequency | `src/ca/`, `ui/ca-view.js` | `b8-accelerated-frequencies.test.ts`, `b28-accelerated-hidden.test.ts`, `b33-frequency-unlocked.test.ts` | Covered |
 | IN-10 | Start date (labels IN-10a to IN-10d) | `src/ca/flows.ts`, `ui/ca-view.js` | `b22-use-case-labels.test.ts`, `b24-term-rule.test.ts` | Covered – differs from Excel (DEV-OQP) |
 | IN-11 | Accrued interest | `src/ca/flows.ts`, `cobCanada.ts` | `b20-accrued-required.test.ts`, `b19-unpaid-interest.test.ts` | Partly covered (OQ-W2 parked; OQ-W3, OQ-W5 open) |
 | IN-12 | First payment date | `src/ca/` | `semiMonthlyDates-t4`, `b25-semimonthly-move` | Covered – differs from Excel (DEV-OQZ) |
@@ -108,7 +109,7 @@ One row per BRD v2.3 item. "Covered" here means built and QA-verified; the evide
 | OUT-08 | Amortization schedule | `ui/ca-view.js` | Checklist 3c unticked | Partly covered (F12) |
 | OUT-09 | Trigger rate | `src/ca/cobCanada.ts` | Checklist 2e | Covered |
 | BR-01 | Fixed mortgages use semi-annual compounding | `src/ca/equations.ts` | `rateSelection-oqc.test.ts` | Covered |
-| BR-02 | Other products use the contract rate as typed | `src/ca/equations.ts` | `rateSelection-oqc.test.ts` | Covered |
+| BR-02 | Other products use the contract rate as typed | `src/ca/equations.ts` | `rateSelection-oqc.test.ts`, `b33-personal-loan-frequencies.test.ts` (personal loans at every frequency) | Covered |
 | BR-03 | Financed fees are part of the loan amount | `src/ca/fees.ts` | `spec011.test.ts` | Covered |
 | BR-04 | Non-financed fees are outside principal and count in C | `src/ca/fees.ts` | `defects012.test.ts` | Covered – differs from Excel (DEV-OQS) |
 | BR-05 | Accrued interest is mandatory for Renewal and Payment change; $0 accepted | `src/ca/validate.ts` | `b20-accrued-required.test.ts` | Covered |
@@ -128,13 +129,13 @@ Statuses are those of `COB-user-stories.md` §4 and the traceability matrix, as 
 | Story | Title | Built in | Proved by | Status |
 |---|---|---|---|---|
 | US-01 | Select use case | `src/ca/flows.ts`, `ui/ca-view.js` (`flowLabels`) | `flows-a6`, `b22-use-case-labels`, `vrpc-flow-hidden`; capture fixture `flowScreens`; CHANGES §51, §59, §60 | Covered |
-| US-02 | Enter core loan terms | `ui/ca.html`, `src/ca/products.ts` | `b8-accelerated-frequencies`, `b28-accelerated-hidden`, `b27-personal-loan-monthly-only`, `b16-money-format` | Covered |
+| US-02 | Enter core loan terms | `ui/ca.html`, `src/ca/products.ts` | `b8-accelerated-frequencies`, `b28-accelerated-hidden`, `b33-personal-loan-frequencies`, `b33-frequency-unlocked`, `b16-money-format`; CHANGES §72 | Covered |
 | US-03 | Enter financed and non-financed fees | `src/ca/fees.ts`, `ui/ca.js` | `spec011`, `defects012` (DEV-OQS), `b23-fees-switch`, `b10-includedincob-optional`; CHANGES §52 | Covered – differs from Excel (DEV-OQS) |
-| US-04 | Enter term dates | `src/ca/`, `ui/ca-view.js` | `b3b-date-validation`, `b24-term-rule`, `b24-form-cleanup`, `b25-semimonthly-move`, `b25-ui-note`; CHANGES §56, §61, §62 | Covered – differs from Excel (DEV-OQP, DEV-OQZ) |
+| US-04 | Enter term dates | `src/ca/`, `ui/ca-view.js` | `b3b-date-validation`, `b24-term-rule`, `b24-form-cleanup`, `b25-semimonthly-move`, `b25-ui-note`, `b32-term-start`, `b32-term-labels`; CHANGES §56, §61, §62, §71 | Covered – differs from Excel (DEV-OQP, DEV-OQZ) |
 | US-05 | Enter accrued interest | `src/ca/flows.ts`, `validate.ts` | `b20-accrued-required`; CHANGES §49 | Covered |
 | US-06 | Be told about invalid inputs | `src/ca/validate.ts` | `validate.test.ts`, `b2-fee-limit`, `b14-payment-rate-positive`, `b16-money-format`, `a9-input-issues`; CHANGES §32, §41, §45 | Partly covered (messages are technical, one at a time; Q-MSG open) |
 | US-07 | Switch use case without re-typing | `ui/ca.js` | Code reading only; checklist 3a and 3b unticked | Partly covered (Not verified) |
-| US-08 | Apply the correct compounding convention | `src/ca/equations.ts` | `rateSelection-oqc`, `b8-accelerated-frequencies`; Appendix A fixture | Covered |
+| US-08 | Apply the correct compounding convention | `src/ca/equations.ts` | `rateSelection-oqc`, `b8-accelerated-frequencies`, `b33-personal-loan-frequencies`; Appendix A fixture; CHANGES §72 | Covered |
 | US-09 | Compute interest on actual days | `src/ca/equations.ts` | `engineRules-t5`, `calendar-a4` | Covered |
 | US-10 | Apply accrued interest to early payments | `src/ca/cobCanada.ts` | `b19-unpaid-interest`; CHANGES §48 | Partly covered (OQ-W2 parked; OQ-W3, OQ-W5 open; no Excel reference) |
 | US-11 | Allocate each payment interest, then fees, then principal | `src/ca/cobCanada.ts` | `b11-waterfall-cap`, `b19-unpaid-interest`; CHANGES §29, §48 | Covered – differs from Excel (DEV-OQL) |
@@ -143,7 +144,7 @@ Statuses are those of `COB-user-stories.md` §4 and the traceability matrix, as 
 | US-14 | See the trigger rate for variable mortgages | `src/ca/cobCanada.ts` | Checklist 2e | Covered |
 | US-15 | View the per-payment schedule | `ui/ca-view.js` | `lastPayment-oqk`; checklist 3c unticked | Partly covered (columns differ from B.6) |
 | US-16 | Generate payment dates by frequency | `src/ca/` | `monthlyDates-t3`, `semiMonthlyDates-t4`, `b25-semimonthly-move`; macro oracle 986,400 dates, 0 mismatches | Covered – differs from Excel (DEV-OQX, DEV-OQZ) |
-| US-17 | Export / print a calculation | `ui/ca.html`, `ui/ca-view.js` | `b17-print-headings`, `a11-print-on-demand`, `b16-money-format`; `check_print_width.mjs` | Partly covered (OQ-J open) |
+| US-17 | Export / print a calculation | `ui/ca.html`, `ui/ca-view.js` | `b17-print-headings`, `a11-print-on-demand`, `b16-money-format`, `b31-figure-columns` (figure columns, CHANGES §70); `check_print_width.mjs` | Partly covered (OQ-J open) |
 | US-18 | No personal information stored | whole page | Architecture review only | Partly covered (Not verified) |
 | US-19 | Parity regression suite | `tests/ca/golden/`, `ref01-workbook.test.ts` | Both golden masters; REF-01; Appendix A | Partly covered (the parity matrix is not built) |
 
@@ -152,13 +153,13 @@ Statuses are those of `COB-user-stories.md` §4 and the traceability matrix, as 
 | Use case | Title | Built in | Proved by | Status |
 |---|---|---|---|---|
 | UC-01 | Calculate COB for a new mortgage / loan | `src/ca/`, `ui/` | `ref01-workbook`, `golden/`; CHANGES §32 | Covered – differs from Excel (DEV-OQS, DEV-OQX, DEV-OQY, DEV-OQAA, DEV-OQL, DEV-OQZ) |
-| UC-02 | Calculate COB for a renewal | `src/ca/flows.ts` | `b19`, `b20`, `b27`; CHANGES §48, §49, §59 | Partly covered (no Excel reference; OQ-W2 parked; OQ-W3, OQ-W5 open; page walk-through not automated) |
-| UC-03 | Calculate COB after a payment change | `src/ca/flows.ts`, `ui/ca-view.js` | `golden/engineGoldenPc`, `b22-use-case-labels`; CHANGES §47, §51, §59 | Partly covered (same reasons as UC-02) |
+| UC-02 | Calculate COB for a renewal | `src/ca/flows.ts` | `b19`, `b20`, `b33-personal-loan-frequencies` (personal loans at every frequency in Renewal); CHANGES §48, §49, §59, §72 | Partly covered (no Excel reference; OQ-W2 parked; OQ-W3, OQ-W5 open; page walk-through not automated) |
+| UC-03 | Calculate COB after a payment change | `src/ca/flows.ts`, `ui/ca-view.js` | `golden/engineGoldenPc`, `b22-use-case-labels`, `b33-personal-loan-frequencies`; CHANGES §47, §51, §59, §72 | Partly covered (same reasons as UC-02) |
 | UC-04 | Calculate COB after a variable rate payment change | `src/ca/flows.ts` | `golden/engineGoldenPc`, `vrpc-flow-hidden`; CHANGES §60 | Partly covered (same reasons; the option is hidden in the Flow list) |
 | UC-05 | Validate inputs | `src/ca/validate.ts` | See US-06 | Partly covered (Q-MSG open) |
 | UC-06 | Generate schedule and outputs | `src/ca/cobCanada.ts` | See US-08 to US-16; CHANGES §11–§16, §29, §48 | Covered – differs from Excel (DEV-OQS, DEV-OQX, DEV-OQL, DEV-OQZ) |
 | UC-07 | Switch use case | `ui/ca.js` | Code reading only | Partly covered (Not verified) |
-| UC-08 | Export / print a calculation | `ui/ca-view.js` | See US-17 | Partly covered (OQ-J open) |
+| UC-08 | Export / print a calculation | `ui/ca-view.js`, `ui/ca.html` | See US-17 (includes the two-column printed figures, CHANGES §70) | Partly covered (OQ-J open) |
 | UC-09 | Verify parity against Excel v7 | `tests/ca/golden/` | See US-19; CHANGES §47 | Partly covered |
 
 ### 3.4 What the calculator does not cover
@@ -180,7 +181,7 @@ Statuses are those of `COB-user-stories.md` §4 and the traceability matrix, as 
 
 ## 4. Differences from Excel
 
-All decided by the user. The register of record is `COB-architecture.md` §2.1. Each row has been delivered and QA-verified.
+All decided by the user. The register of record is `COB-architecture.md` §2.1. Each row in 4.1 and 4.2 has been delivered and QA-verified.
 
 ### 4.1 Differences with a decision ID
 
@@ -191,9 +192,10 @@ All decided by the user. The register of record is `COB-architecture.md` §2.1. 
 | DEV-OQY | A payment amount of $0 or less is rejected. | Accepts any number, including 0. | OQ-Y revised, 2026-09-28 | CHANGES §32; `b14-payment-rate-positive.test.ts` |
 | DEV-OQAA | A contract rate of 0% or less, or a blank rate, is rejected. | Accepts any number, so 0% runs. | OQ-AA revised, 2026-09-28 | CHANGES §32; `b14-payment-rate-positive.test.ts` |
 | DEV-OQL | Unpaid interest never earns interest. It sits outside the balance, is paid first (oldest first), and period interest counts in C as charged. The workbook rule is kept behind a switch that ships off. | Adds unpaid interest to the balance, where it earns interest. | Stakeholder decision 1, 2026-09-29 | CHANGES §48; `b19-unpaid-interest.test.ts` |
-| DEV-OQP | The contract term is a read-only result: first payment date to last scheduled payment date, in years, months and days, not rounded (REF-01: 2 years, 11 months, 17 days). The End Date always drives the schedule. | The term is an input. | Decision 8, 2026-09-29, refined 2026-09-30 | CHANGES §56; `b24-term-rule.test.ts` |
+| DEV-OQP | The contract term is a read-only result: the flow's start date (Disbursal date, Renewal date or Date of change) to the last scheduled payment date, in years, months and days, not rounded; the same span as Term in days (REF-01: 2 years, 11 months, 23 days). Labelled "Remaining contract term" for Renewal and Payment change, "Contract term" otherwise. A moved semi-monthly first date does not change it. The End Date always drives the schedule. | The term is an input. | Decision 8, 2026-09-29, refined 2026-09-30; start point, label and hint changed by DEC-B32-TERM, 2026-10-05 | CHANGES §56, §71; `b24-term-rule.test.ts`, `b32-term-start.test.ts`, `b32-term-labels.test.ts` |
 | DEV-OQZ | A semi-monthly first payment date that is not the 15th or a month-end moves forward to the next one. Staff see a note; the printout keeps the typed date and adds a Moved first date row. | Keeps the typed pattern (10th, then 10th and 25th). | Decision 10, 2026-09-29; display answered 2026-10-01 | CHANGES §61, §62; `b25-semimonthly-move.test.ts` |
-| DEV-FB24 | A personal loan may only be paid Monthly, in every flow. | Accepts any frequency. | FB-24, 2026-09-30 | CHANGES §54; `b27-personal-loan-monthly-only.test.ts` |
+
+**Retired difference.** DEV-FB24 (a personal loan could only be paid monthly, decided as FB-24 on 2026-09-30 and delivered by B27, CHANGES §54) was removed by the user's decision DEC-B33-FREQ on 2026-10-05, with no switch. A personal loan now accepts every payment frequency and uses the contract rate as entered, as the workbook does, so there is no difference left on this point. Evidence: CHANGES §72; `b33-personal-loan-frequencies.test.ts` (including workbook vectors run as personal loans); `b33-frequency-unlocked.test.ts`.
 
 ### 4.2 Other changes from Excel (no DEV ID, each tied to a decision)
 
@@ -228,12 +230,15 @@ Every decision here was taken by the user; the full text is in `COB-user-stories
 | Q-MONEY-FMT, Q-PRINT-HEAD | 2026-09-29 | Money format in amount inputs and print; printed schedule shows every column | CHANGES §45, §46 |
 | Stakeholder feedback, decisions 1–11 | 2026-09-29 | (1) no interest on unpaid interest, oldest first; (2) and (5) labels follow the use case; (4) accrued interest required; (6) no sample fees; (7) Financed off, fee columns hidden; (8) term derived, contract date and semi-annual date hidden; (9) Renewal mortgage-only, reversed 2026-10-01; (10) semi-monthly first date moved forward; (3) and (11) hold or park four items | CHANGES §48–§52, §56, §61, §62 |
 | Q-B19-ENDACC and its hint | 2026-09-29, hint 2026-09-30 | Show unpaid interest left at the End Date when above $0; hint "Unpaid after the last payment; interest since then is not included" | CHANGES §55, §57 |
-| FB-24, accelerated hidden, Contract term refinement | 2026-09-30 | Personal loan Monthly only; hide accelerated options; term in years, months, days | CHANGES §53, §54, §56 |
+| FB-24, accelerated hidden, Contract term refinement | 2026-09-30 | Personal loan Monthly only (reversed by DEC-B33-FREQ, 2026-10-05; history); hide accelerated options; term in years, months, days (its start point, the first payment date, and Q-CT-B25 were superseded by DEC-B32-TERM) | CHANGES §53, §54, §56 |
 | Renewal accepts personal loan; Variable rate payment change hidden; start-date label "Date of change"; Q-SEMI-SHOW answered | 2026-10-01 | As stated | CHANGES §59, §60, §62 |
 | Q-A11-SCOPE = B, Q-A11-FIX = No, Q-A14-GUARD = No | 2026-10-01 | Print table built on demand; no capture change; no guard against dead citations | CHANGES §63, §64 |
 | Payment change "Accrued interest" hint | 2026-10-02 | The hint reads exactly "Interest accrued since the last payment date." (the CHANGES §67 wording, the same as Renewal). It reverses the longer wording tried in §68. The short hint does not repeat the arrears advice, and the schedule already charges interest from the Date of change, so a user who types that interest into Accrued interest is charged twice. This is OPEN again for the hint (F69). The guards left are the Date of change label and the user manual. The hidden Variable rate payment change flow keeps the original arrears text; Renewal is unchanged. Capture fixture sha256 is back to 171f8a33; the UI view logic file hash starts 1e081d1e; the single-file edition hash starts ec6c3075. | CHANGES §69 (reverses §68, restores §67) |
 | Trigger-rate highlight dropped | 2026-10-01 | No highlight; nothing changes | CHANGES §65 |
 | B29 Help page; B30 single-file edition | 2026-10-01 | Removable add-ons, no change to results | CHANGES §58, §66 |
+| DEC-B31-LAYOUT (screen part revised the same day); Q-B31-DUP-HINT, Q-B31-ON-ORDER answered, Q-B31-NARROW moot | 2026-10-05 | Printed figures in two columns (left: rates and term; right: amounts and Trigger rate); screen keeps the headline cards, a main list equal to the right column (Cost of borrowing amount without its hint, which stays on its card) and a collapsed "More figures" equal to the left column without the APR. With the Financed option on, Unpaid interest at end date stays directly after Balance at end date. No value, label or CSV change. | CHANGES §70; `COB-user-stories.md` §7.5; `COB-architecture.md` §5 B31 (revision 49) |
+| DEC-B32-TERM (supersedes the 2026-09-30 start point and Q-CT-B25) | 2026-10-05 | The Contract term runs from the flow's start date to the last scheduled payment date, in every flow. Hint "Calculated from the {disbursal date / renewal date / date of change} to the last scheduled payment date." Label "Remaining contract term" for Renewal and Payment change (field, Contract terms tile, printout row); "Contract term" for New mortgage or loan and the hidden Variable rate payment change. Example: Payment change, Date of change 2026-02-20, next payment 2026-03-15, End date 2029-03-15: 3 years, 0 months, 0 days became 3 years, 0 months, 23 days. CSV, its file name and both golden masters unchanged. | CHANGES §71; `COB-user-stories.md` §7.5; `COB-architecture.md` §5 B32 (revision 50) |
+| DEC-B33-FREQ (reverses FB-24 and the B27 answers; retires DEV-FB24) | 2026-10-05 | A personal loan accepts every payment frequency in New mortgage or loan, Renewal and Payment change; Variable rate payment change stays mortgage and variable. Removed outright, with no switch (the user's choice against the project default of keeping features switchable). The page no longer locks Payment frequency for a personal loan and no longer shows "Personal loans are paid monthly."; the accelerated options stay hidden. Rate rule unchanged: only a fixed-rate mortgage converts the contract rate to the payment frequency; a variable mortgage and a personal loan use the contract rate as entered at any frequency. The semi-monthly first-date move applies to personal loans too. Both golden masters and the page capture changed with approval. Two housekeeping questions use their defaults (Q-B33-B27FILE: the B27 test file is rewritten in place under its old name; Q-B33-LEGACY: the frozen pre-B27 generators and archive are kept); they do not affect results. | CHANGES §72; `COB-user-stories.md` §7.5; `COB-architecture.md` §5 B33 (revision 51) |
 
 ## 6. Open and parked items
 
@@ -250,6 +255,8 @@ What the calculator does today is shown in the third column. Nothing here is set
 | Q-MSG: final wording of all error messages | Business owner, BA | Technical messages with field names; interim wordings for the fee limit, blank or zero payment and rate, zero-day term and the unpaid-interest hint. | Open decision |
 | Q-A10-1: blank Loan amount or blank fee amount | Business owner | A blank Loan amount is rejected as 0. A blank fee amount is a $0 fee and prints as "$" (F35). | Open decision |
 | Browser keeping draft inputs (US-18) | Business owner | Keeps nothing. | Open decision |
+| Q-B32-SAME-DAY: how to show a term when the start date is the last payment date | User (non-blocking) | Shows "0 years, 0 months, 0 days" (recommended default, CHANGES §71). | Open decision (default in use) |
+| Q-B32-HEADING: keep the "Contract terms" heading for Renewal and Payment change | User (non-blocking) | Keeps "Contract terms" in every flow (recommended default, CHANGES §71). | Open decision (default in use) |
 | FB-11: COB rate when there are no fees | User (will discuss) | Rate equals the calculated rate; it ignores accrued interest counted in C. | On hold |
 | OQ-W2 / FB-25 W2: does entered accrued interest count in C? | None (no follow-up question will be sent) | Counts it only as far as it is paid. | Parked |
 | FB-7: keep values when switching use case | None | Keeps values (code reading, Not verified). | Parked |
@@ -266,15 +273,15 @@ Run from `COB-ts/` unless stated. A pass means the results shown.
 
 | Check | Command | A pass looks like |
 |---|---|---|
-| All automated tests | `npx vitest run` | 86 files, 3133 tests passed, 0 failed |
+| All automated tests | `npx vitest run` | 91 files, 3666 tests passed, 0 failed (CHANGES §72) |
 | Types | `npm run typecheck` and `npm run typecheck:tests` | No errors |
-| Two time zones | `npm run test:tz` | 880 passed in each zone |
-| Golden masters | `shasum -a 256 tests/ca/fixtures/golden_engine_v1.json tests/ca/fixtures/golden_engine_pc_v1.json` | Starts 249651b2 and acfe374c |
-| Page capture | `node tests/ca/fixtures/capture_a10_ui.mjs <out.json>`, then compare with `a10_ui_capture_v1.json` (sha256 starts 171f8a33) | Equal apart from the provenance block |
+| Two time zones | `npm run test:tz` | 1256 passed in each zone (CHANGES §72) |
+| Golden masters | `shasum -a 256 tests/ca/fixtures/golden_engine_v1.json tests/ca/fixtures/golden_engine_pc_v1.json` | Starts 922fd695 and 5ab1c6a6 (CHANGES §72) |
+| Page capture | `node tests/ca/fixtures/capture_a10_ui.mjs <out.json>`, then compare with `a10_ui_capture_v1.json` (sha256 starts 4d5a64c1, CHANGES §72) | Equal apart from the provenance block |
 | Page loads | `node tests/ui/check_page_smoke.mjs` | PASS, no console errors |
 | Printed schedule fits the page (F12) | `node tests/ui/check_print_width.mjs` | 16 of 16 cases pass |
-| Moved semi-monthly date shown (F17) | `node tests/ui/check_semimonthly_move.mjs` | All checks pass (54 recorded in CHANGES §62) |
-| Print table built on demand (F18) | `node tests/ui/check_render_cost.mjs` | All checks pass (29 recorded in CHANGES §63) |
+| Moved semi-monthly date shown (F17) | `node tests/ui/check_semimonthly_move.mjs` | All checks pass (56 recorded in CHANGES §72) |
+| Print table built on demand (F18) | `node tests/ui/check_render_cost.mjs` | All checks pass (29 recorded in CHANGES §72) |
 | Single-file edition | The build and check commands are in the README of the single-file add-on folder (CHANGES §66) | Build succeeds; its Chrome check passes 38 checks |
 | Help page up to date | `node help/build-help.mjs --check` | "Help is up to date." |
 | Help page in Chrome | `node help/tests/check_help_page.mjs` | All checks pass |
@@ -312,6 +319,8 @@ Plain-language list of what is true today and not covered above. Findings that h
 | F66 | The smoke script's "4 options" means the four Payment Frequency options, not the Flow list (CHANGES §60). Easy to misread. | None |
 | F67 | The Renewal hint and the Payment change hint still say "last payment date" while the label reads "Date of change". Recorded by the user's decision (CHANGES §59). | None |
 | F68 | The test file `b21-renewal-mortgage-only` now tests the reversed rule (Renewal accepts a personal loan). The name is kept as history (CHANGES §59). | None |
+| F70 | The test file `b27-personal-loan-monthly-only` now tests the reversed rule (a personal loan at every frequency). The name is kept as history (Q-B33-B27FILE default, CHANGES §72). | None |
+| F71 | Stakeholders wrote "Personal loan rates are always monthly" (feedback §3.11). The user reversed the decision based on it (DEC-B33-FREQ). The stakeholders are told only through a draft note in `COB-brd-amendments-draft.md`; they have not confirmed it. | Stakeholders |
 
 **Marked Not verified:**
 
@@ -321,6 +330,35 @@ Plain-language list of what is true today and not covered above. Findings that h
 - Screen and print behaviour outside the captured scenarios (no automated page tests).
 - Formatting an amount when the user leaves the field (checked by a source check and one QA page check).
 - Other browsers than Chrome for printing.
-- The exact file names of the B27 engine tests.
 - The B22 page labels in Chrome beyond the capture (F52).
-- Whether `test:tz` still shows 880 per zone: taken from CHANGES §66, not re-run for this report.
+- Whether `test:tz` still shows 1256 per zone and the suite 3666 tests in 91 files: taken from CHANGES §72, not re-run for this report.
+- The single-file edition hash (starts 58a8a866, section 2): recorded before B32. It is rebuilt after documentation runs, so the hash has likely changed since B32 and B33; not re-checked.
+- The Help page: CHANGES §72 notes it still quoted the old "Personal loans are paid monthly." hint. It is correct only once it is rebuilt from these documents; the rebuild is not part of this documentation run.
+
+## Documentation findings
+
+Found while updating for B31 (CHANGES §70). No requirement, decision, code or test was changed.
+
+| # | Finding | Owner |
+|---|---|---|
+| D1 | The user manual still said the "Unpaid interest at end date" hint was a change in progress and quoted the old hint. The new hint was delivered as B26-HINT (CHANGES §57; `ui/ca-view.js`). Corrected in the manual in this run. | doc-writer (done) |
+| D2 | `COB-architecture.md` revision 48 (header list) still describes the first B31 version (one `figureColumns` export, 39 exports, "More figures" removed, columns stacking at 480 px). Revision 49, the checklist and CHANGES §70 describe what was built (41 exports, "More figures" kept). The revision note is history, but a reader may take it as current. | architect |
+| D3 | QA note in CHANGES §70: the capture fixture's provenance text still reads "post-B24". Cosmetic. | QA |
+
+Found while updating for B32 (CHANGES §71). No requirement, decision, code or test was changed.
+
+| # | Finding | Owner |
+|---|---|---|
+| D4 | `COB-user-stories.md` US-04 (the italic note above the first acceptance criterion) still calls DEC-B32-TERM "planned, B32", and the B24 criterion under it still describes the term from the First Payment Date and the moved semi-monthly date (Q-CT-B25) without a delivered marker for B32. B32 is delivered and QA-verified (CHANGES §71, checklist B32). | ba |
+| D5 | `COB-architecture.md` §5 status table row B32 still reads "brief written; not started". The checklist and CHANGES §71 record it as delivered with QA PASS. | architect |
+| D6 | The hint text in `ui/ca-view.js` is marked as an interim wording under Q-MSG. DEC-B32-TERM fixes its words, so it is unclear whether Q-MSG still covers this hint. | ba |
+| D7 | Information: the User manual's earlier rule "a monthly schedule of N payments reads N-1 months" no longer holds now that the term starts at the start date; removed from the manual in this run. | doc-writer (done) |
+
+Found while updating for B33 (CHANGES §72). No requirement, decision, code or test was changed.
+
+| # | Finding | Owner |
+|---|---|---|
+| D8 | `COB-user-stories.md` still calls DEC-B33-FREQ "planned B33" in the IN-03 note (§3 table), US-02, US-08, the traceability matrix row for IN-02…IN-09, the OQ-C row and the FB-24 row. B33 is delivered and QA-verified (CHANGES §72, checklist B33). | ba |
+| D9 | `COB-architecture.md` still shows B33 as "brief written; not started" (the §5 status table row and the §5 B33 heading) and the §2.1 DEV-FB24 row as "retirement planned, B33", with `b33-personal-loan-frequencies.test.ts` as "(planned)". | architect |
+| D10 | `COB-ts/CHANGES.md` "Known open items", DQ-16 line, still says Renewal accepts a personal loan "(Monthly only)". Since CHANGES §72 a personal loan at Renewal takes any frequency. | main session |
+| D11 | Information: D4 and D5 (B32 marked planned in US-04 and the architecture status table) are resolved in the sources (revision 51 corrected the B32 row; the US-04 note no longer says planned). | None |
