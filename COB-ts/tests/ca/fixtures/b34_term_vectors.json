@@ -1,0 +1,2345 @@
+{
+ "provenance": {
+  "what": "B34 (DEC-B34-TERM) contract-term vectors: COB-architecture.md section 5 B34 vectors table (revision 53, source 'brief'), the BA catalogue COB-B34-test-boundaries.md B34-BV-xx (source 'ba'), and QA-derived rows (source 'qa'). Expected values are typed from those documents (hand-derived), NOT computed by the code under test. Dates are YYYY-MM-DD wire strings (UTC midnight); an input is BASES[base] overlaid with changes (null deletes a key; 'invalid' = new Date(NaN)).",
+  "author": "qa (B34 red step, 2026-10-06)",
+  "oracle": "tests/ca/support/termMonthsOracle.ts reproduces every row from (start date, last row) and (start date, End date)"
+ },
+ "bases": {
+  "REF": {
+   "flow": "newMortgageOrLoan",
+   "productType": "mortgage",
+   "rateType": "fixed",
+   "loanAmount": 227829.65,
+   "contractRatePercent": 3.74,
+   "paymentFrequency": "weekly",
+   "paymentAmount": 465.46,
+   "firstPaymentDate": "2026-03-23",
+   "endDate": "2029-03-17",
+   "disbursalDate": "2026-03-17",
+   "renewalDate": "2026-01-01",
+   "fees": {
+    "fees": []
+   }
+  },
+  "S1_FEES": {
+   "flow": "newMortgageOrLoan",
+   "productType": "mortgage",
+   "rateType": "fixed",
+   "loanAmount": 227829.65,
+   "contractRatePercent": 3.74,
+   "paymentFrequency": "weekly",
+   "paymentAmount": 465.46,
+   "firstPaymentDate": "2026-03-23",
+   "endDate": "2029-03-17",
+   "disbursalDate": "2026-03-17",
+   "fees": {
+    "fees": [
+     {
+      "name": "Financed fees",
+      "amount": 2000,
+      "financed": false
+     },
+     {
+      "name": "Non-financed fees",
+      "amount": 500,
+      "financed": false
+     }
+    ]
+   }
+  },
+  "RENEWAL": {
+   "flow": "renewal",
+   "productType": "mortgage",
+   "rateType": "fixed",
+   "loanAmount": 150000,
+   "contractRatePercent": 4.19,
+   "paymentFrequency": "monthly",
+   "paymentAmount": 900,
+   "firstPaymentDate": "2026-05-01",
+   "endDate": "2028-10-01",
+   "renewalDate": "2026-04-01",
+   "accruedInterest": 125.5,
+   "fees": {
+    "fees": [
+     {
+      "name": "Renewal & admin <fee>",
+      "amount": 250,
+      "financed": false
+     }
+    ]
+   }
+  },
+  "VRPC": {
+   "flow": "variableRatePaymentChange",
+   "productType": "mortgage",
+   "rateType": "variable",
+   "loanAmount": 300000,
+   "contractRatePercent": 5.2,
+   "paymentFrequency": "biweekly",
+   "paymentAmount": 850,
+   "firstPaymentDate": "2026-06-26",
+   "endDate": "2031-06-15",
+   "renewalDate": "2026-06-15",
+   "accruedInterest": 0,
+   "fees": {
+    "fees": []
+   }
+  },
+  "PL_WEEKLY": {
+   "flow": "newMortgageOrLoan",
+   "productType": "personalLoan",
+   "rateType": "fixed",
+   "loanAmount": 10000,
+   "contractRatePercent": 8,
+   "paymentFrequency": "weekly",
+   "paymentAmount": 75,
+   "firstPaymentDate": "2026-03-24",
+   "endDate": "2029-03-17",
+   "disbursalDate": "2026-03-17",
+   "fees": {
+    "fees": []
+   }
+  },
+  "B24": {
+   "flow": "newMortgageOrLoan",
+   "productType": "mortgage",
+   "rateType": "variable",
+   "loanAmount": 250000,
+   "contractRatePercent": 5.19,
+   "paymentFrequency": "monthly",
+   "paymentAmount": 1300,
+   "firstPaymentDate": "2027-02-01",
+   "endDate": "2029-06-01",
+   "disbursalDate": "2027-01-01",
+   "fees": {
+    "fees": []
+   }
+  },
+  "F17": {
+   "flow": "newMortgageOrLoan",
+   "productType": "mortgage",
+   "rateType": "variable",
+   "loanAmount": 100000,
+   "contractRatePercent": 5,
+   "paymentFrequency": "semiMonthly",
+   "paymentAmount": 1000,
+   "firstPaymentDate": "2027-01-10",
+   "endDate": "2029-01-15",
+   "disbursalDate": "2027-01-01",
+   "fees": {
+    "fees": []
+   }
+  },
+  "PC": {
+   "flow": "paymentChange",
+   "productType": "mortgage",
+   "rateType": "fixed",
+   "loanAmount": 200000,
+   "contractRatePercent": 5,
+   "paymentFrequency": "monthly",
+   "paymentAmount": 1200,
+   "firstPaymentDate": "2026-03-15",
+   "endDate": "2029-03-15",
+   "renewalDate": "2026-02-20",
+   "accruedInterest": 0,
+   "fees": {
+    "fees": []
+   }
+  },
+  "MONTH_END": {
+   "flow": "renewal",
+   "productType": "mortgage",
+   "rateType": "fixed",
+   "loanAmount": 100000,
+   "contractRatePercent": 5,
+   "paymentFrequency": "monthly",
+   "paymentAmount": 1000,
+   "firstPaymentDate": "2026-02-28",
+   "endDate": "2027-02-28",
+   "renewalDate": "2026-01-31",
+   "accruedInterest": 0,
+   "fees": {
+    "fees": []
+   }
+  },
+  "LEAP": {
+   "flow": "paymentChange",
+   "productType": "mortgage",
+   "rateType": "fixed",
+   "loanAmount": 100000,
+   "contractRatePercent": 5,
+   "paymentFrequency": "monthly",
+   "paymentAmount": 1000,
+   "firstPaymentDate": "2028-03-15",
+   "endDate": "2029-02-28",
+   "renewalDate": "2028-02-29",
+   "accruedInterest": 0,
+   "fees": {
+    "fees": []
+   }
+  },
+  "SHORTFALL": {
+   "flow": "newMortgageOrLoan",
+   "productType": "mortgage",
+   "rateType": "fixed",
+   "loanAmount": 200000,
+   "contractRatePercent": 5,
+   "paymentFrequency": "monthly",
+   "paymentAmount": 700,
+   "firstPaymentDate": "2026-05-01",
+   "endDate": "2028-04-01",
+   "disbursalDate": "2026-04-01",
+   "fees": {
+    "fees": []
+   }
+  },
+  "M": {
+   "flow": "newMortgageOrLoan",
+   "productType": "mortgage",
+   "rateType": "fixed",
+   "loanAmount": 200000,
+   "contractRatePercent": 5,
+   "paymentFrequency": "monthly",
+   "paymentAmount": 1200,
+   "firstPaymentDate": "2026-02-15",
+   "disbursalDate": "2026-01-15",
+   "fees": {
+    "fees": []
+   }
+  },
+  "W": {
+   "flow": "newMortgageOrLoan",
+   "productType": "mortgage",
+   "rateType": "fixed",
+   "loanAmount": 200000,
+   "contractRatePercent": 5,
+   "paymentFrequency": "weekly",
+   "paymentAmount": 300,
+   "firstPaymentDate": "2026-02-15",
+   "disbursalDate": "2026-01-15",
+   "fees": {
+    "fees": []
+   }
+  },
+  "B": {
+   "flow": "newMortgageOrLoan",
+   "productType": "mortgage",
+   "rateType": "fixed",
+   "loanAmount": 200000,
+   "contractRatePercent": 5,
+   "paymentFrequency": "biweekly",
+   "paymentAmount": 600,
+   "firstPaymentDate": "2026-02-15",
+   "disbursalDate": "2026-01-15",
+   "fees": {
+    "fees": []
+   }
+  },
+  "S": {
+   "flow": "newMortgageOrLoan",
+   "productType": "mortgage",
+   "rateType": "fixed",
+   "loanAmount": 200000,
+   "contractRatePercent": 5,
+   "paymentFrequency": "semiMonthly",
+   "paymentAmount": 600,
+   "firstPaymentDate": "2026-02-15",
+   "disbursalDate": "2026-01-15",
+   "fees": {
+    "fees": []
+   }
+  },
+  "R": {
+   "flow": "renewal",
+   "productType": "mortgage",
+   "rateType": "fixed",
+   "loanAmount": 200000,
+   "contractRatePercent": 5,
+   "paymentFrequency": "monthly",
+   "paymentAmount": 1200,
+   "firstPaymentDate": "2026-02-15",
+   "disbursalDate": "2020-06-01",
+   "fees": {
+    "fees": []
+   },
+   "accruedInterest": 0
+  }
+ },
+ "vectors": [
+  {
+   "id": "REF-01",
+   "name": "REF-01 (capture)",
+   "source": "brief",
+   "base": "REF",
+   "changes": {},
+   "lastRow": "2029-03-12",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years",
+   "choice": false,
+   "capture": "REF-01"
+  },
+  {
+   "id": "S1_fees",
+   "name": "S1_fees (capture)",
+   "source": "brief",
+   "base": "S1_FEES",
+   "changes": {},
+   "lastRow": "2029-03-12",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years",
+   "choice": false,
+   "capture": "S1_fees"
+  },
+  {
+   "id": "RENEWAL",
+   "name": "RENEWAL (capture)",
+   "source": "brief",
+   "base": "RENEWAL",
+   "changes": {},
+   "lastRow": "2028-10-01",
+   "lastPayment": {
+    "years": 2,
+    "months": 6
+   },
+   "endDate": {
+    "years": 2,
+    "months": 6
+   },
+   "lastPaymentText": "2 years, 6 months",
+   "endDateText": "2 years, 6 months",
+   "choice": false,
+   "capture": "RENEWAL"
+  },
+  {
+   "id": "VRPC_zero_accrued",
+   "name": "VRPC_zero_accrued (capture)",
+   "source": "brief",
+   "base": "VRPC",
+   "changes": {},
+   "lastRow": "2031-06-06",
+   "lastPayment": {
+    "years": 5,
+    "months": 0
+   },
+   "endDate": {
+    "years": 5,
+    "months": 0
+   },
+   "lastPaymentText": "5 years",
+   "endDateText": "5 years",
+   "choice": false,
+   "capture": "VRPC_zero_accrued"
+  },
+  {
+   "id": "PL_WEEKLY",
+   "name": "PL_WEEKLY (capture; pays off early)",
+   "source": "brief",
+   "base": "PL_WEEKLY",
+   "changes": {},
+   "lastRow": "2029-01-30",
+   "lastPayment": {
+    "years": 2,
+    "months": 11
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "2 years, 11 months",
+   "endDateText": "3 years",
+   "choice": true,
+   "capture": "PL_WEEKLY"
+  },
+  {
+   "id": "UE1",
+   "name": "User example 1 (REF-01, End 2029-03-16)",
+   "source": "brief",
+   "base": "REF",
+   "changes": {
+    "endDate": "2029-03-16"
+   },
+   "lastRow": "2029-03-12",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years",
+   "choice": false
+  },
+  {
+   "id": "UE2",
+   "name": "User example 2 (REF-01, End 2029-02-22)",
+   "source": "brief",
+   "base": "REF",
+   "changes": {
+    "endDate": "2029-02-22"
+   },
+   "lastRow": "2029-02-19",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years",
+   "choice": false
+  },
+  {
+   "id": "UE3",
+   "name": "User example 3 (REF-01, End 2028-09-11)",
+   "source": "brief",
+   "base": "REF",
+   "changes": {
+    "endDate": "2028-09-11"
+   },
+   "lastRow": "2028-09-11",
+   "lastPayment": {
+    "years": 2,
+    "months": 6
+   },
+   "endDate": {
+    "years": 2,
+    "months": 6
+   },
+   "lastPaymentText": "2 years, 6 months",
+   "endDateText": "2 years, 6 months",
+   "choice": false
+  },
+  {
+   "id": "REF-0318",
+   "name": "REF-01, End 2029-03-18 (step overshoot)",
+   "source": "brief",
+   "base": "REF",
+   "changes": {
+    "endDate": "2029-03-18"
+   },
+   "lastRow": "2029-03-12",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years, 1 month",
+   "choice": true
+  },
+  {
+   "id": "REF-0418",
+   "name": "REF-01, End 2026-04-18",
+   "source": "brief",
+   "base": "REF",
+   "changes": {
+    "endDate": "2026-04-18"
+   },
+   "lastRow": "2026-04-13",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 2
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "2 months",
+   "choice": true
+  },
+  {
+   "id": "REF-0324",
+   "name": "REF-01, End 2026-03-24 (one row)",
+   "source": "brief",
+   "base": "REF",
+   "changes": {
+    "endDate": "2026-03-24"
+   },
+   "lastRow": "2026-03-23",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 month",
+   "choice": false
+  },
+  {
+   "id": "B24-PAYOFF",
+   "name": "B24-T3 payoff",
+   "source": "brief",
+   "base": "B24",
+   "changes": {
+    "loanAmount": 10000,
+    "paymentAmount": 2000,
+    "endDate": "2030-01-01"
+   },
+   "lastRow": "2027-07-01",
+   "lastPayment": {
+    "years": 0,
+    "months": 6
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "6 months",
+   "endDateText": "3 years",
+   "choice": true
+  },
+  {
+   "id": "B24-ONE",
+   "name": "B24-T3 one row (same day)",
+   "source": "brief",
+   "base": "B24",
+   "changes": {
+    "firstPaymentDate": "2027-01-01",
+    "endDate": "2027-01-02"
+   },
+   "lastRow": "2027-01-01",
+   "lastPayment": {
+    "years": 0,
+    "months": 0
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "0 months",
+   "endDateText": "1 month",
+   "choice": true
+  },
+  {
+   "id": "B24-SHORT",
+   "name": "B24-T3 short",
+   "source": "brief",
+   "base": "B24",
+   "changes": {
+    "paymentFrequency": "weekly",
+    "paymentAmount": 300,
+    "firstPaymentDate": "2027-03-23",
+    "endDate": "2027-03-31"
+   },
+   "lastRow": "2027-03-30",
+   "lastPayment": {
+    "years": 0,
+    "months": 3
+   },
+   "endDate": {
+    "years": 0,
+    "months": 3
+   },
+   "lastPaymentText": "3 months",
+   "endDateText": "3 months",
+   "choice": false
+  },
+  {
+   "id": "B24-SEMI",
+   "name": "B24-T3 semi",
+   "source": "brief",
+   "base": "B24",
+   "changes": {
+    "paymentFrequency": "semiMonthly",
+    "paymentAmount": 700,
+    "firstPaymentDate": "2027-01-15",
+    "endDate": "2027-06-20"
+   },
+   "lastRow": "2027-06-15",
+   "lastPayment": {
+    "years": 0,
+    "months": 6
+   },
+   "endDate": {
+    "years": 0,
+    "months": 6
+   },
+   "lastPaymentText": "6 months",
+   "endDateText": "6 months",
+   "choice": false
+  },
+  {
+   "id": "F17-S1",
+   "name": "F17 S1 / B25 move (typed 01-10, moved 01-15)",
+   "source": "brief",
+   "base": "F17",
+   "changes": {},
+   "lastRow": "2029-01-15",
+   "lastPayment": {
+    "years": 2,
+    "months": 1
+   },
+   "endDate": {
+    "years": 2,
+    "months": 1
+   },
+   "lastPaymentText": "2 years, 1 month",
+   "endDateText": "2 years, 1 month",
+   "choice": false
+  },
+  {
+   "id": "F17-0120",
+   "name": "Semi-monthly move, End 2029-01-20",
+   "source": "brief",
+   "base": "F17",
+   "changes": {
+    "endDate": "2029-01-20"
+   },
+   "lastRow": "2029-01-15",
+   "lastPayment": {
+    "years": 2,
+    "months": 1
+   },
+   "endDate": {
+    "years": 2,
+    "months": 1
+   },
+   "lastPaymentText": "2 years, 1 month",
+   "endDateText": "2 years, 1 month",
+   "choice": false
+  },
+  {
+   "id": "DEC-B32",
+   "name": "DEC-B32 user example",
+   "source": "brief",
+   "base": "PC",
+   "changes": {},
+   "lastRow": "2029-03-15",
+   "lastPayment": {
+    "years": 3,
+    "months": 1
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years, 1 month",
+   "endDateText": "3 years, 1 month",
+   "choice": false
+  },
+  {
+   "id": "DEC-B32-0331",
+   "name": "DEC-B32 user example, End 2029-03-31",
+   "source": "brief",
+   "base": "PC",
+   "changes": {
+    "endDate": "2029-03-31"
+   },
+   "lastRow": "2029-03-15",
+   "lastPayment": {
+    "years": 3,
+    "months": 1
+   },
+   "endDate": {
+    "years": 3,
+    "months": 2
+   },
+   "lastPaymentText": "3 years, 1 month",
+   "endDateText": "3 years, 2 months",
+   "choice": true
+  },
+  {
+   "id": "MONTH-END",
+   "name": "Month-end start (renewal, 2026-01-31)",
+   "source": "brief",
+   "base": "MONTH_END",
+   "changes": {},
+   "lastRow": "2027-02-28",
+   "lastPayment": {
+    "years": 1,
+    "months": 1
+   },
+   "endDate": {
+    "years": 1,
+    "months": 1
+   },
+   "lastPaymentText": "1 year, 1 month",
+   "endDateText": "1 year, 1 month",
+   "choice": false
+  },
+  {
+   "id": "LEAP",
+   "name": "Leap month-end start (paymentChange, 2028-02-29)",
+   "source": "brief",
+   "base": "LEAP",
+   "changes": {},
+   "lastRow": "2029-02-15",
+   "lastPayment": {
+    "years": 1,
+    "months": 0
+   },
+   "endDate": {
+    "years": 1,
+    "months": 0
+   },
+   "lastPaymentText": "1 year",
+   "endDateText": "1 year",
+   "choice": false
+  },
+  {
+   "id": "SHORTFALL",
+   "name": "SHORTFALL as the brief's table states it (End 2028-04-01)",
+   "source": "brief",
+   "base": "SHORTFALL",
+   "changes": {},
+   "lastRow": "2028-04-01",
+   "lastPayment": {
+    "years": 2,
+    "months": 0
+   },
+   "endDate": {
+    "years": 2,
+    "months": 0
+   },
+   "lastPaymentText": "2 years",
+   "endDateText": "2 years",
+   "choice": false
+  },
+  {
+   "id": "SHORTFALL-F12",
+   "name": "SHORTFALL with F12's real End date 2028-04-15 (check_print_width.mjs:76; QA-derived)",
+   "source": "qa",
+   "base": "SHORTFALL",
+   "changes": {
+    "endDate": "2028-04-15"
+   },
+   "lastRow": "2028-04-01",
+   "lastPayment": {
+    "years": 2,
+    "months": 0
+   },
+   "endDate": {
+    "years": 2,
+    "months": 1
+   },
+   "lastPaymentText": "2 years",
+   "endDateText": "2 years, 1 month",
+   "choice": true
+  }
+ ],
+ "boundaries": [
+  {
+   "id": "BV-01",
+   "name": "0 leftover days, whole years",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "endDate": "2029-01-15"
+   },
+   "lastRow": "2029-01-15",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years",
+   "choice": false
+  },
+  {
+   "id": "BV-02",
+   "name": "1 leftover day",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "firstPaymentDate": "2026-02-16",
+    "endDate": "2029-01-16"
+   },
+   "lastRow": "2029-01-16",
+   "lastPayment": {
+    "years": 3,
+    "months": 1
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years, 1 month",
+   "endDateText": "3 years, 1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-03",
+   "name": "2y 11m 30d rolls over",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "firstPaymentDate": "2026-02-14",
+    "endDate": "2029-01-14"
+   },
+   "lastRow": "2029-01-14",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years",
+   "choice": false
+  },
+  {
+   "id": "BV-04",
+   "name": "11 months exactly",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "endDate": "2026-12-15"
+   },
+   "lastRow": "2026-12-15",
+   "lastPayment": {
+    "years": 0,
+    "months": 11
+   },
+   "endDate": {
+    "years": 0,
+    "months": 11
+   },
+   "lastPaymentText": "11 months",
+   "endDateText": "11 months",
+   "choice": false
+  },
+  {
+   "id": "BV-05",
+   "name": "rollover in option 2 only (11m + 1 day)",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "endDate": "2026-12-16"
+   },
+   "lastRow": "2026-12-15",
+   "lastPayment": {
+    "years": 0,
+    "months": 11
+   },
+   "endDate": {
+    "years": 1,
+    "months": 0
+   },
+   "lastPaymentText": "11 months",
+   "endDateText": "1 year",
+   "choice": true
+  },
+  {
+   "id": "BV-06",
+   "name": "rollover at 11m + 30 days",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "endDate": "2027-01-14"
+   },
+   "lastRow": "2026-12-15",
+   "lastPayment": {
+    "years": 0,
+    "months": 11
+   },
+   "endDate": {
+    "years": 1,
+    "months": 0
+   },
+   "lastPaymentText": "11 months",
+   "endDateText": "1 year",
+   "choice": true
+  },
+  {
+   "id": "BV-07",
+   "name": "under one month rounds to 1 month",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "firstPaymentDate": "2026-02-14",
+    "endDate": "2026-02-15"
+   },
+   "lastRow": "2026-02-14",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-08",
+   "name": "start = first payment, 11 months not rounded",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "disbursalDate": "2026-02-15",
+    "endDate": "2029-01-15"
+   },
+   "lastRow": "2029-01-15",
+   "lastPayment": {
+    "years": 2,
+    "months": 11
+   },
+   "endDate": {
+    "years": 2,
+    "months": 11
+   },
+   "lastPaymentText": "2 years, 11 months",
+   "endDateText": "2 years, 11 months",
+   "choice": false
+  },
+  {
+   "id": "BV-09",
+   "name": "long term, 2-digit years",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "paymentAmount": 900,
+    "endDate": "2056-01-15"
+   },
+   "lastRow": "2056-01-15",
+   "lastPayment": {
+    "years": 30,
+    "months": 0
+   },
+   "endDate": {
+    "years": 30,
+    "months": 0
+   },
+   "lastPaymentText": "30 years",
+   "endDateText": "30 years",
+   "choice": false
+  },
+  {
+   "id": "BV-10",
+   "name": "long term plus 1 day",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "paymentAmount": 900,
+    "endDate": "2056-01-16"
+   },
+   "lastRow": "2056-01-15",
+   "lastPayment": {
+    "years": 30,
+    "months": 0
+   },
+   "endDate": {
+    "years": 30,
+    "months": 1
+   },
+   "lastPaymentText": "30 years",
+   "endDateText": "30 years, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-11",
+   "name": "Feb 28 month-end start, target before stepped month-end (OQ-X)",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2026-02-28",
+    "firstPaymentDate": "2026-03-01",
+    "endDate": "2026-03-29"
+   },
+   "lastRow": "2026-03-29",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-12",
+   "name": "month-end start, target = stepped month-end",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2026-02-28",
+    "firstPaymentDate": "2026-03-03",
+    "endDate": "2026-03-31"
+   },
+   "lastRow": "2026-03-31",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-13",
+   "name": "month-end start, 1 day past",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2026-02-28",
+    "firstPaymentDate": "2026-03-04",
+    "endDate": "2026-04-01"
+   },
+   "lastRow": "2026-04-01",
+   "lastPayment": {
+    "years": 0,
+    "months": 2
+   },
+   "endDate": {
+    "years": 0,
+    "months": 2
+   },
+   "lastPaymentText": "2 months",
+   "endDateText": "2 months",
+   "choice": false
+  },
+  {
+   "id": "BV-14",
+   "name": "leap Feb 28 is not a month-end",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2028-02-28",
+    "firstPaymentDate": "2028-03-22",
+    "endDate": "2028-03-29"
+   },
+   "lastRow": "2028-03-29",
+   "lastPayment": {
+    "years": 0,
+    "months": 2
+   },
+   "endDate": {
+    "years": 0,
+    "months": 2
+   },
+   "lastPaymentText": "2 months",
+   "endDateText": "2 months",
+   "choice": false
+  },
+  {
+   "id": "BV-15",
+   "name": "leap month-end start (Feb 29)",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2028-02-29",
+    "firstPaymentDate": "2028-03-23",
+    "endDate": "2028-03-30"
+   },
+   "lastRow": "2028-03-30",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-16",
+   "name": "Feb 29 start, 1 day past",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2028-02-29",
+    "firstPaymentDate": "2028-03-25",
+    "endDate": "2028-04-01"
+   },
+   "lastRow": "2028-04-01",
+   "lastPayment": {
+    "years": 0,
+    "months": 2
+   },
+   "endDate": {
+    "years": 0,
+    "months": 2
+   },
+   "lastPaymentText": "2 months",
+   "endDateText": "2 months",
+   "choice": false
+  },
+  {
+   "id": "BV-17",
+   "name": "Feb 29 start, one year later Feb 28 (monthly)",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "disbursalDate": "2028-02-29",
+    "firstPaymentDate": "2028-03-28",
+    "endDate": "2029-02-28"
+   },
+   "lastRow": "2029-02-28",
+   "lastPayment": {
+    "years": 1,
+    "months": 0
+   },
+   "endDate": {
+    "years": 1,
+    "months": 0
+   },
+   "lastPaymentText": "1 year",
+   "endDateText": "1 year",
+   "choice": false
+  },
+  {
+   "id": "BV-18",
+   "name": "non-leap Feb 28 start to leap Feb 28",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2027-02-28",
+    "firstPaymentDate": "2028-02-21",
+    "endDate": "2028-02-28"
+   },
+   "lastRow": "2028-02-28",
+   "lastPayment": {
+    "years": 1,
+    "months": 0
+   },
+   "endDate": {
+    "years": 1,
+    "months": 0
+   },
+   "lastPaymentText": "1 year",
+   "endDateText": "1 year",
+   "choice": false
+  },
+  {
+   "id": "BV-19",
+   "name": "non-leap Feb 28 start to leap Feb 29 (OQ-X)",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2027-02-28",
+    "firstPaymentDate": "2028-02-22",
+    "endDate": "2028-02-29"
+   },
+   "lastRow": "2028-02-29",
+   "lastPayment": {
+    "years": 1,
+    "months": 0
+   },
+   "endDate": {
+    "years": 1,
+    "months": 0
+   },
+   "lastPaymentText": "1 year",
+   "endDateText": "1 year",
+   "choice": false
+  },
+  {
+   "id": "BV-20",
+   "name": "non-leap Feb 28 start to Mar 1",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2027-02-28",
+    "firstPaymentDate": "2028-02-23",
+    "endDate": "2028-03-01"
+   },
+   "lastRow": "2028-03-01",
+   "lastPayment": {
+    "years": 1,
+    "months": 1
+   },
+   "endDate": {
+    "years": 1,
+    "months": 1
+   },
+   "lastPaymentText": "1 year, 1 month",
+   "endDateText": "1 year, 1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-21",
+   "name": "Jan 31 start to Feb 28",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2026-01-31",
+    "firstPaymentDate": "2026-02-21",
+    "endDate": "2026-02-28"
+   },
+   "lastRow": "2026-02-28",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-22",
+   "name": "Jan 31 start to Mar 1",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2026-01-31",
+    "firstPaymentDate": "2026-02-22",
+    "endDate": "2026-03-01"
+   },
+   "lastRow": "2026-03-01",
+   "lastPayment": {
+    "years": 0,
+    "months": 2
+   },
+   "endDate": {
+    "years": 0,
+    "months": 2
+   },
+   "lastPaymentText": "2 months",
+   "endDateText": "2 months",
+   "choice": false
+  },
+  {
+   "id": "BV-23",
+   "name": "Jan 30 start clamped to Feb 28",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2026-01-30",
+    "firstPaymentDate": "2026-02-21",
+    "endDate": "2026-02-28"
+   },
+   "lastRow": "2026-02-28",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-24",
+   "name": "Jan 30 start, day 30 restored",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2026-01-30",
+    "firstPaymentDate": "2026-03-23",
+    "endDate": "2026-03-30"
+   },
+   "lastRow": "2026-03-30",
+   "lastPayment": {
+    "years": 0,
+    "months": 2
+   },
+   "endDate": {
+    "years": 0,
+    "months": 2
+   },
+   "lastPaymentText": "2 months",
+   "endDateText": "2 months",
+   "choice": false
+  },
+  {
+   "id": "BV-25",
+   "name": "Apr 30 start to May 30 (OQ-X)",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2026-04-30",
+    "firstPaymentDate": "2026-05-23",
+    "endDate": "2026-05-30"
+   },
+   "lastRow": "2026-05-30",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-26",
+   "name": "Apr 30 start to May 31",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2026-04-30",
+    "firstPaymentDate": "2026-05-24",
+    "endDate": "2026-05-31"
+   },
+   "lastRow": "2026-05-31",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-27",
+   "name": "Apr 30 start to Jun 1",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2026-04-30",
+    "firstPaymentDate": "2026-05-25",
+    "endDate": "2026-06-01"
+   },
+   "lastRow": "2026-06-01",
+   "lastPayment": {
+    "years": 0,
+    "months": 2
+   },
+   "endDate": {
+    "years": 0,
+    "months": 2
+   },
+   "lastPaymentText": "2 months",
+   "endDateText": "2 months",
+   "choice": false
+  },
+  {
+   "id": "BV-28a",
+   "name": "Mar 31 start to Apr 30",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2026-03-31",
+    "firstPaymentDate": "2026-04-23",
+    "endDate": "2026-04-30"
+   },
+   "lastRow": "2026-04-30",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-28b",
+   "name": "Mar 31 start to May 1",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "disbursalDate": "2026-03-31",
+    "firstPaymentDate": "2026-04-24",
+    "endDate": "2026-05-01"
+   },
+   "lastRow": "2026-05-01",
+   "lastPayment": {
+    "years": 0,
+    "months": 2
+   },
+   "endDate": {
+    "years": 0,
+    "months": 2
+   },
+   "lastPaymentText": "2 months",
+   "endDateText": "2 months",
+   "choice": false
+  },
+  {
+   "id": "BV-29",
+   "name": "month-end start, Renewal, monthly",
+   "source": "ba",
+   "base": "R",
+   "changes": {
+    "renewalDate": "2026-01-31",
+    "firstPaymentDate": "2026-02-28",
+    "endDate": "2027-02-28"
+   },
+   "lastRow": "2027-02-28",
+   "lastPayment": {
+    "years": 1,
+    "months": 1
+   },
+   "endDate": {
+    "years": 1,
+    "months": 1
+   },
+   "lastPaymentText": "1 year, 1 month",
+   "endDateText": "1 year, 1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-30",
+   "name": "REF (End 2029-03-17)",
+   "source": "ba",
+   "base": "REF",
+   "changes": {},
+   "lastRow": "2029-03-12",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years",
+   "choice": false
+  },
+  {
+   "id": "BV-31",
+   "name": "smallest flip: REF End 2029-03-18",
+   "source": "ba",
+   "base": "REF",
+   "changes": {
+    "endDate": "2029-03-18"
+   },
+   "lastRow": "2029-03-12",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-32",
+   "name": "user example 1",
+   "source": "ba",
+   "base": "REF",
+   "changes": {
+    "endDate": "2029-03-16"
+   },
+   "lastRow": "2029-03-12",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years",
+   "choice": false
+  },
+  {
+   "id": "BV-33",
+   "name": "user example 3",
+   "source": "ba",
+   "base": "REF",
+   "changes": {
+    "endDate": "2028-09-11"
+   },
+   "lastRow": "2028-09-11",
+   "lastPayment": {
+    "years": 2,
+    "months": 6
+   },
+   "endDate": {
+    "years": 2,
+    "months": 6
+   },
+   "lastPaymentText": "2 years, 6 months",
+   "endDateText": "2 years, 6 months",
+   "choice": false
+  },
+  {
+   "id": "BV-34",
+   "name": "weekly 1-day gap agrees",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "firstPaymentDate": "2026-01-22",
+    "endDate": "2027-01-15"
+   },
+   "lastRow": "2027-01-14",
+   "lastPayment": {
+    "years": 1,
+    "months": 0
+   },
+   "endDate": {
+    "years": 1,
+    "months": 0
+   },
+   "lastPaymentText": "1 year",
+   "endDateText": "1 year",
+   "choice": false
+  },
+  {
+   "id": "BV-35",
+   "name": "weekly 2-day gap flips",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "firstPaymentDate": "2026-01-22",
+    "endDate": "2027-01-16"
+   },
+   "lastRow": "2027-01-14",
+   "lastPayment": {
+    "years": 1,
+    "months": 0
+   },
+   "endDate": {
+    "years": 1,
+    "months": 1
+   },
+   "lastPaymentText": "1 year",
+   "endDateText": "1 year, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-36",
+   "name": "bi-weekly agree",
+   "source": "ba",
+   "base": "B",
+   "changes": {
+    "firstPaymentDate": "2026-01-29",
+    "endDate": "2027-01-15"
+   },
+   "lastRow": "2027-01-14",
+   "lastPayment": {
+    "years": 1,
+    "months": 0
+   },
+   "endDate": {
+    "years": 1,
+    "months": 0
+   },
+   "lastPaymentText": "1 year",
+   "endDateText": "1 year",
+   "choice": false
+  },
+  {
+   "id": "BV-37",
+   "name": "bi-weekly differ",
+   "source": "ba",
+   "base": "B",
+   "changes": {
+    "firstPaymentDate": "2026-01-29",
+    "endDate": "2027-01-16"
+   },
+   "lastRow": "2027-01-14",
+   "lastPayment": {
+    "years": 1,
+    "months": 0
+   },
+   "endDate": {
+    "years": 1,
+    "months": 1
+   },
+   "lastPaymentText": "1 year",
+   "endDateText": "1 year, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-38",
+   "name": "semi-monthly, End on month-end payment",
+   "source": "ba",
+   "base": "S",
+   "changes": {
+    "disbursalDate": "2027-01-01",
+    "firstPaymentDate": "2027-01-15",
+    "endDate": "2027-06-30"
+   },
+   "lastRow": "2027-06-30",
+   "lastPayment": {
+    "years": 0,
+    "months": 6
+   },
+   "endDate": {
+    "years": 0,
+    "months": 6
+   },
+   "lastPaymentText": "6 months",
+   "endDateText": "6 months",
+   "choice": false
+  },
+  {
+   "id": "BV-39",
+   "name": "semi-monthly, End +1 day agrees",
+   "source": "ba",
+   "base": "S",
+   "changes": {
+    "disbursalDate": "2027-01-01",
+    "firstPaymentDate": "2027-01-15",
+    "endDate": "2027-07-01"
+   },
+   "lastRow": "2027-06-30",
+   "lastPayment": {
+    "years": 0,
+    "months": 6
+   },
+   "endDate": {
+    "years": 0,
+    "months": 6
+   },
+   "lastPaymentText": "6 months",
+   "endDateText": "6 months",
+   "choice": false
+  },
+  {
+   "id": "BV-40",
+   "name": "semi-monthly, End +2 days flips",
+   "source": "ba",
+   "base": "S",
+   "changes": {
+    "disbursalDate": "2027-01-01",
+    "firstPaymentDate": "2027-01-15",
+    "endDate": "2027-07-02"
+   },
+   "lastRow": "2027-06-30",
+   "lastPayment": {
+    "years": 0,
+    "months": 6
+   },
+   "endDate": {
+    "years": 0,
+    "months": 7
+   },
+   "lastPaymentText": "6 months",
+   "endDateText": "7 months",
+   "choice": true
+  },
+  {
+   "id": "BV-41",
+   "name": "monthly, End between payments",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "endDate": "2029-01-20"
+   },
+   "lastRow": "2029-01-15",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-42",
+   "name": "monthly, End the day before the next payment",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "endDate": "2029-02-14"
+   },
+   "lastRow": "2029-01-15",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-43",
+   "name": "monthly, 29-day gap still agrees",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "firstPaymentDate": "2026-02-16",
+    "endDate": "2029-02-14"
+   },
+   "lastRow": "2029-01-16",
+   "lastPayment": {
+    "years": 3,
+    "months": 1
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years, 1 month",
+   "endDateText": "3 years, 1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-44",
+   "name": "monthly, both under a whole year, agree",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "firstPaymentDate": "2026-02-10",
+    "endDate": "2029-01-14"
+   },
+   "lastRow": "2029-01-10",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years",
+   "choice": false
+  },
+  {
+   "id": "BV-45a",
+   "name": "accelerated weekly as BV-35",
+   "source": "ba",
+   "base": "W",
+   "changes": {
+    "paymentFrequency": "acceleratedWeekly",
+    "firstPaymentDate": "2026-01-22",
+    "endDate": "2027-01-16"
+   },
+   "lastRow": "2027-01-14",
+   "lastPayment": {
+    "years": 1,
+    "months": 0
+   },
+   "endDate": {
+    "years": 1,
+    "months": 1
+   },
+   "lastPaymentText": "1 year",
+   "endDateText": "1 year, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-45b",
+   "name": "accelerated bi-weekly as BV-37",
+   "source": "ba",
+   "base": "B",
+   "changes": {
+    "paymentFrequency": "acceleratedBiweekly",
+    "firstPaymentDate": "2026-01-29",
+    "endDate": "2027-01-16"
+   },
+   "lastRow": "2027-01-14",
+   "lastPayment": {
+    "years": 1,
+    "months": 0
+   },
+   "endDate": {
+    "years": 1,
+    "months": 1
+   },
+   "lastPaymentText": "1 year",
+   "endDateText": "1 year, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-46",
+   "name": "early payoff (PL_WEEKLY)",
+   "source": "ba",
+   "base": "PL_WEEKLY",
+   "changes": {},
+   "lastRow": "2029-01-30",
+   "lastPayment": {
+    "years": 2,
+    "months": 11
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "2 years, 11 months",
+   "endDateText": "3 years",
+   "choice": true
+  },
+  {
+   "id": "BV-47",
+   "name": "early payoff, variable",
+   "source": "ba",
+   "base": "B24",
+   "changes": {
+    "loanAmount": 10000,
+    "paymentAmount": 2000,
+    "endDate": "2030-01-01"
+   },
+   "lastRow": "2027-07-01",
+   "lastPayment": {
+    "years": 0,
+    "months": 6
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "6 months",
+   "endDateText": "3 years",
+   "choice": true
+  },
+  {
+   "id": "BV-48",
+   "name": "payoff on the first row",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "loanAmount": 1000,
+    "paymentAmount": 2000,
+    "endDate": "2027-01-15"
+   },
+   "lastRow": "2026-02-15",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 1,
+    "months": 0
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 year",
+   "choice": true
+  },
+  {
+   "id": "BV-49",
+   "name": "short term 27 days vs 1m 1d",
+   "source": "ba",
+   "base": "REF",
+   "changes": {
+    "endDate": "2026-04-18"
+   },
+   "lastRow": "2026-04-13",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 2
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "2 months",
+   "choice": true
+  },
+  {
+   "id": "BV-50",
+   "name": "one row, sub-month, agree",
+   "source": "ba",
+   "base": "REF",
+   "changes": {
+    "endDate": "2026-03-24"
+   },
+   "lastRow": "2026-03-23",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-51",
+   "name": "New: from the Disbursal date, not the Renewal date field",
+   "source": "ba",
+   "base": "REF",
+   "changes": {},
+   "lastRow": "2029-03-12",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years",
+   "choice": false
+  },
+  {
+   "id": "BV-52a",
+   "name": "Renewal: from the Renewal date (Disbursal field 2020-06-01)",
+   "source": "ba",
+   "base": "R",
+   "changes": {
+    "renewalDate": "2026-01-15",
+    "firstPaymentDate": "2026-02-15",
+    "endDate": "2029-01-20"
+   },
+   "lastRow": "2029-01-15",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-52b",
+   "name": "Renewal: same with Disbursal field 2026-02-01",
+   "source": "ba",
+   "base": "R",
+   "changes": {
+    "renewalDate": "2026-01-15",
+    "disbursalDate": "2026-02-01",
+    "firstPaymentDate": "2026-02-15",
+    "endDate": "2029-01-20"
+   },
+   "lastRow": "2029-01-15",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-53",
+   "name": "Payment change: from the Date of change",
+   "source": "ba",
+   "base": "R",
+   "changes": {
+    "flow": "paymentChange",
+    "renewalDate": "2026-01-15",
+    "firstPaymentDate": "2026-02-15",
+    "endDate": "2029-01-20"
+   },
+   "lastRow": "2029-01-15",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-54",
+   "name": "Payment change, DEC-B32 example",
+   "source": "ba",
+   "base": "PC",
+   "changes": {},
+   "lastRow": "2029-03-15",
+   "lastPayment": {
+    "years": 3,
+    "months": 1
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years, 1 month",
+   "endDateText": "3 years, 1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-55",
+   "name": "Payment change, End 2029-03-31",
+   "source": "ba",
+   "base": "PC",
+   "changes": {
+    "endDate": "2029-03-31"
+   },
+   "lastRow": "2029-03-15",
+   "lastPayment": {
+    "years": 3,
+    "months": 1
+   },
+   "endDate": {
+    "years": 3,
+    "months": 2
+   },
+   "lastPaymentText": "3 years, 1 month",
+   "endDateText": "3 years, 2 months",
+   "choice": true
+  },
+  {
+   "id": "BV-56",
+   "name": "hidden VRPC (engine only)",
+   "source": "ba",
+   "base": "R",
+   "changes": {
+    "flow": "variableRatePaymentChange",
+    "rateType": "variable",
+    "renewalDate": "2026-01-15",
+    "firstPaymentDate": "2026-02-15",
+    "endDate": "2029-01-20"
+   },
+   "lastRow": "2029-01-15",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-57",
+   "name": "VRPC capture",
+   "source": "ba",
+   "base": "VRPC",
+   "changes": {},
+   "lastRow": "2031-06-06",
+   "lastPayment": {
+    "years": 5,
+    "months": 0
+   },
+   "endDate": {
+    "years": 5,
+    "months": 0
+   },
+   "lastPaymentText": "5 years",
+   "endDateText": "5 years",
+   "choice": false
+  },
+  {
+   "id": "BV-58",
+   "name": "Renewal with a personal loan",
+   "source": "ba",
+   "base": "R",
+   "changes": {
+    "productType": "personalLoan",
+    "renewalDate": "2026-01-15",
+    "firstPaymentDate": "2026-02-15",
+    "endDate": "2029-01-20"
+   },
+   "lastRow": "2029-01-15",
+   "lastPayment": {
+    "years": 3,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 1
+   },
+   "lastPaymentText": "3 years",
+   "endDateText": "3 years, 1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-59",
+   "name": "F17 S1 semi-monthly move",
+   "source": "ba",
+   "base": "S",
+   "changes": {
+    "disbursalDate": "2027-01-01",
+    "firstPaymentDate": "2027-01-10",
+    "endDate": "2029-01-15"
+   },
+   "lastRow": "2029-01-15",
+   "lastPayment": {
+    "years": 2,
+    "months": 1
+   },
+   "endDate": {
+    "years": 2,
+    "months": 1
+   },
+   "lastPaymentText": "2 years, 1 month",
+   "endDateText": "2 years, 1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-60",
+   "name": "start after typed first, before moved first",
+   "source": "ba",
+   "base": "S",
+   "changes": {
+    "disbursalDate": "2027-01-12",
+    "firstPaymentDate": "2027-01-10",
+    "endDate": "2027-07-12"
+   },
+   "lastRow": "2027-06-30",
+   "lastPayment": {
+    "years": 0,
+    "months": 6
+   },
+   "endDate": {
+    "years": 0,
+    "months": 6
+   },
+   "lastPaymentText": "6 months",
+   "endDateText": "6 months",
+   "choice": false
+  },
+  {
+   "id": "BV-61",
+   "name": "start = moved first: option 1 zero",
+   "source": "ba",
+   "base": "S",
+   "changes": {
+    "disbursalDate": "2027-01-15",
+    "firstPaymentDate": "2027-01-10",
+    "endDate": "2027-01-16"
+   },
+   "lastRow": "2027-01-15",
+   "lastPayment": {
+    "years": 0,
+    "months": 0
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "0 months",
+   "endDateText": "1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-63",
+   "name": "End = moved first + 1 day",
+   "source": "ba",
+   "base": "S",
+   "changes": {
+    "disbursalDate": "2027-01-01",
+    "firstPaymentDate": "2027-01-10",
+    "endDate": "2027-01-16"
+   },
+   "lastRow": "2027-01-15",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "1 month",
+   "choice": false
+  },
+  {
+   "id": "BV-65",
+   "name": "same-day start",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "disbursalDate": "2027-01-01",
+    "firstPaymentDate": "2027-01-01",
+    "endDate": "2027-01-02"
+   },
+   "lastRow": "2027-01-01",
+   "lastPayment": {
+    "years": 0,
+    "months": 0
+   },
+   "endDate": {
+    "years": 0,
+    "months": 1
+   },
+   "lastPaymentText": "0 months",
+   "endDateText": "1 month",
+   "choice": true
+  },
+  {
+   "id": "BV-66",
+   "name": "same-day start with payoff",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "loanAmount": 1000,
+    "paymentAmount": 2000,
+    "disbursalDate": "2027-01-01",
+    "firstPaymentDate": "2027-01-01",
+    "endDate": "2030-01-01"
+   },
+   "lastRow": "2027-01-01",
+   "lastPayment": {
+    "years": 0,
+    "months": 0
+   },
+   "endDate": {
+    "years": 3,
+    "months": 0
+   },
+   "lastPaymentText": "0 months",
+   "endDateText": "3 years",
+   "choice": true
+  },
+  {
+   "id": "BV-67",
+   "name": "smallest valid End (first + 1 day)",
+   "source": "ba",
+   "base": "M",
+   "changes": {
+    "endDate": "2026-02-16"
+   },
+   "lastRow": "2026-02-15",
+   "lastPayment": {
+    "years": 0,
+    "months": 1
+   },
+   "endDate": {
+    "years": 0,
+    "months": 2
+   },
+   "lastPaymentText": "1 month",
+   "endDateText": "2 months",
+   "choice": true
+  }
+ ],
+ "rejected": [
+  {
+   "id": "BV-62",
+   "base": "S",
+   "changes": {
+    "disbursalDate": "2027-01-01",
+    "firstPaymentDate": "2027-01-10",
+    "endDate": "2027-01-15"
+   },
+   "message": "endDate must be after firstPaymentDate (moved to 2027-01-15 for semi-monthly payments; compared as UTC calendar dates)"
+  },
+  {
+   "id": "BV-64",
+   "base": "S",
+   "changes": {
+    "disbursalDate": "2027-01-16",
+    "firstPaymentDate": "2027-01-10",
+    "endDate": "2027-03-01"
+   },
+   "message": "disbursalDate must be on or before firstPaymentDate"
+  },
+  {
+   "id": "BV-68",
+   "base": "M",
+   "changes": {
+    "endDate": "2026-02-15"
+   },
+   "message": "endDate must be after firstPaymentDate (compared as UTC calendar dates)"
+  },
+  {
+   "id": "BV-69",
+   "base": "M",
+   "changes": {
+    "endDate": "2026-01-10"
+   },
+   "message": "endDate must be after firstPaymentDate (compared as UTC calendar dates)"
+  },
+  {
+   "id": "BV-70",
+   "base": "M",
+   "changes": {
+    "disbursalDate": "2026-02-16",
+    "endDate": "2029-01-15"
+   },
+   "message": "disbursalDate must be on or before firstPaymentDate"
+  },
+  {
+   "id": "BV-72a",
+   "base": "M",
+   "changes": {
+    "disbursalDate": null,
+    "endDate": "2029-01-15"
+   },
+   "message": "flow 'newMortgageOrLoan' requires disbursalDate"
+  },
+  {
+   "id": "BV-72b",
+   "base": "R",
+   "changes": {
+    "renewalDate": null,
+    "endDate": "2029-01-15"
+   },
+   "message": "flow 'renewal' requires renewalDate"
+  },
+  {
+   "id": "BV-73",
+   "base": "M",
+   "changes": {
+    "endDate": "invalid"
+   },
+   "message": "endDate must be a valid Date"
+  },
+  {
+   "id": "BV-74",
+   "base": "R",
+   "changes": {
+    "renewalDate": "2026-01-15",
+    "accruedInterest": null,
+    "endDate": "2029-01-15"
+   },
+   "message": "flow 'renewal' requires accruedInterest (enter 0 if there is none)"
+  }
+ ]
+}

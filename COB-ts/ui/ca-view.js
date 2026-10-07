@@ -219,17 +219,48 @@ function plural(n, unit) {
 }
 
 // ["2 years", "11 months", "17 days"]: the unit is singular only for 1; zero parts are always shown.
+// Y/M/D form; not shown on the page since B34 (DEC-B34-TERM).
 export function contractTermParts(term) {
   return [plural(term.years, 'year'), plural(term.months, 'month'), plural(term.days, 'day')];
 }
 
+// Y/M/D form; not shown on the page since B34 (DEC-B34-TERM).
 export function contractTermText(term) {
   return contractTermParts(term).join(', ');
 }
 
+// B34 (DEC-B34-TERM): a term in whole years and months. Zero parts are left out ("3 years", "11 months");
+// a zero term reads "0 months". The unit is singular only for 1.
+export function contractTermMonthsParts(term) {
+  if (term.years === 0) return [plural(term.months, 'month')];
+  return term.months === 0 ? [plural(term.years, 'year')] : [plural(term.years, 'year'), plural(term.months, 'month')];
+}
+
+// B34 (DEC-B34-TERM): which term the page shows. The pick is a rule, kept as given: 'lastPayment' only when
+// `selected` is exactly that string; anything else is the End date rule (the default). Equal values
+// (compared in months): no choice is offered and the text is the same under either rule.
+// Different: the two radio options, End date first (Q-B34-ORDER, Q-B34-TEXT; revision 53).
+export function contractTermChoice(options, selected) {
+  const months = (t) => 12 * t.years + t.months;
+  const same = months(options.lastPayment) === months(options.endDate);
+  const basis = selected === 'lastPayment' ? 'lastPayment' : 'endDate';
+  const parts = contractTermMonthsParts(options[basis]);
+  const text = (t) => contractTermMonthsParts(t).join(', ');
+  return {
+    basis,
+    parts,
+    text: parts.join(', '),
+    choices: same ? null : [
+      { value: 'endDate', label: `Start date to end date: ${text(options.endDate)}`, checked: basis === 'endDate' },
+      { value: 'lastPayment', label: `Start date to final payment: ${text(options.lastPayment)}`, checked: basis === 'lastPayment' },
+    ],
+  };
+}
+
 // Hint under the read-only Contract term field (interim wording, Q-MSG); the label is the flow's start date label, lower-cased (DEC-B32-TERM).
+// B34 (DEC-B34-TERM): names the start date (DEC-B32-TERM (2)); no end point, because it depends on the choice.
 export function contractTermHint(startDateLabel) {
-  return `Calculated from the ${startDateLabel} to the last scheduled payment date.`;
+  return `From the ${startDateLabel}; part months count as a full month.`;
 }
 
 // Note shown when the engine moved the first payment date (semi-monthly: the 15th and month-end); '' when it did not.

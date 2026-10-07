@@ -172,7 +172,9 @@ describe('B22-INV-screen: what Chrome showed per flow (capture fixture flowScree
       // B24-R6: the capture also records the hint under the read-only Contract term field (key order: after the accrued hint).
       // B32 (DEC-B32-TERM): the hint names the start date (was the first payment date), and the capture records the
       // field's label as termLabel right after termHint.
-      want.termHint = `Calculated from the ${t.startDate.toLowerCase()} to the last scheduled payment date.`;
+      // B34 (DEC-B34-TERM, revision 53): re-baselined; the hint names the start date only (interim, Q-MSG). Red until the
+      // capture is regenerated (R8b approval).
+      want.termHint = `From the ${t.startDate.toLowerCase()}; part months count as a full month.`;
       want.termLabel = (t as unknown as Record<string, string>)['contractTerm']!;
       expect(cap.flowScreens?.[flow]).toStrictEqual(want);
     });

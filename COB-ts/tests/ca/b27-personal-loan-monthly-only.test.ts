@@ -424,7 +424,8 @@ describe('B27-T11 (B33) the Chrome scripts do not drive a disabled select and as
 
   it('capture_a10_ui.mjs appends PL_WEEKLY last (personal loan, fixed, weekly) with its expected Contract term', () => {
     expect(capture).toMatch(/id: 'PL_WEEKLY',[^\n]*\n\s*selects: \{ flow: 'newMortgageOrLoan', productType: 'personalLoan', rateType: 'fixed', paymentFrequency: 'weekly' \}/);
-    expect(capture).toContain("PL_WEEKLY: '2 years, 10 months, 13 days'");
+    // B34 (DEC-B34-TERM, R8b): re-baselined; the expected field text is the End date rule in whole years and months (was 2 years, 10 months, 13 days).
+    expect(capture).toContain("PL_WEEKLY: '3 years'");
     expect(capture.indexOf("id: 'PL_WEEKLY'")).toBeGreaterThan(capture.indexOf("id: 'ERR_blank_rate'"));
   });
 
@@ -436,7 +437,9 @@ describe('B27-T11 (B33) the Chrome scripts do not drive a disabled select and as
     // strings only, the personal-loan inputs unchanged); sha ac76408a... -> 9877c0c6....
     // Re-pinned 2026-10-05 by QA (B33 verify, DEC-B33-FREQ): capture regenerated (approved; scenario PL_WEEKLY appended,
     // the six earlier scenarios unchanged); sha 9877c0c6... -> 4d5a64c1....
-    expect(sha256(fixture)).toBe('4d5a64c1978424b777ea99580f9cbf52659f983ef7c820da268c38e8d88ea575');
+    // Re-pinned 2026-10-06 by QA (B34 verify, DEC-B34-TERM): capture regenerated (user approved Q-B34-FIX; term hint x4,
+    // term value strings for 5 scenarios, new key contractTermChoice, nothing else); sha 4d5a64c1... -> 9577121c....
+    expect(sha256(fixture)).toBe('9577121c47faad12823be463d7ca84ebee7bc41cd59c73b730807b2b2a62cdeb');
     expect(capture).toMatch(/productType: 'personalLoan', rateType: 'variable', paymentFrequency: 'monthly'/);
   });
 

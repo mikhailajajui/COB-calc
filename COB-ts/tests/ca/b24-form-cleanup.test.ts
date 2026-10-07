@@ -72,12 +72,13 @@ describe('B24-T6 contractTermParts / contractTermText (B24-R6)', () => {
 });
 
 // B32 (DEC-B32-TERM): the hint names the flow's START date (was the first payment date label).
-describe('B24-T6 contractTermHint (B24-R6, interim wording Q-MSG; start label B32) per flow', () => {
+// B34 (DEC-B34-TERM, revision 53): re-baselined to "From the {start date}; part months count as a full month." (interim, Q-MSG).
+describe('B24-T6 contractTermHint (B24-R6, interim wording Q-MSG; start label B32; text B34) per flow', () => {
   it.each([
-    ['newMortgageOrLoan', 'Calculated from the disbursal date to the last scheduled payment date.'],
-    ['renewal', 'Calculated from the renewal date to the last scheduled payment date.'],
-    ['paymentChange', 'Calculated from the date of change to the last scheduled payment date.'],
-    ['variableRatePaymentChange', 'Calculated from the date of change to the last scheduled payment date.'],
+    ['newMortgageOrLoan', 'From the disbursal date; part months count as a full month.'],
+    ['renewal', 'From the renewal date; part months count as a full month.'],
+    ['paymentChange', 'From the date of change; part months count as a full month.'],
+    ['variableRatePaymentChange', 'From the date of change; part months count as a full month.'],
   ] as const)('%s: "%s" (label = flowLabels(...).startDate, lower-cased)', async (flow, want) => {
     const v = await loadView();
     const label = v.flowLabels(flow, ca.FLOWS[flow]).startDate.toLowerCase();
@@ -86,7 +87,7 @@ describe('B24-T6 contractTermHint (B24-R6, interim wording Q-MSG; start label B3
 
   it('the hint is built from the label passed in (a literal "first payment date" for every flow would be wrong)', async () => {
     const v = await loadView();
-    expect(v.contractTermHint('some label')).toBe('Calculated from the some label to the last scheduled payment date.');
+    expect(v.contractTermHint('some label')).toBe('From the some label; part months count as a full month.'); // B34 (DEC-B34-TERM)
   });
 });
 
@@ -198,20 +199,22 @@ describe('B24-T6 ui/ca.js (static)', () => {
     expect(src).not.toMatch(/\btermMonths\b/);
   });
 
-  it('imports contractTerm from the barrel /dist/ca/index.js only (F2)', () => {
+  // B34 (DEC-B34-TERM): re-baselined; the page imports contractTermOptions (B34-R5) instead of contractTerm.
+  it('imports contractTermOptions from the barrel /dist/ca/index.js only (F2)', () => {
     const src = code('ui/ca.js');
     const imports = [...src.matchAll(/import\s*\{([^}]*)\}\s*from\s*'([^']+)'/g)];
     const fromBarrel = imports.filter((m) => m[2] === '/dist/ca/index.js').flatMap((m) => m[1]!.split(',').map((x) => x.trim()));
-    expect(fromBarrel).toContain('contractTerm');
+    expect(fromBarrel).toContain('contractTermOptions');
     for (const m of imports) expect(['/dist/ca/index.js', '/ui/ca-view.js', './ca-view.js']).toContain(m[2]);
   });
 
-  it('fills the field after a successful calculation: contractTermText(contractTerm(input, result)) is written to a #contractTerm element', () => {
+  // B34 (DEC-B34-TERM): re-baselined; the text is the picked rule's value, contractTermChoice(contractTermOptions(input, result), pick).text (B34-R5).
+  it('fills the field after a successful calculation: contractTermChoice(contractTermOptions(input, result), ...) is written to a #contractTerm element', () => {
     const src = code('ui/ca.js');
     expect(src).toMatch(/getElementById\('contractTerm'\)/);
-    // the text is built from contractTerm(input, result) by contractTermText, and written to the field (directly or through a variable)
-    // B32 (DEC-B32-TERM): two-argument call (B32-R1, R6); was contractTerm(result).
-    expect(src).toMatch(/contractTermText\(\s*contractTerm\(\s*input\s*,\s*result\s*\)\s*\)/);
+    // the text is built from contractTermOptions(input, result) by contractTermChoice, and written to the field (directly or through a variable)
+    // B32 (DEC-B32-TERM): two-argument call (B32-R1, R6); was contractTerm(result). B34: contractTermOptions (was contractTermText(contractTerm(...))).
+    expect(src).toMatch(/contractTermChoice\(\s*contractTermOptions\(\s*input\s*,\s*result\s*\)\s*,/);
     expect(src).toMatch(/\b\w*[cC]ontractTerm\w*\.value\s*=\s*[^'";\s]/);
   });
 
@@ -223,8 +226,8 @@ describe('B24-T6 ui/ca.js (static)', () => {
     expect(catchAt).toBeGreaterThan(0);
     const catchBody = tail.slice(catchAt, tail.indexOf('\n}\n', catchAt));
     expect(catchBody).toMatch(/\b\w*[cC]ontractTerm\w*\.value\s*=\s*(''|"")/);
-    // and the success branch (before the catch) sets it
-    expect(tail.slice(0, catchAt)).toMatch(/contractTermText\(/);
+    // and the success branch (before the catch) sets it. B34 (DEC-B34-TERM): from contractTermChoice (was contractTermText).
+    expect(tail.slice(0, catchAt)).toMatch(/contractTermChoice\(/);
   });
 
   it('passes the same text to printInputRows (a required third argument) and to renderContractTerms', () => {
@@ -268,10 +271,11 @@ describe('B24-T6 ui/ca.js (static)', () => {
   });
 
   // B32 (DEC-B32-TERM): the tile label comes from texts.contractTerm (per flow); ca.js holds no 'Contract term' literal (B32-R6).
-  it('the tile takes its label from texts.contractTerm and uses contractTermParts with a non-breaking space in each part', () => {
+  // B34 (DEC-B34-TERM): re-baselined; the tile takes the choice's parts (B34-R5 termParts), no longer contractTermParts.
+  it('the tile takes its label from texts.contractTerm and the picked rule\'s parts with a non-breaking space in each part', () => {
     const src = code('ui/ca.js');
-    expect(src).toMatch(/\[\s*texts\.contractTerm\s*,\s*contractTermParts\(/);
-    expect(src).toMatch(/contractTermParts\(/);
+    expect(src).toMatch(/\[\s*texts\.contractTerm\s*,\s*termParts\.map\(noBreak\)/);
+    expect(src).not.toMatch(/contractTermParts\(/);
     expect(src).toMatch(/\\u00a0|&nbsp;/);
   });
 

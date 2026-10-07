@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-I57EM95yf6qbt8SiCYyDsZmy2XGT7JWTY+3AxYWgNyQ='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-M1XO3CM985AZk1vBcnvVlJlfJX7yLqKr9KIjvNCnXbs='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
 <title>Cost of Borrowing Calculator | Alterna Savings</title>
 <style>
   :root {
@@ -430,6 +430,10 @@
     .column-toggle { display: flex; align-items: center; gap: 12px; }
     .column-toggle .choice-legend { float: left; margin: 0 12px 0 0; }
     .column-toggle .choice-options { flex-direction: row; }
+    #contractTermChoice[hidden] { display: none; }
+    .term-choice { margin-top: 8px; }
+    .term-choice .choice-options { flex-direction: column; gap: 4px; }
+    .field .term-choice .choice { display: inline-flex; margin-bottom: 0; font-weight: 400; }
 
     .schedule-scroll {
       max-height: 70vh;
@@ -645,7 +649,7 @@
       <div class="field">
         <label for="paymentAmount">Payment amount ($)</label>
         <input type="text" inputmode="decimal" autocomplete="off" data-money id="paymentAmount" value="465.46" aria-describedby="paymentAmount-hint" />
-        <span class="hint" id="paymentAmount-hint">The scheduled payment. It isn't calculated here.</span>
+        <span class="hint" id="paymentAmount-hint">The scheduled payment.</span>
       </div>
       <div class="field">
         <label for="paymentFrequency">Payment frequency</label>
@@ -672,6 +676,19 @@
         <label for="contractTerm" id="contractTerm-label">Contract term</label>
         <input type="text" id="contractTerm" readonly aria-describedby="contractTerm-hint" />
         <span class="hint" id="contractTerm-hint"></span>
+        <fieldset class="choice-group term-choice" id="contractTermChoice" aria-describedby="contractTerm-hint" hidden>
+          <legend class="choice-legend">Term based on</legend>
+          <div class="choice-options">
+            <label for="contractTermBasis-endDate" class="choice">
+              <input type="radio" id="contractTermBasis-endDate" name="contractTermBasis" value="endDate" autocomplete="off" checked />
+              <span class="choice-label" id="contractTermBasis-endDate-text"></span>
+            </label>
+            <label for="contractTermBasis-lastPayment" class="choice">
+              <input type="radio" id="contractTermBasis-lastPayment" name="contractTermBasis" value="lastPayment" autocomplete="off" />
+              <span class="choice-label" id="contractTermBasis-lastPayment-text"></span>
+            </label>
+          </div>
+        </fieldset>
       </div>
     </div>
 
@@ -779,7 +796,7 @@
     </div>
   </section>
 
-  <footer id="shareFooter">COB Calculator v0.1.0 · built 2026-10-06 · single-file edition, works offline</footer>
+  <footer id="shareFooter">COB Calculator v0.1.0 · built 2026-10-07 · single-file edition, works offline</footer>
 
   <script type="module">
 const __cobModules = {};
@@ -893,6 +910,14 @@ function termBetween(from, to) {
     const days = daysBetween(addMonthsClamped(start, totalMonths), end);
     return { years, months, days };
 }
+/** A term rounded UP to whole months (B34, DEC-B34-TERM): any leftover day counts as a full
+ *  month; no leftover day, no rounding. Display only: calculateCobCanada never calls it.
+ *  Integer arithmetic only (fitness check F4). Expects a term from `termBetween`. */
+function roundUpToWholeMonths(term) {
+    const total = 12 * term.years + term.months + (term.days > 0 ? 1 : 0);
+    const months = total % 12;
+    return { years: (total - months) / 12, months };
+}
 /** Last day of `date`'s UTC month. Equivalent to the macro's
  *  `getNextEOM(DateAdd("d", -1, date))`, the only way getNextSemiMonthly calls it. */
 function endOfUtcMonth(date) {
@@ -968,7 +993,7 @@ function periodDateFor(frequency, firstPaymentDate, index, previousPaymentDate) 
             return index === 0 ? new Date(utcDateOnly(firstPaymentDate)) : nextSemiMonthlyDate(firstPaymentDate, previousPaymentDate);
     }
 }
-return { isLeapYear, utcDateOnly, daysBetween, dayCountFraction, addUtcDays, daysInUtcMonth, isLastDayOfMonth, addMonthsClamped, termBetween, endOfUtcMonth, nextSemiMonthlyDate, effectiveFirstPaymentDate, periodDateFor };
+return { isLeapYear, utcDateOnly, daysBetween, dayCountFraction, addUtcDays, daysInUtcMonth, isLastDayOfMonth, addMonthsClamped, termBetween, roundUpToWholeMonths, endOfUtcMonth, nextSemiMonthlyDate, effectiveFirstPaymentDate, periodDateFor };
 })();
 __cobModules["dist/ca/types.js"] = (() => {
 /**
@@ -1647,7 +1672,7 @@ function collectInputIssues(input) {
 return { validateCobCanadaInput, collectInputIssues };
 })();
 __cobModules["dist/ca/cobCanada.js"] = (() => {
-const { daysBetween, effectiveFirstPaymentDate, periodDateFor, termBetween } = __cobModules["dist/ca/calendar.js"];
+const { daysBetween, effectiveFirstPaymentDate, periodDateFor, roundUpToWholeMonths, termBetween } = __cobModules["dist/ca/calendar.js"];
 const { totalCashFees, totalFinancedFees } = __cobModules["dist/ca/fees.js"];
 const { FLOWS, FLOW_IDS, computesTriggerRate } = __cobModules["dist/ca/flows.js"];
 const { PRINCIPAL_PAID, PRIOR_ACCRUED_IN_COB, PRIOR_ACCRUED_IN_P, P_BASIS, UNPAID_INTEREST_CAPITALISED } = __cobModules["dist/ca/policies.js"];
@@ -1903,7 +1928,26 @@ function contractTerm(input, result) {
     }
     return termBetween(start, last.date);
 }
-return { SHIPPED_SWITCHES, calculateCobCanada, calculateCobCanadaWith, contractTerm };
+/**
+ * The two contract terms of DEC-B34-TERM (B34), both from the flow's start date and rounded up
+ * to whole months: `lastPayment` to the last row of the schedule (contractTerm), `endDate` to
+ * input.endDate. For a pair from calculateCobCanada, endDate >= lastPayment and endDate >= 1 month.
+ * RangeError: every case of contractTerm first (same messages, same order), then an endDate that
+ * is not a valid Date, then an endDate before the start date (termBetween).
+ */
+function contractTermOptions(input, result) {
+    const toLastPayment = contractTerm(input, result);
+    const start = input[FLOWS[input.flow].startDateField];
+    const end = input.endDate;
+    if (!(end instanceof Date) || Number.isNaN(end.getTime())) {
+        throw new RangeError('endDate must be a valid Date');
+    }
+    return {
+        lastPayment: roundUpToWholeMonths(toLastPayment),
+        endDate: roundUpToWholeMonths(termBetween(start, end)),
+    };
+}
+return { SHIPPED_SWITCHES, calculateCobCanada, calculateCobCanadaWith, contractTerm, contractTermOptions };
 })();
 __cobModules["dist/ca/products.js"] = (() => {
 /**
@@ -1939,7 +1983,7 @@ const __re1 = __cobModules["dist/ca/flows.js"];
 const __re2 = __cobModules["dist/ca/types.js"];
 const __re3 = __cobModules["dist/ca/products.js"];
 const __re4 = __cobModules["dist/ca/validate.js"];
-return { calculateCobCanada: __re0.calculateCobCanada, contractTerm: __re0.contractTerm, FLOWS: __re1.FLOWS, requiresSemiAnnualDate: __re1.requiresSemiAnnualDate, PAYMENTS_PER_YEAR: __re2.PAYMENTS_PER_YEAR, allowedPaymentFrequencies: __re3.allowedPaymentFrequencies, collectInputIssues: __re4.collectInputIssues };
+return { calculateCobCanada: __re0.calculateCobCanada, contractTerm: __re0.contractTerm, contractTermOptions: __re0.contractTermOptions, FLOWS: __re1.FLOWS, requiresSemiAnnualDate: __re1.requiresSemiAnnualDate, PAYMENTS_PER_YEAR: __re2.PAYMENTS_PER_YEAR, allowedPaymentFrequencies: __re3.allowedPaymentFrequencies, collectInputIssues: __re4.collectInputIssues };
 })();
 __cobModules["ui/ca-view.js"] = (() => {
 // DOM-free view logic for ui/ca.js (COB-architecture.md §3.1, §5 A10): form strings -> engine
@@ -2163,17 +2207,48 @@ function plural(n, unit) {
 }
 
 // ["2 years", "11 months", "17 days"]: the unit is singular only for 1; zero parts are always shown.
+// Y/M/D form; not shown on the page since B34 (DEC-B34-TERM).
 function contractTermParts(term) {
   return [plural(term.years, 'year'), plural(term.months, 'month'), plural(term.days, 'day')];
 }
 
+// Y/M/D form; not shown on the page since B34 (DEC-B34-TERM).
 function contractTermText(term) {
   return contractTermParts(term).join(', ');
 }
 
+// B34 (DEC-B34-TERM): a term in whole years and months. Zero parts are left out ("3 years", "11 months");
+// a zero term reads "0 months". The unit is singular only for 1.
+function contractTermMonthsParts(term) {
+  if (term.years === 0) return [plural(term.months, 'month')];
+  return term.months === 0 ? [plural(term.years, 'year')] : [plural(term.years, 'year'), plural(term.months, 'month')];
+}
+
+// B34 (DEC-B34-TERM): which term the page shows. The pick is a rule, kept as given: 'lastPayment' only when
+// `selected` is exactly that string; anything else is the End date rule (the default). Equal values
+// (compared in months): no choice is offered and the text is the same under either rule.
+// Different: the two radio options, End date first (Q-B34-ORDER, Q-B34-TEXT; revision 53).
+function contractTermChoice(options, selected) {
+  const months = (t) => 12 * t.years + t.months;
+  const same = months(options.lastPayment) === months(options.endDate);
+  const basis = selected === 'lastPayment' ? 'lastPayment' : 'endDate';
+  const parts = contractTermMonthsParts(options[basis]);
+  const text = (t) => contractTermMonthsParts(t).join(', ');
+  return {
+    basis,
+    parts,
+    text: parts.join(', '),
+    choices: same ? null : [
+      { value: 'endDate', label: `Start date to end date: ${text(options.endDate)}`, checked: basis === 'endDate' },
+      { value: 'lastPayment', label: `Start date to final payment: ${text(options.lastPayment)}`, checked: basis === 'lastPayment' },
+    ],
+  };
+}
+
 // Hint under the read-only Contract term field (interim wording, Q-MSG); the label is the flow's start date label, lower-cased (DEC-B32-TERM).
+// B34 (DEC-B34-TERM): names the start date (DEC-B32-TERM (2)); no end point, because it depends on the choice.
 function contractTermHint(startDateLabel) {
-  return `Calculated from the ${startDateLabel} to the last scheduled payment date.`;
+  return `From the ${startDateLabel}; part months count as a full month.`;
 }
 
 // Note shown when the engine moved the first payment date (semi-monthly: the 15th and month-end); '' when it did not.
@@ -2502,11 +2577,11 @@ function html(nodes) {
   return out;
 }
 
-return { LABELS, label, formatCurrency, formatInputDate, formatRate, isoDay, formatIsoDate, parseAmount, formatAmount, typedMoney, parseMoney, paymentsText, UI_SWITCHES, switchedOut, FEE_KEYS, parseDateInput, numOrUndefined, toInput, flowLabels, contractTermParts, contractTermText, contractTermHint, firstDateMoveNote, printInputRows, printInputNodes, printFeesNodes, headlineFigures, mainFigures, moreFigures, printFigures, figureNodes, COLUMNS, CSV_COLUMNS, COMPACT_KEYS, scheduleTableNodes, scheduleCsv, csvFileName, h, html };
+return { LABELS, label, formatCurrency, formatInputDate, formatRate, isoDay, formatIsoDate, parseAmount, formatAmount, typedMoney, parseMoney, paymentsText, UI_SWITCHES, switchedOut, FEE_KEYS, parseDateInput, numOrUndefined, toInput, flowLabels, contractTermParts, contractTermText, contractTermMonthsParts, contractTermChoice, contractTermHint, firstDateMoveNote, printInputRows, printInputNodes, printFeesNodes, headlineFigures, mainFigures, moreFigures, printFigures, figureNodes, COLUMNS, CSV_COLUMNS, COMPACT_KEYS, scheduleTableNodes, scheduleCsv, csvFileName, h, html };
 })();
 __cobModules["ui/ca.js"] = (() => {
-const { calculateCobCanada, contractTerm, FLOWS, requiresSemiAnnualDate } = __cobModules["dist/ca/index.js"];
-const { contractTermHint, contractTermParts, contractTermText, csvFileName, firstDateMoveNote, isoDay, figureNodes, flowLabels, formatAmount, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures, moreFigures, parseDateInput, paymentsText, printFeesNodes, printFigures, printInputNodes, printInputRows, scheduleCsv, scheduleTableNodes, toInput, switchedOut, UI_SWITCHES } = __cobModules["ui/ca-view.js"];
+const { calculateCobCanada, contractTermOptions, FLOWS, requiresSemiAnnualDate } = __cobModules["dist/ca/index.js"];
+const { contractTermChoice, contractTermHint, csvFileName, firstDateMoveNote, isoDay, figureNodes, flowLabels, formatAmount, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures, moreFigures, parseDateInput, paymentsText, printFeesNodes, printFigures, printInputNodes, printInputRows, scheduleCsv, scheduleTableNodes, toInput, switchedOut, UI_SWITCHES } = __cobModules["ui/ca-view.js"];
 
 // --- element refs ---
 
@@ -2542,6 +2617,11 @@ const endDateEl = document.getElementById('endDate');
 const contractTermEl = document.getElementById('contractTerm');
 const contractTermHintEl = document.getElementById('contractTerm-hint');
 const contractTermLabelEl = document.getElementById('contractTerm-label');
+const contractTermChoiceEl = document.getElementById('contractTermChoice');
+const termBasisLastEl = document.getElementById('contractTermBasis-lastPayment');
+const termBasisEndEl = document.getElementById('contractTermBasis-endDate');
+const termBasisLastTextEl = document.getElementById('contractTermBasis-lastPayment-text');
+const termBasisEndTextEl = document.getElementById('contractTermBasis-endDate-text');
 
 const firstPaymentLabelEl = document.getElementById('firstPaymentDate-label');
 
@@ -2680,7 +2760,7 @@ function selectedText(selectEl) {
 // The terms of the calculation that produced the shown results, as entered, one tile
 // each. Amounts, rates, dates and single words stay on one line (fitTermValues); the
 // flow, product type and contract term may wrap between words.
-function renderContractTerms(input, contractDate, ctx, result) {
+function renderContractTerms(input, contractDate, ctx, termParts) {
   if (contractTermsDateEl) contractTermsDateEl.textContent = contractDate ? formatInputDate(contractDate) : 'no date entered';
 
   const spec = FLOWS[input.flow];
@@ -2699,7 +2779,7 @@ function renderContractTerms(input, contractDate, ctx, result) {
   }
   items.push(
     ['Payment frequency', label('paymentFrequency', input.paymentFrequency)],
-    [texts.contractTerm, contractTermParts(contractTerm(input, result)).map(noBreak).join(', '), false],
+    [texts.contractTerm, termParts.map(noBreak).join(', '), false],
     [texts.startDate, formatInputDate(input[spec.startDateField])],
     [texts.firstPaymentDate, formatInputDate(input.firstPaymentDate)],
     ['End date', formatInputDate(input.endDate)],
@@ -2923,6 +3003,22 @@ function setCurrentResult(schedule, firstPaymentIso, calculatedAt) {
 
 // --- recompute ---
 
+// B34 (DEC-B34-TERM): the radio group under the Contract term. Hidden when there is nothing to choose;
+// hiding never touches the pick (Q-B34-KEEP, revision 53: only a fresh page load resets it).
+// Shown: both labels and the selection come from the view (End date first).
+function renderTermChoice(choice) {
+  if (choice === null || choice.choices === null) {
+    contractTermChoiceEl.hidden = true;
+    return;
+  }
+  const [end, last] = choice.choices;
+  termBasisEndTextEl.textContent = end.label;
+  termBasisLastTextEl.textContent = last.label;
+  termBasisEndEl.checked = end.checked;
+  termBasisLastEl.checked = last.checked;
+  contractTermChoiceEl.hidden = false;
+}
+
 // With no current result the panel shows the app's empty state; the contract terms and
 // the schedule are hidden.
 function showResult(shown) {
@@ -2969,10 +3065,11 @@ function recompute() {
     const input = toInput(raw, ctx);
     const result = calculateCobCanada(input);
     const calculatedAt = new Date();
-    const termText = contractTermText(contractTerm(input, result));
+    const choice = contractTermChoice(contractTermOptions(input, result), form.elements.contractTermBasis.value);
+    const termText = choice.text;
     const texts = flowLabels(raw.flow, ctx.spec);
     const moveNote = firstDateMoveNote(texts.firstPaymentDate, raw.firstPaymentDate, result.amortizationSchedule[0]?.date);
-    renderContractTerms(input, parseDateInput(raw.contractDate), ctx, result);
+    renderContractTerms(input, parseDateInput(raw.contractDate), ctx, choice.parts);
     renderResults(input, result, calculatedAt, ctx);
     scheduleResult = result;
     scheduleCtx = ctx;
@@ -2982,11 +3079,13 @@ function recompute() {
     firstDateNoteEl.hidden = !moveNote;
     contractTermsNoteEl.textContent = moveNote;
     contractTermsNoteEl.hidden = !moveNote;
+    renderTermChoice(choice);
     contractTermEl.value = termText;
     setCurrentResult(result.amortizationSchedule, isoDay(result.amortizationSchedule[0].date), calculatedAt);
     showResult(true);
     errorEl.style.display = 'none';
   } catch (err) {
+    renderTermChoice(null);
     contractTermEl.value = '';
     firstDateNoteEl.textContent = '';
     firstDateNoteEl.hidden = true;

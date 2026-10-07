@@ -195,7 +195,9 @@ describe('B25-T9 G4: the Payment Change golden and the A10 UI capture fixture do
   // and term value strings only); sha ac76408a... -> 9877c0c6....
   // Re-pinned 2026-10-05 by QA (B33 verify, DEC-B33-FREQ): capture regenerated (user approved; scenario PL_WEEKLY
   // appended, scenarios[0..5], formDefaults and flowScreens unchanged); sha 9877c0c6... -> 4d5a64c1....
-  it('a10_ui_capture_v1.json is byte-identical (sha256 4d5a64c1...a575, re-pinned for B33)', () => {
-    expect(sha256(text('a10_ui_capture_v1.json'))).toBe('4d5a64c1978424b777ea99580f9cbf52659f983ef7c820da268c38e8d88ea575');
+  // Re-pinned 2026-10-06 by QA (B34 verify, DEC-B34-TERM): capture regenerated (user approved Q-B34-FIX; term hint x4,
+  // term value strings for 5 scenarios, new key contractTermChoice, nothing else); sha 4d5a64c1... -> 9577121c....
+  it('a10_ui_capture_v1.json is byte-identical (sha256 9577121c...2cdeb, re-pinned for B34)', () => {
+    expect(sha256(text('a10_ui_capture_v1.json'))).toBe('9577121c47faad12823be463d7ca84ebee7bc41cd59c73b730807b2b2a62cdeb');
   });
 });

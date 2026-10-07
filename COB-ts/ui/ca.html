@@ -445,6 +445,10 @@
     .column-toggle { display: flex; align-items: center; gap: 12px; }
     .column-toggle .choice-legend { float: left; margin: 0 12px 0 0; }
     .column-toggle .choice-options { flex-direction: row; }
+    #contractTermChoice[hidden] { display: none; }
+    .term-choice { margin-top: 8px; }
+    .term-choice .choice-options { flex-direction: column; gap: 4px; }
+    .field .term-choice .choice { display: inline-flex; margin-bottom: 0; font-weight: 400; }
 
     .schedule-scroll {
       max-height: 70vh;
@@ -661,7 +665,7 @@
       <div class="field">
         <label for="paymentAmount">Payment amount ($)</label>
         <input type="text" inputmode="decimal" autocomplete="off" data-money id="paymentAmount" value="465.46" aria-describedby="paymentAmount-hint" />
-        <span class="hint" id="paymentAmount-hint">The scheduled payment. It isn't calculated here.</span>
+        <span class="hint" id="paymentAmount-hint">The scheduled payment.</span>
       </div>
       <div class="field">
         <label for="paymentFrequency">Payment frequency</label>
@@ -688,6 +692,19 @@
         <label for="contractTerm" id="contractTerm-label">Contract term</label>
         <input type="text" id="contractTerm" readonly aria-describedby="contractTerm-hint" />
         <span class="hint" id="contractTerm-hint"></span>
+        <fieldset class="choice-group term-choice" id="contractTermChoice" aria-describedby="contractTerm-hint" hidden>
+          <legend class="choice-legend">Term based on</legend>
+          <div class="choice-options">
+            <label for="contractTermBasis-endDate" class="choice">
+              <input type="radio" id="contractTermBasis-endDate" name="contractTermBasis" value="endDate" autocomplete="off" checked />
+              <span class="choice-label" id="contractTermBasis-endDate-text"></span>
+            </label>
+            <label for="contractTermBasis-lastPayment" class="choice">
+              <input type="radio" id="contractTermBasis-lastPayment" name="contractTermBasis" value="lastPayment" autocomplete="off" />
+              <span class="choice-label" id="contractTermBasis-lastPayment-text"></span>
+            </label>
+          </div>
+        </fieldset>
       </div>
     </div>
 

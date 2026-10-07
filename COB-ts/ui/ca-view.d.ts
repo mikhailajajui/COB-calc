@@ -76,17 +76,46 @@ export function html(nodes: readonly (ViewNode | string)[]): string;
 /** B24-R1 (calendar.ts): the derived Contract term; all three are non-negative integers. */
 export interface ContractTermLike { years: number; months: number; days: number }
 /**
- * B24-R6: the three texts, the unit singular only for 1, zero parts always shown:
+ * B24-R6: the three texts, the unit singular only for 1, zero parts always shown (Y/M/D form; not shown on the page since
+ * B34, DEC-B34-TERM; kept for a later return of the days):
  * { 2, 11, 17 } -> ['2 years', '11 months', '17 days']; { 1, 1, 1 } -> ['1 year', '1 month', '1 day']; { 0, 0, 20 } -> ['0 years', '0 months', '20 days'].
  */
 export function contractTermParts(term: ContractTermLike): [years: string, months: string, days: string];
-/** B24-R6: the parts joined with ', ' ('2 years, 11 months, 17 days'); the one text of the field, the tile and the print record. */
+/** B24-R6: the parts joined with ', ' ('2 years, 11 months, 17 days'). Not shown on the page since B34 (DEC-B34-TERM). */
 export function contractTermText(term: ContractTermLike): string;
 /**
- * B24-R6: the hint under the field (interim wording, Q-MSG): `Calculated from the ${label} to the last scheduled payment date.`,
- * label = flowLabels(flow, spec).startDate lower-cased (B32, DEC-B32-TERM; was the first payment date label).
+ * B34 (DEC-B34-TERM, revision 53): the hint under the field (interim wording, Q-MSG):
+ * `From the ${label}; part months count as a full month.`, label = flowLabels(flow, spec).startDate lower-cased
+ * (DEC-B32-TERM (2)); no end point, because it depends on the choice. (B24/B32 text: "Calculated from the ... to the last
+ * scheduled payment date.")
  */
 export function contractTermHint(startDateLabel: string): string;
+
+/** B34-R7 (DEC-B34-TERM): a contract term in whole years and months (engine ContractTermMonths); `months` is 0-11. */
+export interface ContractTermMonthsLike { years: number; months: number }
+/**
+ * B34-R3 (Q-B34-ZERO): the texts of a whole-month term, zero parts left out, the unit singular only for 1:
+ * { 3, 0 } -> ['3 years']; { 2, 6 } -> ['2 years', '6 months']; { 0, 11 } -> ['11 months']; { 0, 0 } -> ['0 months'].
+ */
+export function contractTermMonthsParts(term: ContractTermMonthsLike): [string] | [string, string];
+/** B34-R3: one radio option of the "Term based on" group. */
+export interface ContractTermChoiceOption { value: 'lastPayment' | 'endDate'; label: string; checked: boolean }
+/**
+ * B34-R3 (revision 53): what the page shows. `basis` is the pick as given ('lastPayment' only for exactly that string, else
+ * 'endDate'), also when `choices` is null (the pick is a rule, never reset: Q-B34-KEEP). `parts` / `text` are the picked
+ * rule's value. `choices` is null when the two values are equal in months; otherwise the two options in order End date
+ * ("Start date to end date: {term}"), then last payment ("Start date to final payment: {term}"), exactly one checked.
+ */
+export interface ContractTermChoice {
+  basis: 'lastPayment' | 'endDate';
+  parts: string[];
+  text: string;
+  choices: null | [ContractTermChoiceOption, ContractTermChoiceOption];
+}
+export function contractTermChoice(
+  options: { lastPayment: ContractTermMonthsLike; endDate: ContractTermMonthsLike },
+  selected: string | null | undefined,
+): ContractTermChoice;
 
 /**
  * B25-R6 (UI step, user decisions 2026-10-01): the note shown when a semi-monthly first payment date was moved.

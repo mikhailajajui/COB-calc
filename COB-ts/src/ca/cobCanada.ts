@@ -1,4 +1,4 @@
-import { daysBetween, effectiveFirstPaymentDate, periodDateFor, termBetween } from './calendar.js';
+import { daysBetween, effectiveFirstPaymentDate, periodDateFor, roundUpToWholeMonths, termBetween } from './calendar.js';
 import { totalCashFees, totalFinancedFees } from './fees.js';
 import { FLOWS, FLOW_IDS, computesTriggerRate } from './flows.js';
 import {
@@ -16,7 +16,7 @@ import {
   periodInterest,
   triggerRatePercent as triggerRatePercentEquation,
 } from './equations.js';
-import type { CobCanadaInput, CobCanadaResult, CobScheduleRow, ContractTerm, PaymentFrequency } from './types.js';
+import type { CobCanadaInput, CobCanadaResult, CobScheduleRow, ContractTerm, ContractTermOptions, PaymentFrequency } from './types.js';
 import { PAYMENTS_PER_YEAR } from './types.js';
 import { validateCobCanadaInput } from './validate.js';
 
@@ -353,4 +353,27 @@ export function contractTerm(
     throw new RangeError(`${startField} must be a valid Date`);
   }
   return termBetween(start, last.date);
+}
+
+/**
+ * The two contract terms of DEC-B34-TERM (B34), both from the flow's start date and rounded up
+ * to whole months: `lastPayment` to the last row of the schedule (contractTerm), `endDate` to
+ * input.endDate. For a pair from calculateCobCanada, endDate >= lastPayment and endDate >= 1 month.
+ * RangeError: every case of contractTerm first (same messages, same order), then an endDate that
+ * is not a valid Date, then an endDate before the start date (termBetween).
+ */
+export function contractTermOptions(
+  input: CobCanadaInput,
+  result: Pick<CobCanadaResult, 'amortizationSchedule'>,
+): ContractTermOptions {
+  const toLastPayment = contractTerm(input, result);
+  const start = input[FLOWS[input.flow].startDateField] as Date;
+  const end: unknown = input.endDate;
+  if (!(end instanceof Date) || Number.isNaN(end.getTime())) {
+    throw new RangeError('endDate must be a valid Date');
+  }
+  return {
+    lastPayment: roundUpToWholeMonths(toLastPayment),
+    endDate: roundUpToWholeMonths(termBetween(start, end)),
+  };
 }

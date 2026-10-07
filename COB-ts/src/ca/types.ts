@@ -151,6 +151,19 @@ export interface ContractTerm {
   days: number;
 }
 
+/** A contract term in whole years and months (B34, DEC-B34-TERM). `months` is 0-11. */
+export interface ContractTermMonths {
+  years: number;
+  months: number;
+}
+
+/** The two contract terms the page offers (B34, DEC-B34-TERM), both from the flow's start date and
+ *  rounded up to whole months: to the last scheduled payment date, and to the End date as typed. */
+export interface ContractTermOptions {
+  lastPayment: ContractTermMonths;
+  endDate: ContractTermMonths;
+}
+
 export interface CobScheduleRow {
   /** 1-based, within this schedule only. */
   period: number;

@@ -1,6 +1,6 @@
-import { calculateCobCanada, contractTerm, FLOWS, requiresSemiAnnualDate } from '/dist/ca/index.js';
+import { calculateCobCanada, contractTermOptions, FLOWS, requiresSemiAnnualDate } from '/dist/ca/index.js';
 import {
-  contractTermHint, contractTermParts, contractTermText, csvFileName, firstDateMoveNote, isoDay, figureNodes, flowLabels, formatAmount, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures,
+  contractTermChoice, contractTermHint, csvFileName, firstDateMoveNote, isoDay, figureNodes, flowLabels, formatAmount, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures,
   moreFigures, parseDateInput, paymentsText, printFeesNodes, printFigures, printInputNodes, printInputRows, scheduleCsv,
   scheduleTableNodes, toInput, switchedOut, UI_SWITCHES,
 } from './ca-view.js';
@@ -39,6 +39,11 @@ const endDateEl = document.getElementById('endDate');
 const contractTermEl = document.getElementById('contractTerm');
 const contractTermHintEl = document.getElementById('contractTerm-hint');
 const contractTermLabelEl = document.getElementById('contractTerm-label');
+const contractTermChoiceEl = document.getElementById('contractTermChoice');
+const termBasisLastEl = document.getElementById('contractTermBasis-lastPayment');
+const termBasisEndEl = document.getElementById('contractTermBasis-endDate');
+const termBasisLastTextEl = document.getElementById('contractTermBasis-lastPayment-text');
+const termBasisEndTextEl = document.getElementById('contractTermBasis-endDate-text');
 
 const firstPaymentLabelEl = document.getElementById('firstPaymentDate-label');
 
@@ -177,7 +182,7 @@ function selectedText(selectEl) {
 // The terms of the calculation that produced the shown results, as entered, one tile
 // each. Amounts, rates, dates and single words stay on one line (fitTermValues); the
 // flow, product type and contract term may wrap between words.
-function renderContractTerms(input, contractDate, ctx, result) {
+function renderContractTerms(input, contractDate, ctx, termParts) {
   if (contractTermsDateEl) contractTermsDateEl.textContent = contractDate ? formatInputDate(contractDate) : 'no date entered';
 
   const spec = FLOWS[input.flow];
@@ -196,7 +201,7 @@ function renderContractTerms(input, contractDate, ctx, result) {
   }
   items.push(
     ['Payment frequency', label('paymentFrequency', input.paymentFrequency)],
-    [texts.contractTerm, contractTermParts(contractTerm(input, result)).map(noBreak).join(', '), false],
+    [texts.contractTerm, termParts.map(noBreak).join(', '), false],
     [texts.startDate, formatInputDate(input[spec.startDateField])],
     [texts.firstPaymentDate, formatInputDate(input.firstPaymentDate)],
     ['End date', formatInputDate(input.endDate)],
@@ -425,6 +430,22 @@ function setCurrentResult(schedule, firstPaymentIso, calculatedAt) {
 
 // --- recompute ---
 
+// B34 (DEC-B34-TERM): the radio group under the Contract term. Hidden when there is nothing to choose;
+// hiding never touches the pick (Q-B34-KEEP, revision 53: only a fresh page load resets it).
+// Shown: both labels and the selection come from the view (End date first).
+function renderTermChoice(choice) {
+  if (choice === null || choice.choices === null) {
+    contractTermChoiceEl.hidden = true;
+    return;
+  }
+  const [end, last] = choice.choices;
+  termBasisEndTextEl.textContent = end.label;
+  termBasisLastTextEl.textContent = last.label;
+  termBasisEndEl.checked = end.checked;
+  termBasisLastEl.checked = last.checked;
+  contractTermChoiceEl.hidden = false;
+}
+
 // With no current result the panel shows the app's empty state; the contract terms and
 // the schedule are hidden.
 function showResult(shown) {
@@ -471,10 +492,11 @@ function recompute() {
     const input = toInput(raw, ctx);
     const result = calculateCobCanada(input);
     const calculatedAt = new Date();
-    const termText = contractTermText(contractTerm(input, result));
+    const choice = contractTermChoice(contractTermOptions(input, result), form.elements.contractTermBasis.value);
+    const termText = choice.text;
     const texts = flowLabels(raw.flow, ctx.spec);
     const moveNote = firstDateMoveNote(texts.firstPaymentDate, raw.firstPaymentDate, result.amortizationSchedule[0]?.date);
-    renderContractTerms(input, parseDateInput(raw.contractDate), ctx, result);
+    renderContractTerms(input, parseDateInput(raw.contractDate), ctx, choice.parts);
     renderResults(input, result, calculatedAt, ctx);
     scheduleResult = result;
     scheduleCtx = ctx;
@@ -484,11 +506,13 @@ function recompute() {
     firstDateNoteEl.hidden = !moveNote;
     contractTermsNoteEl.textContent = moveNote;
     contractTermsNoteEl.hidden = !moveNote;
+    renderTermChoice(choice);
     contractTermEl.value = termText;
     setCurrentResult(result.amortizationSchedule, isoDay(result.amortizationSchedule[0].date), calculatedAt);
     showResult(true);
     errorEl.style.display = 'none';
   } catch (err) {
+    renderTermChoice(null);
     contractTermEl.value = '';
     firstDateNoteEl.textContent = '';
     firstDateNoteEl.hidden = true;

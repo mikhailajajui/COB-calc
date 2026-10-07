@@ -117,9 +117,10 @@ function expectedLabels(r: CobCanadaResult, raw: View.RawForm, sw: TestUiSwitche
 // =================================================================================================== T1
 describe('B31-T1 (B31-R3): API', () => {
   // B33 (DEC-B33-FREQ, B33-R5): 41 -> 39 (frequencyLock and FREQUENCY_LOCK_HINT removed).
-  it('B31-T1a: 39 exports; mainFigures, moreFigures, printFigures present; no figureColumns / amountFigures export', async () => {
+  // B34 (DEC-B34-TERM, B34-R3): 39 -> 41 (contractTermMonthsParts and contractTermChoice added).
+  it('B31-T1a: 41 exports; mainFigures, moreFigures, printFigures present; no figureColumns / amountFigures export', async () => {
     const v = await loadView();
-    expect(Object.keys(v)).toHaveLength(39);
+    expect(Object.keys(v)).toHaveLength(41);
     for (const name of ['headlineFigures', 'mainFigures', 'moreFigures', 'printFigures', 'figureNodes']) {
       expect(typeof (v as Record<string, unknown>)[name], name).toBe('function');
     }
@@ -561,8 +562,9 @@ describe('B31-T9 (B31-R7): ui/ca.js, static', () => {
   };
 
   it('B31-T9a: the ca-view import list is unchanged (names mainFigures, moreFigures, printFigures; no figureColumns)', () => {
+    // B34 (DEC-B34-TERM, B34-R5): the page imports contractTermChoice instead of contractTermParts / contractTermText.
     expect(importNames()).toEqual([
-      'contractTermHint', 'contractTermParts', 'contractTermText', 'csvFileName', 'firstDateMoveNote', 'isoDay', 'figureNodes', 'flowLabels',
+      'contractTermChoice', 'contractTermHint', 'csvFileName', 'firstDateMoveNote', 'isoDay', 'figureNodes', 'flowLabels',
       'formatAmount', 'formatCurrency', 'formatInputDate', 'headlineFigures', 'html', 'label', 'mainFigures', // B33 (DEC-B33-FREQ): frequencyLock removed from the import list
       'moreFigures', 'parseDateInput', 'paymentsText', 'printFeesNodes', 'printFigures', 'printInputNodes', 'printInputRows', 'scheduleCsv',
       'scheduleTableNodes', 'toInput', 'switchedOut', 'UI_SWITCHES',

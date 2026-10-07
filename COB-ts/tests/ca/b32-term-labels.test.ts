@@ -20,7 +20,8 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { FLOWS, calculateCobCanada, contractTerm as engineContractTerm, requiresSemiAnnualDate } from '../../src/ca/index.js';
+import { FLOWS, calculateCobCanada, requiresSemiAnnualDate } from '../../src/ca/index.js';
+import * as engineCa from '../../src/ca/index.js';
 import type { CobFlow, ProductType, RateType } from '../../src/ca/index.js';
 import type * as View from '../../ui/ca-view.js';
 import { ROOT, stripComments } from '../architecture/support.js';
@@ -39,12 +40,13 @@ const WANT_LABEL: Record<CobFlow, string> = {
   paymentChange: REMAINING,
   variableRatePaymentChange: PLAIN,
 };
-// B32-R4: the start date label, lower-cased.
+// B32-R4: the start date label, lower-cased. B34 (DEC-B34-TERM, revision 53): re-baselined to the B34 hint (interim, Q-MSG),
+// which still names the start date (DEC-B32-TERM (2)).
 const WANT_HINT: Record<CobFlow, string> = {
-  newMortgageOrLoan: 'Calculated from the disbursal date to the last scheduled payment date.',
-  renewal: 'Calculated from the renewal date to the last scheduled payment date.',
-  paymentChange: 'Calculated from the date of change to the last scheduled payment date.',
-  variableRatePaymentChange: 'Calculated from the date of change to the last scheduled payment date.',
+  newMortgageOrLoan: 'From the disbursal date; part months count as a full month.',
+  renewal: 'From the renewal date; part months count as a full month.',
+  paymentChange: 'From the date of change; part months count as a full month.',
+  variableRatePaymentChange: 'From the date of change; part months count as a full month.',
 };
 
 interface PrePins {
@@ -111,7 +113,7 @@ describe('B32-T8 INV-HINT: the hint names the start date (flowLabels(...).startD
 
   it('the hint is built from the label passed in', async () => {
     const v = await loadView();
-    expect(v.contractTermHint('some label')).toBe('Calculated from the some label to the last scheduled payment date.');
+    expect(v.contractTermHint('some label')).toBe('From the some label; part months count as a full month.'); // B34 (DEC-B34-TERM)
   });
 });
 
@@ -184,8 +186,11 @@ describe('B32-T10 INV-STATIC: ca.html and ca.js', () => {
     expect(js).not.toContain('texts.firstPaymentDate.toLowerCase()');
   });
 
-  it('ca.js calls contractTerm(input, result) twice and never the one-argument or swapped form', () => {
-    expect(count(js, 'contractTerm(input, result)')).toBe(2);
+  // B34 (DEC-B34-TERM, B34-INV-STATIC): re-baselined; ca.js calls contractTermOptions(input, result) once and no contractTerm( at all.
+  it('ca.js calls contractTermOptions(input, result) once, no contractTerm( call, and never the one-argument or swapped form', () => {
+    expect(count(js, 'contractTermOptions(input, result)')).toBe(1);
+    expect(js).not.toMatch(/\bcontractTerm\(/);
+    expect(js).not.toMatch(/\bcontractTermOptions\(\s*result\b/);
     expect(js).not.toMatch(/\bcontractTerm\(\s*result\s*\)/);
     expect(js).not.toMatch(/\bcontractTerm\(\s*result\s*,/);
   });
@@ -221,27 +226,30 @@ describe('B32-T11 capture a10_ui_capture_v1.json: what Chrome showed', () => {
   });
 
   // The four successful scenarios and their new Contract term (brief's vectors table).
+  // B34 (DEC-B34-TERM, R8b): re-baselined to whole years and months under the End date rule (was 2y 11m 23d, 2y 11m 23d,
+  // 2y 6m 0d, 4y 11m 22d, 2y 10m 13d). Red until the capture is regenerated (R8b approval).
   const OK: [string, string][] = [
-    ['REF-01', '2 years, 11 months, 23 days'],
-    ['S1_fees', '2 years, 11 months, 23 days'],
-    ['RENEWAL', '2 years, 6 months, 0 days'],
-    ['VRPC_zero_accrued', '4 years, 11 months, 22 days'],
-    ['PL_WEEKLY', '2 years, 10 months, 13 days'], // B33 (DEC-B33-FREQ, B33-R9): 2026-03-17 -> 2029-01-30
+    ['REF-01', '3 years'],
+    ['S1_fees', '3 years'],
+    ['RENEWAL', '2 years, 6 months'],
+    ['VRPC_zero_accrued', '5 years'],
+    ['PL_WEEKLY', '3 years'], // B33 (DEC-B33-FREQ, B33-R9): 2026-03-17 -> End 2029-03-17 (B34: the End date rule)
   ];
 
   it('the successful scenarios are exactly these five (B33 adds PL_WEEKLY; the two error scenarios show no term)', () => {
     expect(CAP.scenarios.filter((s) => s.contractTermField !== '').map((s) => s.id)).toEqual(OK.map(([id]) => id));
   });
 
-  it.each(OK)('%s: contractTermField is %j = contractTermText(contractTerm(toInput(raw, ctx), result))', async (id, want) => {
+  it.each(OK)('%s: contractTermField is %j = contractTermChoice(contractTermOptions(toInput(raw, ctx), result), "endDate").text (B34)', async (id, want) => {
     const v = await loadView();
     const s = CAP.scenarios.find((x) => x.id === id)!;
     expect(s.contractTermField).toBe(want);
     const ctx = ctxOf(s.raw, CONTRACT_DATE_OFF);
     const input = v.toInput(s.raw, ctx);
     const r = calculateCobCanada(input);
-    const term = (engineContractTerm as unknown as (i: unknown, r: unknown) => { years: number; months: number; days: number })(input, r);
-    expect(s.contractTermField).toBe(v.contractTermText(term));
+    // B34 (DEC-B34-TERM): the field shows the End date rule (the capture never clicks the radios); was contractTermText(contractTerm(...)).
+    const options = (engineCa as unknown as Record<string, (i: unknown, r: unknown) => { lastPayment: { years: number; months: number }; endDate: { years: number; months: number } }>)['contractTermOptions']!(input, r);
+    expect(s.contractTermField).toBe(v.contractTermChoice(options, 'endDate').text);
   });
 
   it.each(OK)('%s: in both modes the printed row and the tile carry the per-flow label and the field text', (id, want) => {

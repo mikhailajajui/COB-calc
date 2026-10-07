@@ -37,6 +37,13 @@
 // B31 (DEC-B31-LAYOUT, revision 49): ELEMENTS records #printFiguresLeft and #printFiguresRight instead of the old single
 // #printFigures list; `figures` is still read from '#printFigures .figure' (the wrapper keeps the id), i.e. left then right.
 // The B26 step still reads #moreFigures and #printFigures: Balance at end date stays directly before the unpaid line in both.
+// B34 (DEC-B34-TERM, revision 53): the Contract term is shown in whole years and months (rounded up), and when the two rules
+// give different values a radio group #contractTermChoice ("Term based on") offers "Start date to end date: {term}" (first,
+// checked on a fresh page) and "Start date to final payment: {term}". EXPECT_TERM holds the R8b values (the End date rule,
+// since the script NEVER clicks the radios, so the End date radio stays checked across scenarios, B34-R6). Each successful
+// scenario records a new key `contractTermChoice` right after `contractTermField`: null when the group is hidden, else
+// [{ value, label, checked }] read from the DOM in document order; it is asserted against EXPECT_CHOICE before recording.
+// termHint is asserted against the B34 hint "From the {start date}; part months count as a full month.".
 import { createRequire } from 'node:module';
 import { execSync, spawn } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -55,14 +62,27 @@ if (!out) throw new Error('usage: node tests/ca/fixtures/capture_a10_ui.mjs <out
 const COMMON = {};
 // B24: the Contract term each successful scenario must show. B32 (DEC-B32-TERM): from the flow's start date to the last
 // scheduled payment date (B32 vectors table; was 2,11,17 / 2,11,17 / 2,5,0 / 4,11,11 from the first payment date).
+// B34 (DEC-B34-TERM): whole years and months, rounded up, under the End date rule (R8b; was 2y 11m 23d / 2y 11m 23d /
+// 2y 6m 0d / 4y 11m 22d / 2y 10m 13d).
 const EXPECT_TERM = {
-  'REF-01': '2 years, 11 months, 23 days',
-  S1_fees: '2 years, 11 months, 23 days',
-  RENEWAL: '2 years, 6 months, 0 days',
+  'REF-01': '3 years',
+  S1_fees: '3 years',
+  RENEWAL: '2 years, 6 months',
   VRPC_blank_accrued: '',
-  VRPC_zero_accrued: '4 years, 11 months, 22 days',
+  VRPC_zero_accrued: '5 years',
   ERR_blank_rate: '',
-  PL_WEEKLY: '2 years, 10 months, 13 days', // B33 (DEC-B33-FREQ): 2026-03-17 -> last weekly payment 2029-01-30
+  PL_WEEKLY: '3 years', // B33 (DEC-B33-FREQ): 2026-03-17 -> End 2029-03-17; B34: the End date rule (final payment 2029-01-30 = 2 years, 11 months)
+};
+// B34-R8b: the radio group per successful scenario (null = hidden); only PL_WEEKLY offers the choice.
+const EXPECT_CHOICE = {
+  'REF-01': null,
+  S1_fees: null,
+  RENEWAL: null,
+  VRPC_zero_accrued: null,
+  PL_WEEKLY: [
+    { value: 'endDate', label: 'Start date to end date: 3 years', checked: true },
+    { value: 'lastPayment', label: 'Start date to final payment: 2 years, 11 months', checked: false },
+  ],
 };
 // B32 (DEC-B32-TERM): the label of #contractTerm per flow, typed from the decision.
 const TERM_LABEL = {
@@ -259,7 +279,22 @@ try {
     if (contractTermField !== EXPECT_TERM[sc.id]) {
       throw new Error(`B24 ${sc.id}: #contractTerm is ${JSON.stringify(contractTermField)}, expected ${JSON.stringify(EXPECT_TERM[sc.id])}`);
     }
-    const entry = { id: sc.id, raw, contractTermField, error, modes: {} };
+    // B34 (DEC-B34-TERM): the radio group, read from the DOM in document order (never clicked); asserted, then recorded.
+    const contractTermChoice = await page.evaluate(() => {
+      const g = document.getElementById('contractTermChoice');
+      if (!g || g.hidden) return null;
+      return [...g.querySelectorAll('input[type="radio"]')].map((r) => ({
+        value: r.value,
+        label: document.getElementById(`${r.id}-text`).textContent,
+        checked: r.checked,
+      }));
+    });
+    const entry = error === null
+      ? { id: sc.id, raw, contractTermField, contractTermChoice, error, modes: {} }
+      : { id: sc.id, raw, contractTermField, error, modes: {} };
+    if (error === null && JSON.stringify(contractTermChoice) !== JSON.stringify(EXPECT_CHOICE[sc.id])) {
+      throw new Error(`B34 ${sc.id}: #contractTermChoice is ${JSON.stringify(contractTermChoice)}, expected ${JSON.stringify(EXPECT_CHOICE[sc.id])}`);
+    }
     for (const mode of error === null ? ['all', 'compact'] : []) {
       await page.check(`#scheduleColumns-${mode}`);
       // A11 (scope B): the print table is built on demand, so ask for it the way a print does (the beforeprint event).
@@ -351,7 +386,8 @@ try {
       return s;
     });
     // B32 (DEC-B32-TERM): assert before recording, so a wrong page cannot be baked into the fixture.
-    const wantHint = `Calculated from the ${flowScreens[flow].startDate.toLowerCase()} to the last scheduled payment date.`;
+    // B34 (DEC-B34-TERM, revision 53): the hint names the start date only (interim, Q-MSG).
+    const wantHint = `From the ${flowScreens[flow].startDate.toLowerCase()}; part months count as a full month.`;
     if (flowScreens[flow].termLabel !== TERM_LABEL[flow] || flowScreens[flow].termHint !== wantHint) {
       throw new Error(`B32 ${flow}: label ${JSON.stringify(flowScreens[flow].termLabel)} / hint ${JSON.stringify(flowScreens[flow].termHint)}, expected ${JSON.stringify(TERM_LABEL[flow])} / ${JSON.stringify(wantHint)}`);
     }

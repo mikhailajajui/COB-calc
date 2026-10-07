@@ -88,9 +88,10 @@ describe('B33-T1 INV-CATALOGUE: allowedPaymentFrequencies returns the same froze
     expect([...pl]).toEqual(Object.keys(PAYMENTS_PER_YEAR));
   });
 
-  it('the same binding on both barrels; both barrels still export exactly the 7 runtime names (no public-API change)', () => {
+  // B34 (DEC-B34-TERM): re-baselined, + contractTermOptions (ADR-13(i), additive; 7 -> 8 runtime names). B33 itself changed no export.
+  it('the same binding on both barrels; both barrels export exactly the 8 runtime names (B33: no public-API change; B34: + contractTermOptions)', () => {
     expect((root as Record<string, unknown>)['allowedPaymentFrequencies']).toBe((ca as Record<string, unknown>)['allowedPaymentFrequencies']);
-    const NAMES = ['FLOWS', 'PAYMENTS_PER_YEAR', 'allowedPaymentFrequencies', 'calculateCobCanada', 'collectInputIssues', 'contractTerm', 'requiresSemiAnnualDate'];
+    const NAMES = ['FLOWS', 'PAYMENTS_PER_YEAR', 'allowedPaymentFrequencies', 'calculateCobCanada', 'collectInputIssues', 'contractTerm', 'contractTermOptions', 'requiresSemiAnnualDate'];
     expect(Object.keys(ca).sort()).toEqual(NAMES);
     expect(Object.keys(root).sort()).toEqual(NAMES);
   });

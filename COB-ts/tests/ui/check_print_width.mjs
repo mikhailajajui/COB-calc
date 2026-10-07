@@ -210,8 +210,9 @@ try {
         label: document.querySelector('label[for="contractTerm"]')?.textContent ?? null,
         printed: [...document.querySelectorAll('#printInputs .print-input')].filter((r) => r.querySelector('dt').textContent === document.querySelector('label[for="contractTerm"]')?.textContent).map((r) => r.querySelector('dd').textContent),
       }));
+      // B34 (DEC-B34-TERM): whole years and months only (zero parts left out); the regex was ^\d+ years?, \d+ months?, \d+ days?$.
       const wantLabel = ['renewal', 'paymentChange'].includes(sc.selects?.flow) ? 'Remaining contract term' : 'Contract term'; // B32 (DEC-B32-TERM)
-      const okTerm = t.readonly && t.removed && t.label === wantLabel && /^\d+ years?, \d+ months?, \d+ days?$/.test(t.field ?? '') && t.printed.length === 1 && t.printed[0] === t.field;
+      const okTerm = t.readonly && t.removed && t.label === wantLabel && /^(\d+ years?(, \d+ months?)?|\d+ months?)$/.test(t.field ?? '') && t.printed.length === 1 && t.printed[0] === t.field;
       if (!okTerm) failures++;
       console.log(`${sc.id.padEnd(19)} term    ${okTerm ? `ok  ${t.field}` : `FAIL  ${JSON.stringify(t)}`}`);
     }

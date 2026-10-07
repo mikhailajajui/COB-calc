@@ -219,6 +219,7 @@ describe('Q-B30-NPM: no root script', () => {
     expect(Object.entries(scripts).filter(([k, v]) => /share|COB\.html/.test(k + v))).toEqual([]);
     // Re-pinned 2026-10-05 by QA (B32 red step, DEC-B32-TERM; recorded): test:tz gains tests/ca/b32-term-start.test.ts (was b8680e37...).
     // Re-pinned 2026-10-05 by QA (B33 red step, DEC-B33-FREQ; recorded): test:tz gains tests/ca/b33-personal-loan-frequencies.test.ts (was daa37ca1...).
-    expect(sha256File(join(COB, 'package.json'))).toBe('8c9c47d8461b25ab5dcf115a742bb9c8ff767b6dad038f3d3b536f19fd84635a');
+    // Re-pinned 2026-10-06 by QA (B34 red step, DEC-B34-TERM; recorded): test:tz gains tests/ca/b34-term-options.test.ts (was 8c9c47d8...).
+    expect(sha256File(join(COB, 'package.json'))).toBe('f1b11fcbb6c3c19adfd981b4e017b7d3af257f1fd699404573bf1da7eedd895b');
   });
 });

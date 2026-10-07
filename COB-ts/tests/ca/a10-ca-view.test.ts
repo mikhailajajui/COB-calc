@@ -277,7 +277,8 @@ describe('A10-P source guards', () => {
     expect(tableBuilds).toEqual([]);
   });
 
-  it('A10-P3 (A10-R2): ui/ca-view.js exports exactly the 39 names of ui/ca-view.d.ts (B22 adds flowLabels, B23 adds UI_SWITCHES and FEE_KEYS, B28 adds switchedOut, B27 added frequencyLock and FREQUENCY_LOCK_HINT and B33 (DEC-B33-FREQ) removed them, B24 adds contractTermParts, contractTermText and contractTermHint, B25 adds firstDateMoveNote), and pins the branches no capture reaches', async () => {
+  // B34 (DEC-B34-TERM): re-baselined, + contractTermMonthsParts, contractTermChoice (B34-R3; 39 -> 41 names).
+  it('A10-P3 (A10-R2): ui/ca-view.js exports exactly the 41 names of ui/ca-view.d.ts (B22 adds flowLabels, B23 adds UI_SWITCHES and FEE_KEYS, B28 adds switchedOut, B27 added frequencyLock and FREQUENCY_LOCK_HINT and B33 (DEC-B33-FREQ) removed them, B24 adds contractTermParts, contractTermText and contractTermHint, B25 adds firstDateMoveNote, B34 adds contractTermMonthsParts and contractTermChoice), and pins the branches no capture reaches', async () => {
     const v = await loadView();
     // Pre-A10 values (ui/ca.js) for branches the 5 captured scenarios never take; the escaping
     // string is Chrome 154's own outerHTML of the same td (checked 2026-09-29), i.e. A10-R3.
@@ -301,6 +302,7 @@ describe('A10-P source guards', () => {
         'mainFigures', 'moreFigures', 'numOrUndefined', 'parseAmount', 'parseDateInput', 'parseMoney', 'paymentsText',
         'printFeesNodes', 'printFigures', 'printInputNodes', 'printInputRows', 'scheduleCsv', 'scheduleTableNodes',
         'switchedOut', 'toInput', 'typedMoney', 'contractTermParts', 'contractTermText', 'contractTermHint', 'firstDateMoveNote',
+        'contractTermMonthsParts', 'contractTermChoice', // B34 (DEC-B34-TERM)
       ].sort(),
     );
   });

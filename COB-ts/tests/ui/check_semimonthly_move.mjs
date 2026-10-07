@@ -58,7 +58,7 @@ try {
   same(await page.evaluate(() => document.getElementById('firstDateNote')?.getAttribute('role') ?? null), 'status', 'S1 note role');
   same(await page.inputValue('#firstPaymentDate'), '2027-01-10', 'S1 typed field value is kept');
   // B32 (DEC-B32-TERM, superseding Q-CT-B25): the term runs from the disbursal date 2027-01-01 (was 2 years, 0 months, 0 days from the moved date).
-  same(await page.inputValue('#contractTerm'), '2 years, 0 months, 14 days', 'S1 Contract term runs from the disbursal date');
+  same(await page.inputValue('#contractTerm'), '2 years, 1 month', 'S1 Contract term runs from the disbursal date'); // B34 (DEC-B34-TERM): 2y 0m 14d rounded up; End 2029-01-15 = last row, so no choice
   const cap = norm(await page.textContent('#scheduleTable caption'));
   same(/from Jan 15, 2027 to /.test(cap), true, 'S1 schedule caption starts at the moved date: ' + cap);
   const tile1 = (await tiles()).find(([k]) => norm(k) === 'First payment date');
@@ -127,7 +127,7 @@ try {
   same(norm(pin5[j + 1]?.[1]), NOTE5, 'S5 printed note under the Next payment date row');
   same((await csv()).name, 'cost-of-borrowing-schedule-2027-01-31.csv', 'S5 CSV name uses the moved date');
   // B32 (DEC-B32-TERM): from the Date of change 2027-01-01 the term is the same as S1; the label reads "Remaining contract term".
-  same(await page.inputValue('#contractTerm'), '2 years, 0 months, 14 days', 'S5 Contract term runs from the date of change');
+  same(await page.inputValue('#contractTerm'), '2 years, 1 month', 'S5 Contract term runs from the date of change'); // B34 (DEC-B34-TERM): 2y 0m 14d rounded up
   same(await page.evaluate(() => document.querySelector('label[for="contractTerm"]')?.textContent ?? null), 'Remaining contract term', 'S5 term label (Payment change)');
 } catch (e) { fail('script error (a missing element or timeout is a failed check): ' + String(e.message).split('\n')[0]); }
 finally { await browser.close(); child?.kill(); }

@@ -1798,6 +1798,29 @@ and has diverged from it since (decisions T1 to T7 and later). The dated entries
 
 **Evidence (QA + main session).** `npm run build`; `npx vitest run` 91 files, 3666 passed, 0 failed (confirmed by the main session); `typecheck` and `typecheck:tests` clean; `test:tz` 1256 passed in each zone. QA's own sweep: 864 cases, 0 rejected; personal-loan calculated rate = contract rate in 432/432; fixed mortgage converted, variable not; VRPC unchanged. Mutants M1-M13 all killed against an unmutated control. Chrome: smoke PASS, F12 16/16, F17 (56), F18 (29), capture equal on a second run, share page 38 checks PASS. Note: `ui/help.html` still showed the old lock hint until the doc-writer run and Help rebuild below.
 
+### 73. B34: Contract term in whole years and months, with a choice between the End date and the final payment (2026-10-06, user decision DEC-B34-TERM; QA verified PASS WITH NOTES)
+
+**What.**
+- **Engine** (display only; `calculateCobCanada` never calls it): new export `contractTermOptions(input, result)` -> `{ endDate, lastPayment }`, each `{ years, months }` measured from the flow's start date (Disbursal date / Renewal date / Date of change) to the typed End date and to the last schedule row; any leftover day rounds **up** to a full month (internal `roundUpToWholeMonths` in `calendar.ts`, integer arithmetic). New types `ContractTermMonths`, `ContractTermOptions` (ADR-13(i), additive). `contractTerm` unchanged.
+- **UI:** zero parts left out ("3 years", "2 years, 6 months", "0 months"). When the two values agree, one value; when they differ, a radio group (legend "Term based on") under the Contract term field: "Start date to end date: {term}" first and pre-selected, "Start date to final payment: {term}" second. The pick is a rule: recalculation never changes it; only a page load resets to the End date. Field, Contract terms tile and printout show the picked rule's value; radios are not printed. Hint (interim, Q-MSG): "From the {disbursal date | renewal date | date of change}; part months count as a full month." New view helpers `contractTermMonthsParts`, `contractTermChoice`.
+- CSV and its file name unchanged. No switch (wording change, B32 precedent).
+
+**Why.** User decision 2026-10-06 (DEC-B34-TERM, `COB-user-stories.md` §7.5; answers Q-B34-ZERO default, Q-B34-KEEP/ORDER/TEXT overridden, hint keeps the start-date name). Brief: `COB-architecture.md` §5 B34, revision 53. Test boundaries: `COB-B34-test-boundaries.md` (BA, 99 boundaries).
+
+**Fixtures.** Goldens byte-identical (`922fd695…`, `5ab1c6a6…`); `b23`, `b31`, `b32` pin files byte-identical. `a10_ui_capture_v1.json` regenerated (user-approved) `4d5a64c1…` -> `9577121c…`: 34 paths besides provenance: `flowScreens.*.termHint` x4; `contractTermField` REF-01 "3 years", S1_fees "3 years", RENEWAL "2 years, 6 months", VRPC_zero_accrued "5 years", PL_WEEKLY "3 years"; the term value in `html.printInputs` and `html.contractTermsList` for those five x 2 modes; new key `contractTermChoice` (null for four; PL_WEEKLY offers "Start date to end date: 3 years" (checked) / "Start date to final payment: 2 years, 11 months"). Re-pinned with "recorded B34 verify" notes: Help baseline `pre-b29-baseline.json`, share pins `pre-b30-pins.json`, capture sha in `b25-golden` and `b27` tests. New QA files: `b34-term-options.test.ts`, `b34-term-display.test.ts`, `tests/types/b34-term-options.typecheck.ts`, oracle `support/termMonthsOracle.ts`, `b34_term_vectors.json`.
+
+**Evidence (QA + main session).** `npm run build`; `npx vitest run` 93 files, 3999 tests, 3998 passed, 1 failed = F13 (Help stale until the Help rebuild; confirmed by the main session); `typecheck` and `typecheck:tests` clean; `test:tz` 1421 per zone. Security review: no critical/high/medium (one low, pre-existing: `addFeeRow` attribute built via `innerHTML`, unreachable today). QA oracle sweep 33,176 inputs, 0 mismatches; 91 vector/boundary rows reproduce; mutants 26/26 killed against an unmutated control. Chrome: smoke PASS (INV-PAGE 1-15, BA sequence B, CSV under both picks, zero term), F12 16/16, F17 (56), F18 (29), capture equal on a second run. Note F-1 (architect): the brief's "SHORTFALL (F12)" vector row uses End 2028-04-01; F12 uses 2028-04-15 (pinned as SHORTFALL-F12).
+
+### 74. B35: Payment amount hint shortened to "The scheduled payment." (2026-10-06, user decision DEC-B35-HINT; QA verified PASS WITH NOTES)
+
+**What.** `ui/ca.html:668`: the hint under Payment amount (`#paymentAmount-hint`) reads "The scheduled payment."; the sentence "It isn't calculated here." is deleted. No other product change.
+
+**Why.** User decision 2026-10-06: the sentence was unclear. (It meant the payment amount is entered, not derived: BRD §3 out of scope, IN-08.)
+
+**Fixtures.** Goldens, `a10_ui_capture_v1.json` (`9577121c…`; the hint is not captured) and all pin files byte-identical except the Help baseline `help/tests/fixtures/pre-b29-baseline.json` `files["ui/ca.html"]` (stripped) `9f4d3f34…` -> `7740d849…` ("recorded B35 verify"). New QA test `tests/ca/b35-payment-hint.test.ts` (3 checks); smoke script checks the hint on the live page. Design notes `visual_design/app-ui.md:115` and `design-beyond-brd.md` still quote the old wording (history).
+
+**Evidence (QA + main session).** `npm run build`; `npx vitest run` 94 files, 4005 tests, 4004 passed, 1 failed = F13 (Help stale until the Help rebuild; confirmed by the main session); typecheck and typecheck:tests clean; `test:tz` 1421 per zone. Mutants 4/4 killed (old sentence restored, `&rsquo;` variant, hint emptied, `aria-describedby` removed). Chrome: smoke PASS, F12 16/16, capture equal minus provenance (one earlier run showed a sub-pixel `--term-em` width flake, not reproduced).
+
 ## Known open items that still affect this copy
 
 - OQ-W: how IN-11 past accrued interest is treated (interest on it, in C, in P) is

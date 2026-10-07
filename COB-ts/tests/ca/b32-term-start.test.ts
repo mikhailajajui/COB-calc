@@ -341,9 +341,13 @@ describe('B32-T6 barrels: the two-argument contractTerm, one function, export li
     expect((root as unknown as { contractTerm: unknown }).contractTerm).toBe(fn);
   });
 
-  it('the runtime export lists of both barrels equal the pre-B32 pins (b32_pre_label_pins.json)', () => {
-    expect(Object.keys(ca).sort()).toEqual(PRE.exports.caBarrel);
-    expect(Object.keys(root).sort()).toEqual(PRE.exports.rootBarrel);
+  // B34 (DEC-B34-TERM): re-baselined. The pins (byte-identical, B34-R8a) hold the pre-B32 lists; B34 adds exactly
+  // contractTermOptions to both barrels (ADR-13(i), additive). B32 itself changed no export.
+  it('the runtime export lists of both barrels equal the pre-B32 pins (b32_pre_label_pins.json) plus B34\'s contractTermOptions', () => {
+    const plusB34 = (names: string[]): string[] => [...names, 'contractTermOptions'].sort();
+    expect(PRE.exports.caBarrel).not.toContain('contractTermOptions');
+    expect(Object.keys(ca).sort()).toEqual(plusB34(PRE.exports.caBarrel));
+    expect(Object.keys(root).sort()).toEqual(plusB34(PRE.exports.rootBarrel));
   });
 
   it('the result of calculateCobCanada still has no start-date or term field (goldens pin JSON.stringify of the result)', async () => {

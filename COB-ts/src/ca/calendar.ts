@@ -1,4 +1,4 @@
-import type { ContractTerm, PaymentFrequency } from './types.js';
+import type { ContractTerm, ContractTermMonths, PaymentFrequency } from './types.js';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -118,6 +118,15 @@ export function termBetween(from: Date, to: Date): ContractTerm {
   const years = (totalMonths - months) / 12;
   const days = daysBetween(addMonthsClamped(start, totalMonths), end);
   return { years, months, days };
+}
+
+/** A term rounded UP to whole months (B34, DEC-B34-TERM): any leftover day counts as a full
+ *  month; no leftover day, no rounding. Display only: calculateCobCanada never calls it.
+ *  Integer arithmetic only (fitness check F4). Expects a term from `termBetween`. */
+export function roundUpToWholeMonths(term: ContractTerm): ContractTermMonths {
+  const total = 12 * term.years + term.months + (term.days > 0 ? 1 : 0);
+  const months = total % 12;
+  return { years: (total - months) / 12, months };
 }
 
 /** Last day of `date`'s UTC month. Equivalent to the macro's
