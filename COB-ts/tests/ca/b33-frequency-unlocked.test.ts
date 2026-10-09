@@ -28,19 +28,20 @@ const VIEW_EXPORTS_39 = [
   'printFeesNodes', 'printFigures', 'printInputNodes', 'printInputRows', 'scheduleCsv', 'scheduleTableNodes',
   'switchedOut', 'toInput', 'typedMoney', 'contractTermParts', 'contractTermText', 'contractTermHint', 'firstDateMoveNote',
   'contractTermMonthsParts', 'contractTermChoice', // B34 (DEC-B34-TERM)
+  'frequencyOptionText', // B37 addendum (Q-B37-LABEL; 42 names)
 ].sort();
 
 const GONE = ['frequencyLock', 'FREQUENCY_LOCK_HINT', 'paymentFrequencyHint', 'Personal loans are paid monthly.'];
 
 // ---------------------------------------------------------------------------------------------------------------
 describe('B33-T9 INV-UI: no Payment frequency lock in ui/', () => {
-  it('ui/ca-view.js exports exactly 41 names (B34: was 39), without frequencyLock / FREQUENCY_LOCK_HINT', async () => {
+  it('ui/ca-view.js exports exactly 42 names (B34: was 39, then 41; B37: + frequencyOptionText), without frequencyLock / FREQUENCY_LOCK_HINT', async () => {
     const v = await loadView();
-    expect(VIEW_EXPORTS_39).toHaveLength(41);
+    expect(VIEW_EXPORTS_39).toHaveLength(42);
     expect(Object.keys(v).sort()).toEqual(VIEW_EXPORTS_39);
   });
 
-  it('ui/ca-view.d.ts declares exactly the same 41 names (QA-owned, B33-R6; B34-R7)', () => {
+  it('ui/ca-view.d.ts declares exactly the same 42 names (QA-owned, B33-R6; B34-R7; B37-L4)', () => {
     const dts = stripComments(read(join(ROOT, 'ui', 'ca-view.d.ts')));
     const declared = [...dts.matchAll(/^export (?:declare )?(?:const|function|let) (\w+)/gm)].map((m) => m[1]!);
     expect([...new Set(declared)].sort()).toEqual(VIEW_EXPORTS_39);
@@ -48,11 +49,12 @@ describe('B33-T9 INV-UI: no Payment frequency lock in ui/', () => {
   });
 
   // B34 (DEC-B34-TERM, B34-R5): re-baselined, contractTerm -> contractTermOptions.
-  it('ui/ca.js: the barrel import is exactly calculateCobCanada, contractTermOptions, FLOWS, requiresSemiAnnualDate (B33-R5; B34-R5)', () => {
+  // B37 addendum (B37-L5): re-baselined, + paymentsPerYearFor.
+  it('ui/ca.js: the barrel import is exactly calculateCobCanada, contractTermOptions, FLOWS, paymentsPerYearFor, requiresSemiAnnualDate (B33-R5; B34-R5; B37-L5)', () => {
     const js = stripComments(read(join(ROOT, 'ui', 'ca.js')));
     const m = /import\s*\{([^}]*)\}\s*from\s*'\/dist\/ca\/index\.js';/.exec(js);
     expect(m).not.toBeNull();
-    expect(m![1]!.split(',').map((s) => s.trim()).filter(Boolean)).toEqual(['calculateCobCanada', 'contractTermOptions', 'FLOWS', 'requiresSemiAnnualDate']);
+    expect(m![1]!.split(',').map((s) => s.trim()).filter(Boolean)).toEqual(['calculateCobCanada', 'contractTermOptions', 'FLOWS', 'paymentsPerYearFor', 'requiresSemiAnnualDate']);
     expect(js).not.toMatch(/\ballowedPaymentFrequencies\b/);
   });
 
@@ -136,9 +138,42 @@ describe('B33-T10 capture: scenario PL_WEEKLY appended (B33-R9); the six earlier
     return { ...rest, contractTermField: sc.contractTermField === now ? before : `(not ${now}) ${sc.contractTermField}`, modes } as Scenario;
   };
 
-  it('seven scenarios; scenarios[0..5], formDefaults and flowScreens equal QA\'s pre-B33 pin once B34\'s R8b strings are mapped back (B34-BV-87)', () => {
+  // B37 (DEC-B37-LEAP-N, DEV-B37-LEAPN; QA verify 2026-10-09): re-baselined. B37 changed number tokens of REF-01 and
+  // S1_fees only (figures, schedule digits, CSV digits; user approved). They are mapped back to their pre-B37 text with
+  // QA's reverse patch (fixtures/b37_capture_undo.json; every patched token must be a number in both texts), and the
+  // result must hash to the pre-B37 per-scenario pin recorded at the B37 red step (b37_pre_golden_group_hashes.json);
+  // then B34's mapping applies as before. Any other change fails.
+  type Undo = { numberToken: string; scenarios: Record<string, { path: string[]; base64: boolean; tokens: [number, string, string][] }[]> };
+  const B37_UNDO = loadFixture<Undo>('b37_capture_undo.json');
+  const B37_PIN = loadFixture<{ capture: { scenarioSha256: Record<string, string> } }>('b37_pre_golden_group_hashes.json').capture;
+  const undoB37 = (sc: Scenario): Scenario => {
+    const patches = B37_UNDO.scenarios[sc.id];
+    if (!patches) return sc;
+    const num = new RegExp(B37_UNDO.numberToken);
+    const whole = new RegExp(`^${B37_UNDO.numberToken}$`);
+    const copy = JSON.parse(JSON.stringify(sc)) as Record<string, unknown>;
+    for (const { path, base64, tokens } of patches) {
+      let parent = copy as Record<string, unknown>;
+      for (const k of path.slice(0, -1)) parent = parent[k] as Record<string, unknown>;
+      const leaf = path[path.length - 1]!;
+      const text = base64 ? Buffer.from(parent[leaf] as string, 'base64').toString('utf8') : (parent[leaf] as string);
+      const parts = text.split(num);
+      for (const [i, now, before] of tokens) {
+        expect(i % 2, `${sc.id} ${path.join('/')} token ${i} is a number`).toBe(1);
+        expect(parts[i], `${sc.id} ${path.join('/')} token ${i}`).toBe(now);
+        expect(before).toMatch(whole);
+        parts[i] = before;
+      }
+      parent[leaf] = base64 ? Buffer.from(parts.join(''), 'utf8').toString('base64') : parts.join('');
+    }
+    expect(sha256(JSON.stringify(copy)), `${sc.id} mapped back to pre-B37`).toBe(B37_PIN.scenarioSha256[sc.id]);
+    return copy as unknown as Scenario;
+  };
+
+  it('seven scenarios; scenarios[0..5], formDefaults and flowScreens equal QA\'s pre-B33 pin once B37\'s number tokens and B34\'s R8b strings are mapped back (B34-BV-87)', () => {
     expect(cap.scenarios.map((s) => s.id)).toEqual([...pin.scenarioIds, 'PL_WEEKLY']);
-    expect(sha256(JSON.stringify(cap.scenarios.slice(0, 6).map(undoB34)))).toBe(pin.scenariosSha256);
+    expect(Object.keys(B37_UNDO.scenarios)).toEqual(['REF-01', 'S1_fees']);
+    expect(sha256(JSON.stringify(cap.scenarios.slice(0, 6).map(undoB37).map(undoB34)))).toBe(pin.scenariosSha256);
     expect(sha256(JSON.stringify(cap.formDefaults))).toBe(pin.formDefaultsSha256);
     const screens = Object.fromEntries(Object.entries(cap.flowScreens as Record<string, Record<string, string>>).map(([f, sc]) =>
       [f, { ...sc, termHint: sc['termHint'] === `From the ${sc['startDate']!.toLowerCase()}; part months count as a full month.` ? PRE_B34_HINT(sc['startDate']!) : `(not B34) ${sc['termHint']}` }]));

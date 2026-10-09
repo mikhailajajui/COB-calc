@@ -389,7 +389,63 @@ try {
     } catch (e) { fail('B34 sequence B aborted: ' + String(e.message).split('\n')[0]); }
     await p4.close();
   }
+  // B37 addendum (Q-B37-LABEL; DEC-B37-LEAP-N label format: whole numbers, user 2026-10-09): every Payment frequency option
+  // text is frequencyOptionText(value, paymentsPerYearFor(input, value)) = "<label> (<Math.round(n)>/yr)". The leap-aware n
+  // lies in 52.14..52.29 / 26.07..26.14, so the visible texts stay "(52/yr)" / "(26/yr)" in every state; the steps check the
+  // texts survive every refresh (dates cleared, an error showing, variable rate, personal loan), the value is never
+  // touched, the accessible name stays, the printout shows no "/yr", and V-CASE1 shows the shipped (leap-aware) total.
+  {
+    const p5 = await ctx.newPage();
+    p5.on('pageerror', (e) => fail('B37 pageerror: ' + e.message));
+    p5.on('console', (m) => { if (['error', 'warning'].includes(m.type()) && !/alterna\.ca\/media|\/favicon\.ico/.test(m.location().url)) fail(`B37 console.${m.type()}: ${m.text()}`); });
+    p5.setDefaultTimeout(5000);
+    await p5.goto(PAGE_URL || base + '/ui/ca.html'); await p5.waitForLoadState('load');
+    const B37_TEXTS = ['Weekly (52/yr)', 'Bi-weekly (26/yr)', 'Semi-monthly (24/yr)', 'Monthly (12/yr)'];
+    const freq = () => p5.evaluate(() => {
+      const s = document.getElementById('paymentFrequency'); const e = document.getElementById('error');
+      return { texts: [...s.querySelectorAll('option')].map((o) => o.textContent), value: s.value, name: s.labels[0]?.textContent ?? null,
+        error: e.style.display === 'block' };
+    });
+    const b37Step = async (where, want) => {
+      await p5.waitForTimeout(400);
+      const s = await freq();
+      if (JSON.stringify(s.texts) !== JSON.stringify(B37_TEXTS)) fail(`B37 ${where}: option texts ${JSON.stringify(s.texts)}`);
+      if (s.value !== want.value) fail(`B37 ${where}: value ${s.value} want ${want.value}`);
+      if (s.name !== 'Payment frequency') fail(`B37 ${where}: accessible name ${JSON.stringify(s.name)}`);
+      if (want.error !== undefined && s.error !== want.error) fail(`B37 ${where}: error box ${s.error ? 'shown' : 'hidden'}, want ${want.error ? 'shown' : 'hidden'}`);
+    };
+    try {
+      await b37Step('(a) on load', { value: 'weekly' });
+      await p5.selectOption('#paymentFrequency', 'biweekly');
+      await b37Step('(b) Bi-weekly selected', { value: 'biweekly' });
+      for (const [k, v] of Object.entries({ loanAmount: '227829.65', contractRatePercent: '3.74', paymentAmount: '930.92', disbursalDate: '2026-03-17', firstPaymentDate: '2026-03-23', endDate: '2029-03-17' })) await p5.fill('#' + k, v);
+      await b37Step('(b2) REF-01 dates, Bi-weekly', { value: 'biweekly', error: false });
+      await p5.fill('#endDate', '');
+      await b37Step('(c) End date cleared', { value: 'biweekly', error: true });
+      await p5.fill('#paymentAmount', '');
+      for (const [k, v] of Object.entries({ disbursalDate: '2028-01-10', firstPaymentDate: '2028-01-24', endDate: '2028-12-18' })) await p5.fill('#' + k, v);
+      await b37Step('(d) 2028 span, Payment amount blank', { value: 'biweekly', error: true });
+      await p5.selectOption('#rateType', 'variable');
+      await b37Step('(e) Rate type Variable', { value: 'biweekly' });
+      await p5.selectOption('#productType', 'personalLoan');
+      await b37Step('(e) Personal loan', { value: 'biweekly' });
+      // (h) V-CASE1 (the user's case 1): Payment change, fixed mortgage, Bi-weekly -> Total interest $60,137.62 (leap-aware n).
+      await p5.selectOption('#productType', 'mortgage');
+      await p5.selectOption('#rateType', 'fixed');
+      await p5.selectOption('#flow', 'paymentChange');
+      for (const [k, v] of Object.entries({ loanAmount: '495466.87', contractRatePercent: '4.34', paymentAmount: '1350.64', accruedInterest: '58.33', renewalDate: '2026-10-08', firstPaymentDate: '2026-10-21', endDate: '2029-09-23' })) await p5.fill('#' + k, v);
+      await b37Step('(h) V-CASE1', { value: 'biweekly', error: false });
+      const ti = await p5.evaluate(() => [...document.querySelectorAll('#mainFigures .figure')].filter((f) => f.querySelector('dt').firstChild.textContent === 'Total interest').map((f) => f.querySelector('dd').textContent));
+      if (JSON.stringify(ti) !== JSON.stringify(['$60,137.62'])) fail(`B37 (h) V-CASE1 Total interest ${JSON.stringify(ti)} want ["$60,137.62"] (DEC-B37-LEAP-N)`);
+      // (g) the printout carries no option text
+      await p5.emulateMedia({ media: 'print' });
+      const printed = await p5.evaluate(() => document.body.innerText);
+      if (printed.includes('/yr')) fail('B37 (g) print media: "/yr" appears in the printed page');
+      await p5.emulateMedia({ media: 'screen' });
+    } catch (e) { fail('B37 sequence aborted: ' + String(e.message).split('\n')[0]); }
+    await p5.close();
+  }
   for (const o of b34Observed) console.log('B34 observed: ' + o);
 } finally { await browser.close(); child?.kill(); }
 if (problems.length) { console.log('SMOKE FAIL\n' + problems.join('\n')); process.exit(1); }
-console.log('SMOKE PASS: no pageerror/console error; B33 no frequency lock (enabled, value kept, no hint), 4 options, REF-01, Contract term (filled, cleared, printed, tile), B31 screen lists and hint counts, personal loan calc, CSV, print, renewal, B32 term label/hint per flow and RENEWAL term, B34 term choice (INV-PAGE 1-15, BA sequence B, CSV under both picks, zero term)');
+console.log('SMOKE PASS: no pageerror/console error; B33 no frequency lock (enabled, value kept, no hint), 4 options, REF-01, Contract term (filled, cleared, printed, tile), B31 screen lists and hint counts, personal loan calc, CSV, print, renewal, B32 term label/hint per flow and RENEWAL term, B34 term choice (INV-PAGE 1-15, BA sequence B, CSV under both picks, zero term), B37 frequency labels (whole numbers, every refresh, accessible name, no /yr in print) and V-CASE1 total interest');

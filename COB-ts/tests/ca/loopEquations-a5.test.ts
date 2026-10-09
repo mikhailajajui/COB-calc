@@ -35,7 +35,7 @@ import type { CobCanadaInput, FeeSchedule, PaymentFrequency, ProductType, RateTy
 import { SRC_CA, read, stripComments } from '../architecture/support.js';
 import { asInput, utcDate } from './support/builders.js';
 import { rehomeCase } from './support/rehome.js';
-import { WORKBOOK, calculateWith } from './support/switches.js';
+import { LEAP_OFF, SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
 import type { Switches } from './support/switches.js';
 
 const d = utcDate;
@@ -240,7 +240,9 @@ describe('A5 equivalence: row.periodInterest === periodInterest(opening, rate, p
       });
       let r;
       try {
-        r = calculateCobCanada(input);
+        // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off: `rd` below uses PAYMENTS_PER_YEAR. The on-state
+        // twin of this sweep (leap-aware n) is B37-T6 in b37-leap-aware-n.test.ts.
+        r = calculateWith(input, SHIPPED, LEAP_OFF);
       } catch (e) {
         // Only the zero-day COB term (B13) and, since B25 (DEV-OQZ), an End Date that is not after the MOVED semi-monthly
         // first date (the draw makes End = first + 1 day at the shortest) may be skipped; anything else (e.g. a B14

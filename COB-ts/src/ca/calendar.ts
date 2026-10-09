@@ -189,6 +189,22 @@ export function effectiveFirstPaymentDate(frequency: PaymentFrequency, first: Da
   return new Date(Date.UTC(year, monthIndex, movedDay));
 }
 
+/** Days in one payment period (B37, DEC-B37-LEAP-N): 7 for Weekly and Accelerated weekly, 14 for Bi-weekly and
+ *  Accelerated bi-weekly (the steps periodDateFor uses); null for Monthly and Semi-monthly (calendar-based). */
+export function paymentPeriodDays(frequency: PaymentFrequency): 7 | 14 | null {
+  switch (frequency) {
+    case 'weekly':
+    case 'acceleratedWeekly':
+      return 7;
+    case 'biweekly':
+    case 'acceleratedBiweekly':
+      return 14;
+    case 'monthly':
+    case 'semiMonthly':
+      return null;
+  }
+}
+
 /** periodDate for period index i (0-based) at the given payment frequency.
  *  Per BR-09, Accelerated Weekly is treated identically to Weekly and Accelerated
  *  Bi-weekly identically to Bi-weekly. Weekly, bi-weekly and monthly are indexed from the First Payment

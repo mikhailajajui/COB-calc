@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { calculateCobCanada } from '../../src/ca/index.js';
 import type { CobCanadaInput, CobScheduleRow } from '../../src/ca/index.js';
 import { asInput, isoDay, utcDate } from './support/builders.js';
 import { withinRel as withinRelTol } from './support/compare.js';
 import { loadFixture } from './support/fixtures.js';
+import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 
 /**
  * REF-01 (T5, QA 2026-09-27): parity with REAL Excel output -- the calculation saved in
@@ -52,7 +52,9 @@ const input: CobCanadaInput = asInput({
   semiAnnualCompoundingDate: d(ref.inputs.disbursal_date as string),
 });
 
-const result = calculateCobCanada(input);
+// B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off. Q-B37-REF01: REF-01 stays the workbook-side
+// reference; the shipped (leap-aware) state is the known difference DEV-B37-LEAPN, pinned in b37-leap-aware-n.test.ts B37-T3.
+const result = calculateWith(input, SHIPPED, LEAP_OFF);
 const rows = result.amortizationSchedule;
 const cumInt: number[] = [];
 rows.reduce((s, r, i) => (cumInt[i] = s + r.periodInterest), 0);

@@ -1,6 +1,6 @@
 // Canadian Cost of Borrowing (COB) engine: the public API. The UI imports only this
 // module (COB-architecture.md ADR-05, F2).
-export { calculateCobCanada, contractTerm, contractTermOptions } from './cobCanada.js';
+export { calculateCobCanada, contractTerm, contractTermOptions, paymentsPerYearFor } from './cobCanada.js';
 export { FLOWS, requiresSemiAnnualDate } from './flows.js';
 export type { FlowSpec } from './flows.js';
 export { PAYMENTS_PER_YEAR } from './types.js';

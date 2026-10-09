@@ -115,9 +115,11 @@ const N = (() => {
 // =============================================================================================
 
 describe('A7-1 policies.ts: export list and exact values (red until A7)', () => {
-  it('A7-1: runtime exports are exactly the four open-decision constants plus the B19 switch and (B24) the Q-SACD switch', async () => {
+  // B37 (DEC-B37-LEAP-N, brief B37 test plan 6): + LEAP_AWARE_PAYMENTS_PER_YEAR. Red until sr-dev adds it.
+  it('A7-1: runtime exports are exactly the four open-decision constants plus the B19 switch, (B24) the Q-SACD switch and (B37) the leap switch', async () => {
     const mod = (await import(/* @vite-ignore */ POLICIES_MODULE)) as Record<string, unknown>;
     expect(Object.keys(mod).sort()).toEqual([
+      'LEAP_AWARE_PAYMENTS_PER_YEAR',
       'PRINCIPAL_PAID',
       'PRIOR_ACCRUED_IN_COB',
       'PRIOR_ACCRUED_IN_P',
@@ -158,10 +160,11 @@ describe('A7-2 source guard (red until A7)', () => {
     }
   });
 
-  it('A7-2: policies.ts declares exactly six exports: the four M1 constants, then the B19 switch (in order), and (B24) SEMI_ANNUAL_DATE_REQUIRED after them', () => {
+  // B37 (brief B37-R1): LEAP_AWARE_PAYMENTS_PER_YEAR is appended after SEMI_ANNUAL_DATE_REQUIRED. Red until sr-dev adds it.
+  it('A7-2: policies.ts declares exactly seven exports: the four M1 constants, then the B19 switch (in order), (B24) SEMI_ANNUAL_DATE_REQUIRED and (B37) LEAP_AWARE_PAYMENTS_PER_YEAR after them', () => {
     const code = stripComments(read(POLICIES_FILE));
     const names = [...code.matchAll(/\bexport\s+const\s+(\w+)/g)].map((m) => m[1]);
-    expect(names).toEqual([...POLICY_TABLE.map((p) => p.name), SWITCH_NAME, 'SEMI_ANNUAL_DATE_REQUIRED']);
+    expect(names).toEqual([...POLICY_TABLE.map((p) => p.name), SWITCH_NAME, 'SEMI_ANNUAL_DATE_REQUIRED', 'LEAP_AWARE_PAYMENTS_PER_YEAR']);
   });
 
   for (const { name, decision, alternatives } of POLICY_TABLE) {
@@ -186,12 +189,13 @@ describe('A7-2 source guard (red until A7)', () => {
     });
   }
 
-  it('A7-2: cobCanada.ts imports the four constants and the B19 switch from ./policies.js', () => {
+  // B37 (brief B37-R4 / B37-L2): + LEAP_AWARE_PAYMENTS_PER_YEAR. Red until sr-dev adds it.
+  it('A7-2: cobCanada.ts imports the four constants, the B19 switch and (B37) the leap switch from ./policies.js', () => {
     const code = stripComments(read(COB_FILE));
     const m = code.match(/import\s*\{([^}]*)\}\s*from\s*['"]\.\/policies\.js['"]/);
     expect(m).not.toBeNull();
     const names = m![1]!.split(',').map((s) => s.trim()).filter(Boolean).sort();
-    expect(names).toEqual([...POLICY_TABLE.map((p) => p.name), SWITCH_NAME].sort());
+    expect(names).toEqual([...POLICY_TABLE.map((p) => p.name), SWITCH_NAME, 'LEAP_AWARE_PAYMENTS_PER_YEAR'].sort());
   });
 
   it('A7-2 (B19): W1 and W4 are retired: no constant in policies.ts or cobCanada.ts, and buildSchedule has no satisfies pin', () => {

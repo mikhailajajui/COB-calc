@@ -125,6 +125,7 @@ const EXPORTS = [
   'addMonthsClamped', 'addUtcDays', 'dayCountFraction', 'daysBetween', 'daysInUtcMonth', 'effectiveFirstPaymentDate', 'endOfUtcMonth',
   'isLastDayOfMonth', 'isLeapYear', 'nextSemiMonthlyDate', 'periodDateFor', 'termBetween', 'utcDateOnly', // B24-R1 adds termBetween; B25-R2 adds effectiveFirstPaymentDate
   'roundUpToWholeMonths', // B34 (DEC-B34-TERM, B34-R2): the display-only rounding of a term, internal to src/ca
+  'paymentPeriodDays', // B37 (DEC-B37-LEAP-N, B37-R2): 7 / 14 days per period, null for Monthly / Semi-monthly; internal to src/ca
 ].sort();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -147,7 +148,7 @@ function cal(): Cal {
 }
 
 describe('A4 calendar.ts module', () => {
-  it('a. exports exactly the 11 functions of Goal 4 plus termBetween (B24-R1), effectiveFirstPaymentDate (B25-R2) and roundUpToWholeMonths (B34-R2) (MS_PER_DAY stays private)', () => {
+  it('a. exports exactly the 11 functions of Goal 4 plus termBetween (B24-R1), effectiveFirstPaymentDate (B25-R2), roundUpToWholeMonths (B34-R2) and paymentPeriodDays (B37-R2) (MS_PER_DAY stays private)', () => {
     const c = cal();
     expect(Object.keys(c).sort()).toEqual(EXPORTS);
     for (const k of EXPORTS) expect(typeof c[k], k).toBe('function');

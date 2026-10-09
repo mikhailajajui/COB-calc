@@ -35,6 +35,14 @@ export function parseMoney(raw: string): number | null;
 export function parseAmount(raw: string): number | undefined;
 export function formatAmount(raw: string): string;
 export function paymentsText(n: number): string;
+/**
+ * B37 addendum (DEC-B37-LEAP-N answers, Q-B37-LABEL; format: "DEC-B37-LEAP-N: label format", no decimals; wording interim,
+ * Q-MSG): one Payment frequency option's text, `${label('paymentFrequency', frequency)} (${Math.round(paymentsPerYear)}/yr)`.
+ * `paymentsPerYear` is the engine's paymentsPerYearFor(input, frequency); it is shown rounded to the nearest whole number,
+ * display only, never fed back to the engine. ('weekly', 52) -> 'Weekly (52/yr)'; ('biweekly', 26.095568783068778) ->
+ * 'Bi-weekly (26/yr)'.
+ */
+export function frequencyOptionText(frequency: string, paymentsPerYear: number): string;
 export function parseDateInput(value: string): Date | undefined;
 export function numOrUndefined(value: string | null | undefined): number | undefined;
 export function toInput(raw: RawForm, ctx: ViewContext): CobCanadaInput;

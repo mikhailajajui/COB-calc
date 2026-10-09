@@ -25,6 +25,7 @@ import type * as View from '../../ui/ca-view.js';
 import { ROOT } from '../architecture/support.js';
 import { utcDate } from './support/builders.js';
 import { loadFixture } from './support/fixtures.js';
+import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 import { BOTH, OFF, ON } from './support/uiSwitches.js';
 import type { TestUiSwitches } from './support/uiSwitches.js';
 // @ts-ignore -- plain .mjs shared with the generators (no .d.ts).
@@ -247,7 +248,9 @@ describe('B26-FLOWS: the figure appears in every flow, product and frequency; th
   it.each(cases)('%s [%s]', async (_name, _sw, input, text, s) => {
     const v = await loadView();
     const i = input as CobCanadaInput;
-    const result = calculateCobCanada(i);
+    // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (the texts are pre-B37 engine runs; only the
+    // fixed-mortgage weekly case moves with the leap switch on).
+    const result = calculateWith(i, SHIPPED, LEAP_OFF);
     const last = result.amortizationSchedule.at(-1)!;
     expect(last.carriedAccruedInterestClosing).toBeGreaterThan(0);
     const ctx = ctxFor(i.flow as CobFlow, i.productType as ProductType, i.rateType as RateType, s);

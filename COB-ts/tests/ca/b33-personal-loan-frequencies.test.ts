@@ -17,16 +17,16 @@
  * s. 6), a day-count interest check, the twin, and the workbook vectors of ca_t5_engine_rules_vectors.json.
  */
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import * as ca from '../../src/ca/index.js';
 import * as root from '../../src/index.js';
 import { PAYMENTS_PER_YEAR, calculateCobCanada, collectInputIssues } from '../../src/ca/index.js';
 import type { CobCanadaInput, CobCanadaResult, CobFlow, PaymentFrequency, ProductType, RateType } from '../../src/ca/index.js';
 import { asInput, isoDay, utcDate, wireToInput } from './support/builders.js';
 import { withinRel } from './support/compare.js';
-import { FIXTURES_DIR, loadFixture } from './support/fixtures.js';
+import { loadFixture } from './support/fixtures.js';
+import { preB37GoldenText } from './support/preB37Golden.js';
+import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 // @ts-ignore -- plain .mjs (no .d.ts): the live generators.
 import * as gen1 from './fixtures/generate_golden.mjs';
 // @ts-ignore -- plain .mjs (no .d.ts).
@@ -89,9 +89,10 @@ describe('B33-T1 INV-CATALOGUE: allowedPaymentFrequencies returns the same froze
   });
 
   // B34 (DEC-B34-TERM): re-baselined, + contractTermOptions (ADR-13(i), additive; 7 -> 8 runtime names). B33 itself changed no export.
-  it('the same binding on both barrels; both barrels export exactly the 8 runtime names (B33: no public-API change; B34: + contractTermOptions)', () => {
+  // B37 addendum (ADR-13(j), re-baselined by QA 2026-10-09): + paymentsPerYearFor (9 names).
+  it('the same binding on both barrels; both barrels export exactly the 9 runtime names (B33: no public-API change; B34: + contractTermOptions; B37: + paymentsPerYearFor)', () => {
     expect((root as Record<string, unknown>)['allowedPaymentFrequencies']).toBe((ca as Record<string, unknown>)['allowedPaymentFrequencies']);
-    const NAMES = ['FLOWS', 'PAYMENTS_PER_YEAR', 'allowedPaymentFrequencies', 'calculateCobCanada', 'collectInputIssues', 'contractTerm', 'contractTermOptions', 'requiresSemiAnnualDate'];
+    const NAMES = ['FLOWS', 'PAYMENTS_PER_YEAR', 'allowedPaymentFrequencies', 'calculateCobCanada', 'collectInputIssues', 'contractTerm', 'contractTermOptions', 'paymentsPerYearFor', 'requiresSemiAnnualDate'];
     expect(Object.keys(ca).sort()).toEqual(NAMES);
     expect(Object.keys(root).sort()).toEqual(NAMES);
   });
@@ -151,7 +152,8 @@ describe('B33-T4 INV-RATE: only a fixed mortgage converts the contract rate', ()
     expect(isoDay(pl.amortizationSchedule[0]!.date)).toBe('2027-01-08');
     expect(withinRel(pl.amortizationSchedule[0]!.periodInterest, (10000 * 0.08 * 7) / 365, 1e-12)).toBe(true);
     expect(pl.amortizationSchedule[0]!.periodInterest).toBe(15.342465753424658);
-    const m = calculateCobCanada(input('newMortgageOrLoan', 'mortgage', 'fixed', 'weekly'));
+    // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (the expected value is equation 1 at n = 52).
+    const m = calculateWith(input('newMortgageOrLoan', 'mortgage', 'fixed', 'weekly'), SHIPPED, LEAP_OFF);
     expect(withinRel(m.calculatedRatePercent, 52 * (1.04 ** (2 / 52) - 1) * 100, 1e-12)).toBe(true);
     expect(m.calculatedRatePercent).toBe(7.850062008028846);
   });
@@ -163,7 +165,8 @@ describe('B33-T4 INV-RATE: only a fixed mortgage converts the contract rate', ()
       expect(pl.calculatedRatePercent, `PL ${fl}/${f}/${r}/${rate}`).toBe(rate);
       const vm = calculateCobCanada(sweepInput(fl, 'mortgage', 'variable', f, rate, loan, pay));
       expect(vm.calculatedRatePercent).toBe(rate);
-      const fm = calculateCobCanada(sweepInput(fl, 'mortgage', 'fixed', f, rate, loan, pay));
+      // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (expectedRatePercent uses PAYMENTS_PER_YEAR).
+      const fm = calculateWith(sweepInput(fl, 'mortgage', 'fixed', f, rate, loan, pay), SHIPPED, LEAP_OFF);
       expect(withinRel(fm.calculatedRatePercent, expectedRatePercent('mortgage', 'fixed', rate, f), 1e-12), `FM ${fl}/${f}/${rate}`).toBe(true);
       expect(fm.calculatedRatePercent).not.toBe(rate); // converted at every n (never semi-annual payments here)
       checked += 1;
@@ -251,7 +254,18 @@ describe('B33-T8 INV-GOLD: the goldens equal B33-R8 (red until sr-dev regenerate
   type Fixture = { version: string; note: string; caseFields: string[]; groups: Record<string, { hash: string; n: number }>; long: Record<string, unknown> };
   type PinSide = { version: string; note: string; caseFields: string[]; groups: Record<string, { hash: string; n: number }>; long: Record<string, string> };
   const pin = loadFixture<{ v1: PinSide; pc: PinSide }>('b33_pre_golden_group_hashes.json');
-  const raw = (name: string) => readFileSync(join(FIXTURES_DIR, name), 'utf8');
+  // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off. B37 regenerates both goldens (approved 2026-10-09),
+  // so these B33 facts are checked on the pre-B37 goldens, rebuilt byte for byte by the leap-off replay
+  // (support/preB37Golden.ts), instead of on the live files. No assertion value changes.
+  const raw = (name: string): string => {
+    if (name === 'golden_engine_v1.json') return preB37GoldenText('v1');
+    if (name === 'golden_engine_pc_v1.json') return preB37GoldenText('pc');
+    throw new Error(`B37: B33-T8 reads only the two golden fixtures, got ${name}`);
+  };
+  beforeAll(() => {
+    preB37GoldenText('v1');
+    preB37GoldenText('pc');
+  }, 120_000);
   const fix = (name: string) => JSON.parse(raw(name)) as Fixture;
   const FEES = ['none', 'fin2000', 'fin2000cash400'];
   const ADDED_V1 = ['weekly', 'biweekly', 'semiMonthly'].flatMap((f) =>

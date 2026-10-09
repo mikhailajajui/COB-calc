@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { asInput } from '../support/builders.js';
-import { WORKBOOK, calculateWith } from '../support/switches.js';
+import { LEAP_OFF, WORKBOOK, calculateWith } from '../support/switches.js';
 import { rehomeCase } from '../support/rehome.js';
 // B27: DEV-FB24 class E -- the corpora are the FROZEN pre-B27 generators (they still hold the personal-loan
 // non-monthly cases); every input goes through the twin and the result's triggerRatePercent is restored, so
@@ -29,7 +29,8 @@ import * as pc from '../fixtures/legacy/generate_golden_pc_pre_b27.mjs';
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 const calc = (x: object) => {
   const { twin, restore } = rehomeCase(x); // B27: DEV-FB24 class E
-  return restore(calculateWith(asInput(twin), WORKBOOK));
+  // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (B37-D2: the workbook-branch replays run leap off).
+  return restore(calculateWith(asInput(twin), WORKBOOK, LEAP_OFF));
 };
 
 describe('B19 switch on = pre-B19 engine, byte for byte', () => {

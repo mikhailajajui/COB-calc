@@ -26,7 +26,8 @@ function policyViolations(): string[] {
   const out: string[] = [];
   const re = /(\/\*\*(?:(?!\*\/)[\s\S])*\*\/\s*)?export\s+(?:declare\s+)?(?:const|let|var|function|type|interface|enum|class)\s+(\w+)/g;
   for (const m of src.matchAll(re)) {
-    const id = m[1]?.match(/@decision\s+((?:OQ|Q)-[A-Z]+)\b/)?.[1]; // B24: widened from OQ- (Q-SACD is the decision ID of SEMI_ANNUAL_DATE_REQUIRED)
+    // B37: widened again to DEC-... IDs (DEC-B37-LEAP-N is the decision ID of LEAP_AWARE_PAYMENTS_PER_YEAR).
+    const id = m[1]?.match(/@decision\s+((?:OQ|Q)-[A-Z]+|DEC-[A-Z0-9]+(?:-[A-Z0-9]+)*)\b/)?.[1]; // B24: widened from OQ- (Q-SACD is the decision ID of SEMI_ANNUAL_DATE_REQUIRED)
     if (!id) out.push(`${m[2]}: no @decision OQ-x JSDoc`);
     else if (!new RegExp(`\\b${id}\\b`).test(stories)) out.push(`${m[2]}: ${id} not in COB-user-stories.md`);
   }

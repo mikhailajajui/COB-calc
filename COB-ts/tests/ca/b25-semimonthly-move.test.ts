@@ -27,6 +27,7 @@ import { periodDateFor } from '../../src/ca/calendar.js';
 import { SRC_CA, read, stripComments } from '../architecture/support.js';
 import { asInput, isoDay, utcDate } from './support/builders.js';
 import { loadFixture } from './support/fixtures.js';
+import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 // @ts-ignore -- plain .mjs shared with the snapshot generator (no .d.ts).
 import * as snap from './fixtures/generate_b25_pre_snapshot.mjs';
 
@@ -217,7 +218,9 @@ describe('B25-T2 what must NOT change: a pre-B25 snapshot (sha256 of JSON.string
     it(`${f}: every typed date 2027-01-01 .. 2028-12-31 gives the same JSON as before B25`, () => {
       const bad: string[] = [];
       for (const typed of snap.allTypedDates() as string[]) {
-        const h = snap.sha16(JSON.stringify(calculateCobCanada(asInput(snap.snapInput(typed, f, snap.addDaysIso(typed, 730))))));
+        // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (the snapshot is the pre-B25 = pre-B37 engine's,
+        // fixed mortgage; weekly / bi-weekly move with the leap switch on, monthly does not).
+        const h = snap.sha16(JSON.stringify(calculateWith(asInput(snap.snapInput(typed, f, snap.addDaysIso(typed, 730))), SHIPPED, LEAP_OFF)));
         if (h !== SNAPSHOT.hashes[`${f}|${typed}`]) bad.push(typed);
       }
       expect(bad.slice(0, 5), `${bad.length} dates changed`).toEqual([]);

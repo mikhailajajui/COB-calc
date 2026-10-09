@@ -212,6 +212,16 @@ const ensureVrpcOption = (page) => page.evaluate(() => {
 const PAGE_URL = process.env.COB_PAGE_URL || '';
 const server = PAGE_URL ? { base: '', stop: () => {} } : baseArg ? { base: baseArg.replace(/\/$/, ''), stop: () => {} } : await startServer();
 const PAGE = PAGE_URL || server.base + '/ui/ca.html';
+// B37 addendum (Q-B37-LABEL; DEC-B37-LEAP-N label format: whole numbers, user 2026-10-09): the Payment frequency option
+// texts are frequencyOptionText(value, paymentsPerYearFor(input, value)), the engine's n rounded to a whole number. The
+// leap-aware n lies in 52.14..52.29 / 26.07..26.14, so every scenario shows the static texts. An assertion, not a recorded
+// key (B28-R7 precedent): fixture keys and provenance.tree are unchanged.
+const B37_TEXTS = ['Weekly (52/yr)', 'Bi-weekly (26/yr)', 'Semi-monthly (24/yr)', 'Monthly (12/yr)'];
+async function assertFrequencyTexts(page, where) {
+  const texts = await page.evaluate(() => [...document.querySelectorAll('#paymentFrequency option')].map((o) => o.textContent));
+  if (JSON.stringify(texts) !== JSON.stringify(B37_TEXTS)) throw new Error(`B37 ${where}: #paymentFrequency option texts ${JSON.stringify(texts)}, expected ${JSON.stringify(B37_TEXTS)}`);
+}
+
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true, locale: 'en-CA', timezoneId: 'America/Toronto' });
@@ -312,6 +322,7 @@ try {
       const csvBase64 = readFileSync(await dl.path()).toString('base64');
       entry.modes[mode] = { html, figures, csvFileName: dl.suggestedFilename(), csvBase64 };
     }
+    await assertFrequencyTexts(page, `scenario ${sc.id}`);
     scenarios.push(entry);
     await page.close();
   }
@@ -413,6 +424,7 @@ try {
     if (JSON.stringify(freqOptions) !== JSON.stringify(FOUR)) {
       throw new Error(`B28: #paymentFrequency options are [${freqOptions.join(', ')}], expected [${FOUR.join(', ')}]`);
     }
+    await assertFrequencyTexts(page, 'formDefaults (fresh page)');
     await page.close();
     return d;
   })();

@@ -27,6 +27,7 @@ import type { CobCanadaResult, CobFlow, ProductType, RateType } from '../../src/
 import type * as View from '../../ui/ca-view.js';
 import { ROOT, stripComments } from '../architecture/support.js';
 import { loadFixture } from './support/fixtures.js';
+import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 import { BOTH, OFF, ON } from './support/uiSwitches.js';
 import type { TestUiSwitches } from './support/uiSwitches.js';
 import { LEGACY_MAIN, LEGACY_MORE, LEGACY_PRINT, inLegacyOrder } from './support/legacyFigureOrder.js';
@@ -118,9 +119,10 @@ function expectedLabels(r: CobCanadaResult, raw: View.RawForm, sw: TestUiSwitche
 describe('B31-T1 (B31-R3): API', () => {
   // B33 (DEC-B33-FREQ, B33-R5): 41 -> 39 (frequencyLock and FREQUENCY_LOCK_HINT removed).
   // B34 (DEC-B34-TERM, B34-R3): 39 -> 41 (contractTermMonthsParts and contractTermChoice added).
-  it('B31-T1a: 41 exports; mainFigures, moreFigures, printFigures present; no figureColumns / amountFigures export', async () => {
+  // B37 addendum (B37-L4, re-baselined by QA 2026-10-09): + frequencyOptionText (41 -> 42).
+  it('B31-T1a: 42 exports (B37: + frequencyOptionText); mainFigures, moreFigures, printFigures present; no figureColumns / amountFigures export', async () => {
     const v = await loadView();
-    expect(Object.keys(v)).toHaveLength(41);
+    expect(Object.keys(v)).toHaveLength(42);
     for (const name of ['headlineFigures', 'mainFigures', 'moreFigures', 'printFigures', 'figureNodes']) {
       expect(typeof (v as Record<string, unknown>)[name], name).toBe('function');
     }
@@ -225,7 +227,8 @@ describe('B31-T4 (B31-INV-SAMESET): the same figures as before B31, only re-arra
     const pin = ON_PINS.scenarios.find((x) => x.id === id)!;
     const p = pin.modes[mode]!;
     const ctx = ctxOf(pin.raw, ON);
-    const r = calculateCobCanada(v.toInput(pin.raw, ctx));
+    // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (pre-B37 pins; "switch on" here is the UI financedOption).
+    const r = calculateWith(v.toInput(pin.raw, ctx), SHIPPED, LEAP_OFF);
     const { left, right } = v.printFigures(r, ctx);
     const printed = inLegacyOrder([...left, ...right], LEGACY_PRINT);
     expect(printed).toHaveLength(left.length + right.length);
@@ -240,7 +243,8 @@ describe('B31-T4 (B31-INV-SAMESET): the same figures as before B31, only re-arra
     const pin = PRE.scenarios.find((x) => x.id === id)!;
     const p = pin.modes[mode]!;
     const ctx = ctxOf(pin.raw, OFF);
-    const r = calculateCobCanada(v.toInput(pin.raw, ctx));
+    // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (pre-B37 pins; "switch off" here is the UI financedOption).
+    const r = calculateWith(v.toInput(pin.raw, ctx), SHIPPED, LEAP_OFF);
     const { left, right } = v.printFigures(r, ctx);
     const main = v.mainFigures(r);
     const more = v.moreFigures(r, ctx);
@@ -564,7 +568,8 @@ describe('B31-T9 (B31-R7): ui/ca.js, static', () => {
   it('B31-T9a: the ca-view import list is unchanged (names mainFigures, moreFigures, printFigures; no figureColumns)', () => {
     // B34 (DEC-B34-TERM, B34-R5): the page imports contractTermChoice instead of contractTermParts / contractTermText.
     expect(importNames()).toEqual([
-      'contractTermChoice', 'contractTermHint', 'csvFileName', 'firstDateMoveNote', 'isoDay', 'figureNodes', 'flowLabels',
+      // B37 addendum (B37-L5, re-baselined by QA 2026-10-09): + frequencyOptionText (the Payment frequency option texts).
+      'contractTermChoice', 'contractTermHint', 'csvFileName', 'firstDateMoveNote', 'frequencyOptionText', 'isoDay', 'figureNodes', 'flowLabels',
       'formatAmount', 'formatCurrency', 'formatInputDate', 'headlineFigures', 'html', 'label', 'mainFigures', // B33 (DEC-B33-FREQ): frequencyLock removed from the import list
       'moreFigures', 'parseDateInput', 'paymentsText', 'printFeesNodes', 'printFigures', 'printInputNodes', 'printInputRows', 'scheduleCsv',
       'scheduleTableNodes', 'toInput', 'switchedOut', 'UI_SWITCHES',

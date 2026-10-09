@@ -1,6 +1,6 @@
-import { dayCountFraction } from './calendar.js';
-import type { ProductType, RateType } from './types.js';
-import { isFiniteNumber } from './types.js';
+import { dayCountFraction, daysBetween, paymentPeriodDays } from './calendar.js';
+import type { PaymentFrequency, ProductType, RateType } from './types.js';
+import { isFiniteNumber, PAYMENTS_PER_YEAR } from './types.js';
 
 /**
  * The eight equations, implemented as specified -- each function below is annotated with
@@ -97,6 +97,8 @@ export function selectCompoundingPeriodsPerYear(
  * frequency, as a percent and as the decimal fed to period interest (the macro's
  * getRate reads aRate = D10 / 100). MONTHLY basis: percent === contractRatePercent
  * exactly. SEMI-ANNUAL basis: equation 1 at m = 2.
+ * `paymentsPerYear` is n for equation 1: `PAYMENTS_PER_YEAR`, or for the 7/14-day frequencies with the B37 switch on,
+ * `leapAwarePaymentsPerYear` (non-integer).
  */
 export function calculatedRateFor(
   productType: ProductType,
@@ -116,6 +118,58 @@ export function calculatedRateFor(
   const m = selectCompoundingPeriodsPerYear(productType, rateType, paymentsPerYear);
   const decimal = calculatedRate(contractRatePercent, m, paymentsPerYear);
   return { percent: decimal * 100, decimal };
+}
+
+/**
+ * B37 (DEC-B37-LEAP-N): leap-aware payments per year for a day-based payment period, used as n in equation 1:
+ *   n = (D / P) / Y
+ * D = daysBetween(start, end) (actual days), P = periodDays (7 or 14), Y = dayCountFraction(start, end) (the same span in
+ * years, days in a leap year counted /366, others /365). Evaluated in exactly this order. RangeError unless start < end
+ * and periodDays > 0.
+ */
+export function leapAwarePaymentsPerYear(periodDays: number, start: Date, end: Date): number {
+  if (!(periodDays > 0)) {
+    throw new RangeError(`periodDays must be > 0, got ${periodDays}`);
+  }
+  const days = daysBetween(start, end);
+  if (!(days > 0)) {
+    throw new RangeError('start must be before end');
+  }
+  return days / periodDays / dayCountFraction(start, end);
+}
+
+/**
+ * B37 addendum (DEC-B37-LEAP-N answers, Q-B37-LABEL): THE choice of n for equation 1. calculateCobCanadaWith and the
+ * public paymentsPerYearFor both call this, so the dropdown label and the calculation cannot drift. Never throws for
+ * any date argument; RangeError only for an unknown frequency. In this order:
+ *   1. base = PAYMENTS_PER_YEAR[paymentFrequency] (own key only; RangeError otherwise)
+ *   2. leapAware false -> base
+ *   3. paymentPeriodDays(paymentFrequency) null (Monthly, Semi-monthly) -> base
+ *   4. selectRateBasis(productType, rateType) !== 'SEMI-ANNUAL' -> base
+ *   5. start or end not a valid Date, or daysBetween(start, end) <= 0 -> base
+ *   6. leapAwarePaymentsPerYear(periodDays, start, end)
+ */
+export function conversionPaymentsPerYear(
+  productType: ProductType,
+  rateType: RateType,
+  paymentFrequency: PaymentFrequency,
+  start: Date | undefined,
+  end: Date | undefined,
+  leapAware: boolean,
+): number {
+  const base = Object.hasOwn(PAYMENTS_PER_YEAR, paymentFrequency) ? PAYMENTS_PER_YEAR[paymentFrequency] : undefined;
+  if (base === undefined) {
+    throw new RangeError(`paymentFrequency must be one of ${Object.keys(PAYMENTS_PER_YEAR).join('/')}, got ${String(paymentFrequency)}`);
+  }
+  if (!leapAware) return base;
+  const periodDays = paymentPeriodDays(paymentFrequency);
+  if (periodDays === null || selectRateBasis(productType, rateType) !== 'SEMI-ANNUAL') return base;
+  if (!isValidDate(start) || !isValidDate(end) || !(daysBetween(start, end) > 0)) return base;
+  return leapAwarePaymentsPerYear(periodDays, start, end);
+}
+
+function isValidDate(x: unknown): x is Date {
+  return x instanceof Date && !Number.isNaN(x.getTime());
 }
 
 export { daysBetween, dayCountFraction } from './calendar.js';

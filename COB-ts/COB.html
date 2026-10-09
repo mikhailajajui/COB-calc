@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-M1XO3CM985AZk1vBcnvVlJlfJX7yLqKr9KIjvNCnXbs='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fRX5wGn6BdlAMIV3KR1B6aGqppk/emNdw/Cio2kzowY='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
 <title>Cost of Borrowing Calculator | Alterna Savings</title>
 <style>
   :root {
@@ -796,7 +796,7 @@
     </div>
   </section>
 
-  <footer id="shareFooter">COB Calculator v0.1.0 · built 2026-10-07 · single-file edition, works offline</footer>
+  <footer id="shareFooter">COB Calculator v0.1.0 · built 2026-10-09 · single-file edition, works offline</footer>
 
   <script type="module">
 const __cobModules = {};
@@ -973,6 +973,21 @@ function effectiveFirstPaymentDate(frequency, first) {
     const movedDay = day === 15 || day === last ? day : day < 15 ? 15 : last;
     return new Date(Date.UTC(year, monthIndex, movedDay));
 }
+/** Days in one payment period (B37, DEC-B37-LEAP-N): 7 for Weekly and Accelerated weekly, 14 for Bi-weekly and
+ *  Accelerated bi-weekly (the steps periodDateFor uses); null for Monthly and Semi-monthly (calendar-based). */
+function paymentPeriodDays(frequency) {
+    switch (frequency) {
+        case 'weekly':
+        case 'acceleratedWeekly':
+            return 7;
+        case 'biweekly':
+        case 'acceleratedBiweekly':
+            return 14;
+        case 'monthly':
+        case 'semiMonthly':
+            return null;
+    }
+}
 /** periodDate for period index i (0-based) at the given payment frequency.
  *  Per BR-09, Accelerated Weekly is treated identically to Weekly and Accelerated
  *  Bi-weekly identically to Bi-weekly. Weekly, bi-weekly and monthly are indexed from the First Payment
@@ -993,7 +1008,7 @@ function periodDateFor(frequency, firstPaymentDate, index, previousPaymentDate) 
             return index === 0 ? new Date(utcDateOnly(firstPaymentDate)) : nextSemiMonthlyDate(firstPaymentDate, previousPaymentDate);
     }
 }
-return { isLeapYear, utcDateOnly, daysBetween, dayCountFraction, addUtcDays, daysInUtcMonth, isLastDayOfMonth, addMonthsClamped, termBetween, roundUpToWholeMonths, endOfUtcMonth, nextSemiMonthlyDate, effectiveFirstPaymentDate, periodDateFor };
+return { isLeapYear, utcDateOnly, daysBetween, dayCountFraction, addUtcDays, daysInUtcMonth, isLastDayOfMonth, addMonthsClamped, termBetween, roundUpToWholeMonths, endOfUtcMonth, nextSemiMonthlyDate, effectiveFirstPaymentDate, paymentPeriodDays, periodDateFor };
 })();
 __cobModules["dist/ca/types.js"] = (() => {
 /**
@@ -1004,7 +1019,8 @@ __cobModules["dist/ca/types.js"] = (() => {
  */
 /** Payments/year per payment frequency -- standard counts (12/24/26/52), used
  *  throughout equations 1-8. Per BR-09, Accelerated Weekly has the same n as Weekly (52)
- *  and Accelerated Bi-weekly the same n as Bi-weekly (26). */
+ *  and Accelerated Bi-weekly the same n as Bi-weekly (26). Equation 1 uses a leap-aware n instead for the 7/14-day
+ *  frequencies of a fixed-rate mortgage when `LEAP_AWARE_PAYMENTS_PER_YEAR` is on (B37). */
 const PAYMENTS_PER_YEAR = {
     monthly: 12,
     semiMonthly: 24,
@@ -1138,7 +1154,16 @@ const UNPAID_INTEREST_CAPITALISED = false;
  * `true`: a fixed-rate mortgage must supply it.
  */
 const SEMI_ANNUAL_DATE_REQUIRED = false;
-return { P_BASIS, PRINCIPAL_PAID, PRIOR_ACCRUED_IN_COB, PRIOR_ACCRUED_IN_P, UNPAID_INTEREST_CAPITALISED, SEMI_ANNUAL_DATE_REQUIRED };
+/**
+ * @decision DEC-B37-LEAP-N — payments per year n in equation 1 (fixed-rate mortgage, SEMI-ANNUAL basis) for the
+ * 7- and 14-day frequencies (Weekly, Accelerated weekly, Bi-weekly, Accelerated bi-weekly).
+ * Switch (ADR-14): shipped `true`; the other branch `false` is built and tested.
+ * `true`: n = (D / P) / Y, with D the actual days from the flow's start date to the End date, P = 7 or 14 and Y the
+ * same span in leap-aware years (dayCountFraction). Monthly and Semi-monthly keep 12 and 24.
+ * `false`: n = PAYMENTS_PER_YEAR (52 or 26), the workbook's converter.
+ */
+const LEAP_AWARE_PAYMENTS_PER_YEAR = true;
+return { P_BASIS, PRINCIPAL_PAID, PRIOR_ACCRUED_IN_COB, PRIOR_ACCRUED_IN_P, UNPAID_INTEREST_CAPITALISED, SEMI_ANNUAL_DATE_REQUIRED, LEAP_AWARE_PAYMENTS_PER_YEAR };
 })();
 __cobModules["dist/ca/flows.js"] = (() => {
 const { SEMI_ANNUAL_DATE_REQUIRED } = __cobModules["dist/ca/policies.js"];
@@ -1211,8 +1236,8 @@ function requiresSemiAnnualDate(productType, rateType, required = SEMI_ANNUAL_DA
 return { FLOW_IDS, FLOWS, computesTriggerRate, requiresSemiAnnualDate };
 })();
 __cobModules["dist/ca/equations.js"] = (() => {
-const { dayCountFraction } = __cobModules["dist/ca/calendar.js"];
-const { isFiniteNumber } = __cobModules["dist/ca/types.js"];
+const { dayCountFraction, daysBetween, paymentPeriodDays } = __cobModules["dist/ca/calendar.js"];
+const { isFiniteNumber, PAYMENTS_PER_YEAR } = __cobModules["dist/ca/types.js"];
 /**
  * The eight equations, implemented as specified -- each function below is annotated with
  * that equation's number. The numbering 1 to 8 is the archived spec's own labelling, kept
@@ -1281,6 +1306,8 @@ function selectCompoundingPeriodsPerYear(productType, rateType, paymentsPerYear)
  * frequency, as a percent and as the decimal fed to period interest (the macro's
  * getRate reads aRate = D10 / 100). MONTHLY basis: percent === contractRatePercent
  * exactly. SEMI-ANNUAL basis: equation 1 at m = 2.
+ * `paymentsPerYear` is n for equation 1: `PAYMENTS_PER_YEAR`, or for the 7/14-day frequencies with the B37 switch on,
+ * `leapAwarePaymentsPerYear` (non-integer).
  */
 function calculatedRateFor(productType, rateType, contractRatePercent, paymentsPerYear) {
     if (!(contractRatePercent >= 0)) {
@@ -1295,6 +1322,51 @@ function calculatedRateFor(productType, rateType, contractRatePercent, paymentsP
     const m = selectCompoundingPeriodsPerYear(productType, rateType, paymentsPerYear);
     const decimal = calculatedRate(contractRatePercent, m, paymentsPerYear);
     return { percent: decimal * 100, decimal };
+}
+/**
+ * B37 (DEC-B37-LEAP-N): leap-aware payments per year for a day-based payment period, used as n in equation 1:
+ *   n = (D / P) / Y
+ * D = daysBetween(start, end) (actual days), P = periodDays (7 or 14), Y = dayCountFraction(start, end) (the same span in
+ * years, days in a leap year counted /366, others /365). Evaluated in exactly this order. RangeError unless start < end
+ * and periodDays > 0.
+ */
+function leapAwarePaymentsPerYear(periodDays, start, end) {
+    if (!(periodDays > 0)) {
+        throw new RangeError(`periodDays must be > 0, got ${periodDays}`);
+    }
+    const days = daysBetween(start, end);
+    if (!(days > 0)) {
+        throw new RangeError('start must be before end');
+    }
+    return days / periodDays / dayCountFraction(start, end);
+}
+/**
+ * B37 addendum (DEC-B37-LEAP-N answers, Q-B37-LABEL): THE choice of n for equation 1. calculateCobCanadaWith and the
+ * public paymentsPerYearFor both call this, so the dropdown label and the calculation cannot drift. Never throws for
+ * any date argument; RangeError only for an unknown frequency. In this order:
+ *   1. base = PAYMENTS_PER_YEAR[paymentFrequency] (own key only; RangeError otherwise)
+ *   2. leapAware false -> base
+ *   3. paymentPeriodDays(paymentFrequency) null (Monthly, Semi-monthly) -> base
+ *   4. selectRateBasis(productType, rateType) !== 'SEMI-ANNUAL' -> base
+ *   5. start or end not a valid Date, or daysBetween(start, end) <= 0 -> base
+ *   6. leapAwarePaymentsPerYear(periodDays, start, end)
+ */
+function conversionPaymentsPerYear(productType, rateType, paymentFrequency, start, end, leapAware) {
+    const base = Object.hasOwn(PAYMENTS_PER_YEAR, paymentFrequency) ? PAYMENTS_PER_YEAR[paymentFrequency] : undefined;
+    if (base === undefined) {
+        throw new RangeError(`paymentFrequency must be one of ${Object.keys(PAYMENTS_PER_YEAR).join('/')}, got ${String(paymentFrequency)}`);
+    }
+    if (!leapAware)
+        return base;
+    const periodDays = paymentPeriodDays(paymentFrequency);
+    if (periodDays === null || selectRateBasis(productType, rateType) !== 'SEMI-ANNUAL')
+        return base;
+    if (!isValidDate(start) || !isValidDate(end) || !(daysBetween(start, end) > 0))
+        return base;
+    return leapAwarePaymentsPerYear(periodDays, start, end);
+}
+function isValidDate(x) {
+    return x instanceof Date && !Number.isNaN(x.getTime());
 }
 const __re0 = __cobModules["dist/ca/calendar.js"];
 /**
@@ -1476,7 +1548,7 @@ function cobAmount(totalInterest, totalFinancedFees, totalCashFees) {
     }
     return totalInterest + totalFinancedFees + totalCashFees;
 }
-return { calculatedRate, selectRateBasis, selectCompoundingPeriodsPerYear, calculatedRateFor, daysBetween: __re0.daysBetween, dayCountFraction: __re0.dayCountFraction, periodInterest, applyPaymentWaterfall, triggerRatePercent, cobRatePercent, costOfBorrowingRatePercent, cobAmount };
+return { calculatedRate, selectRateBasis, selectCompoundingPeriodsPerYear, calculatedRateFor, leapAwarePaymentsPerYear, conversionPaymentsPerYear, daysBetween: __re0.daysBetween, dayCountFraction: __re0.dayCountFraction, periodInterest, applyPaymentWaterfall, triggerRatePercent, cobRatePercent, costOfBorrowingRatePercent, cobAmount };
 })();
 __cobModules["dist/ca/validate.js"] = (() => {
 const { PAYMENTS_PER_YEAR, isFiniteNumber } = __cobModules["dist/ca/types.js"];
@@ -1675,8 +1747,8 @@ __cobModules["dist/ca/cobCanada.js"] = (() => {
 const { daysBetween, effectiveFirstPaymentDate, periodDateFor, roundUpToWholeMonths, termBetween } = __cobModules["dist/ca/calendar.js"];
 const { totalCashFees, totalFinancedFees } = __cobModules["dist/ca/fees.js"];
 const { FLOWS, FLOW_IDS, computesTriggerRate } = __cobModules["dist/ca/flows.js"];
-const { PRINCIPAL_PAID, PRIOR_ACCRUED_IN_COB, PRIOR_ACCRUED_IN_P, P_BASIS, UNPAID_INTEREST_CAPITALISED } = __cobModules["dist/ca/policies.js"];
-const { applyPaymentWaterfall, calculatedRateFor, cobAmount: cobAmountEquation, costOfBorrowingRatePercent, periodInterest, triggerRatePercent: triggerRatePercentEquation } = __cobModules["dist/ca/equations.js"];
+const { PRINCIPAL_PAID, PRIOR_ACCRUED_IN_COB, PRIOR_ACCRUED_IN_P, LEAP_AWARE_PAYMENTS_PER_YEAR, P_BASIS, UNPAID_INTEREST_CAPITALISED } = __cobModules["dist/ca/policies.js"];
+const { applyPaymentWaterfall, calculatedRateFor, conversionPaymentsPerYear, cobAmount: cobAmountEquation, costOfBorrowingRatePercent, periodInterest, triggerRatePercent: triggerRatePercentEquation } = __cobModules["dist/ca/equations.js"];
 const { PAYMENTS_PER_YEAR } = __cobModules["dist/ca/types.js"];
 const { validateCobCanadaInput } = __cobModules["dist/ca/validate.js"];
 /** A generous safety cap against a misconfigured schedule that never reaches
@@ -1811,7 +1883,7 @@ const SHIPPED_SWITCHES = Object.freeze({
 function calculateCobCanada(input) {
     return calculateCobCanadaWith(input, SHIPPED_SWITCHES);
 }
-function calculateCobCanadaWith(input, switches) {
+function calculateCobCanadaWith(input, switches, leapAware = LEAP_AWARE_PAYMENTS_PER_YEAR) {
     const { startDate } = validateCobCanadaInput(input);
     const paymentsPerYear = PAYMENTS_PER_YEAR[input.paymentFrequency];
     const financedFees = totalFinancedFees(input.fees);
@@ -1823,7 +1895,9 @@ function calculateCobCanadaWith(input, switches) {
     const disbursalAmount = input.loanAmount - financedFees;
     // Equations 1/2 -- the Calculated Rate by rate basis (OQ-C): the contract rate
     // as entered (MONTHLY) or converted at m = 2 (SEMI-ANNUAL, fixed mortgage).
-    const { percent: calculatedRatePercent, decimal: calculatedRateDecimal } = calculatedRateFor(input.productType, input.rateType, input.contractRatePercent, paymentsPerYear);
+    // B37 (DEC-B37-LEAP-N): n for equation 1 (leap-aware for the 7/14-day frequencies of a fixed-rate mortgage).
+    const nForRate = conversionPaymentsPerYear(input.productType, input.rateType, input.paymentFrequency, startDate, input.endDate, leapAware);
+    const { percent: calculatedRatePercent, decimal: calculatedRateDecimal } = calculatedRateFor(input.productType, input.rateType, input.contractRatePercent, nForRate);
     const flowSpec = FLOWS[input.flow];
     // Past accrued interest (IN-11) starts at the input accrued_interest for
     // renewal/paymentChange/variableRatePaymentChange flows, 0 for newMortgageOrLoan
@@ -1947,7 +2021,17 @@ function contractTermOptions(input, result) {
         endDate: roundUpToWholeMonths(termBetween(start, end)),
     };
 }
-return { SHIPPED_SWITCHES, calculateCobCanada, calculateCobCanadaWith, contractTerm, contractTermOptions };
+/**
+ * B37 addendum (Q-B37-LABEL): the payments per year n that equation 1 uses for `input` at `paymentFrequency`, with the
+ * shipped LEAP_AWARE_PAYMENTS_PER_YEAR. Reads only flow, productType, rateType, the flow's start date and endDate; the
+ * rest of `input` may be invalid. Never throws for any form state (unknown flow or missing/invalid date -> 52/26/24/12);
+ * RangeError only for a frequency outside PaymentFrequency.
+ */
+function paymentsPerYearFor(input, paymentFrequency) {
+    const start = FLOW_IDS.includes(input.flow) ? input[FLOWS[input.flow].startDateField] : undefined;
+    return conversionPaymentsPerYear(input.productType, input.rateType, paymentFrequency, start instanceof Date ? start : undefined, input.endDate, LEAP_AWARE_PAYMENTS_PER_YEAR);
+}
+return { SHIPPED_SWITCHES, calculateCobCanada, calculateCobCanadaWith, contractTerm, contractTermOptions, paymentsPerYearFor };
 })();
 __cobModules["dist/ca/products.js"] = (() => {
 /**
@@ -1983,7 +2067,7 @@ const __re1 = __cobModules["dist/ca/flows.js"];
 const __re2 = __cobModules["dist/ca/types.js"];
 const __re3 = __cobModules["dist/ca/products.js"];
 const __re4 = __cobModules["dist/ca/validate.js"];
-return { calculateCobCanada: __re0.calculateCobCanada, contractTerm: __re0.contractTerm, contractTermOptions: __re0.contractTermOptions, FLOWS: __re1.FLOWS, requiresSemiAnnualDate: __re1.requiresSemiAnnualDate, PAYMENTS_PER_YEAR: __re2.PAYMENTS_PER_YEAR, allowedPaymentFrequencies: __re3.allowedPaymentFrequencies, collectInputIssues: __re4.collectInputIssues };
+return { calculateCobCanada: __re0.calculateCobCanada, contractTerm: __re0.contractTerm, contractTermOptions: __re0.contractTermOptions, paymentsPerYearFor: __re0.paymentsPerYearFor, FLOWS: __re1.FLOWS, requiresSemiAnnualDate: __re1.requiresSemiAnnualDate, PAYMENTS_PER_YEAR: __re2.PAYMENTS_PER_YEAR, allowedPaymentFrequencies: __re3.allowedPaymentFrequencies, collectInputIssues: __re4.collectInputIssues };
 })();
 __cobModules["ui/ca-view.js"] = (() => {
 // DOM-free view logic for ui/ca.js (COB-architecture.md §3.1, §5 A10): form strings -> engine
@@ -2013,6 +2097,13 @@ const LABELS = Object.freeze({
 
 function label(kind, value) {
   return LABELS[kind][value] ?? value;
+}
+
+// B37 addendum (Q-B37-LABEL; format: "DEC-B37-LEAP-N: label format", no decimals): the text of one Payment frequency
+// option. `paymentsPerYear` is the engine's paymentsPerYearFor(input, frequency), shown rounded to the nearest whole
+// number; display only, never read back ('Weekly (52/yr)'; 26.0956 -> 'Bi-weekly (26/yr)').
+function frequencyOptionText(frequency, paymentsPerYear) {
+  return `${label('paymentFrequency', frequency)} (${Math.round(paymentsPerYear)}/yr)`;
 }
 
 // --- formats ---
@@ -2577,11 +2668,11 @@ function html(nodes) {
   return out;
 }
 
-return { LABELS, label, formatCurrency, formatInputDate, formatRate, isoDay, formatIsoDate, parseAmount, formatAmount, typedMoney, parseMoney, paymentsText, UI_SWITCHES, switchedOut, FEE_KEYS, parseDateInput, numOrUndefined, toInput, flowLabels, contractTermParts, contractTermText, contractTermMonthsParts, contractTermChoice, contractTermHint, firstDateMoveNote, printInputRows, printInputNodes, printFeesNodes, headlineFigures, mainFigures, moreFigures, printFigures, figureNodes, COLUMNS, CSV_COLUMNS, COMPACT_KEYS, scheduleTableNodes, scheduleCsv, csvFileName, h, html };
+return { LABELS, label, frequencyOptionText, formatCurrency, formatInputDate, formatRate, isoDay, formatIsoDate, parseAmount, formatAmount, typedMoney, parseMoney, paymentsText, UI_SWITCHES, switchedOut, FEE_KEYS, parseDateInput, numOrUndefined, toInput, flowLabels, contractTermParts, contractTermText, contractTermMonthsParts, contractTermChoice, contractTermHint, firstDateMoveNote, printInputRows, printInputNodes, printFeesNodes, headlineFigures, mainFigures, moreFigures, printFigures, figureNodes, COLUMNS, CSV_COLUMNS, COMPACT_KEYS, scheduleTableNodes, scheduleCsv, csvFileName, h, html };
 })();
 __cobModules["ui/ca.js"] = (() => {
-const { calculateCobCanada, contractTermOptions, FLOWS, requiresSemiAnnualDate } = __cobModules["dist/ca/index.js"];
-const { contractTermChoice, contractTermHint, csvFileName, firstDateMoveNote, isoDay, figureNodes, flowLabels, formatAmount, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures, moreFigures, parseDateInput, paymentsText, printFeesNodes, printFigures, printInputNodes, printInputRows, scheduleCsv, scheduleTableNodes, toInput, switchedOut, UI_SWITCHES } = __cobModules["ui/ca-view.js"];
+const { calculateCobCanada, contractTermOptions, FLOWS, paymentsPerYearFor, requiresSemiAnnualDate } = __cobModules["dist/ca/index.js"];
+const { contractTermChoice, contractTermHint, csvFileName, firstDateMoveNote, frequencyOptionText, isoDay, figureNodes, flowLabels, formatAmount, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures, moreFigures, parseDateInput, paymentsText, printFeesNodes, printFigures, printInputNodes, printInputRows, scheduleCsv, scheduleTableNodes, toInput, switchedOut, UI_SWITCHES } = __cobModules["ui/ca-view.js"];
 
 // --- element refs ---
 
@@ -3057,12 +3148,21 @@ function viewCtx() {
   return viewContext({ flow: flowEl.value, productType: productTypeEl.value, rateType: rateTypeEl.value });
 }
 
+// B37 addendum (Q-B37-LABEL): each option's per-year figure is the engine's n for the current inputs; the selection
+// and the select's accessible name are untouched.
+function renderFrequencyLabels(input) {
+  for (const option of paymentFrequencyEl.querySelectorAll('option')) {
+    option.textContent = frequencyOptionText(option.value, paymentsPerYearFor(input, option.value));
+  }
+}
+
 function recompute() {
   updateConditionalVisibility();
   try {
     const raw = readForm();
     const ctx = viewContext(raw);
     const input = toInput(raw, ctx);
+    renderFrequencyLabels(input);
     const result = calculateCobCanada(input);
     const calculatedAt = new Date();
     const choice = contractTermChoice(contractTermOptions(input, result), form.elements.contractTermBasis.value);

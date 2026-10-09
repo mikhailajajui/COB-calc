@@ -27,6 +27,7 @@ import { asInput, utcDate } from './support/builders.js';
 import { expectRangeErrorMatching } from './support/compare.js';
 import { FIXTURES_DIR } from './support/fixtures.js';
 import { frequenciesFor } from './support/products.js';
+import { preB37GoldenText } from './support/preB37Golden.js';
 import { rehome, rehomeCase } from './support/rehome.js';
 // @ts-ignore -- plain .mjs (no .d.ts): the LIVE (reshaped) generators.
 import * as gen1 from './fixtures/generate_golden.mjs';
@@ -212,9 +213,12 @@ describe('B27-INV-reject / INV-accept / INV-order (B33): the whole cross product
 
 // ---------------------------------------------------------------------------------------------------------------
 describe('B27-T6 no off state (revision 27: a fixed rule, no switch, no parameter; B33-R10: the removal adds no switch either)', () => {
-  it('policies.ts exports exactly the same names as before B27 (B24 adds SEMI_ANNUAL_DATE_REQUIRED)', async () => {
+  // B37 (DEC-B37-LEAP-N, brief B37 test plan 6): + LEAP_AWARE_PAYMENTS_PER_YEAR (an ADR-14 engine switch of B37, not a B27
+  // switch). Red until sr-dev adds it.
+  it('policies.ts exports exactly the same names as before B27 (B24 adds SEMI_ANNUAL_DATE_REQUIRED, B37 LEAP_AWARE_PAYMENTS_PER_YEAR)', async () => {
     const mod = (await import('../../src/ca/policies.js')) as Record<string, unknown>;
     expect(Object.keys(mod).sort()).toEqual([
+      'LEAP_AWARE_PAYMENTS_PER_YEAR',
       'PRINCIPAL_PAID',
       'PRIOR_ACCRUED_IN_COB',
       'PRIOR_ACCRUED_IN_P',
@@ -375,11 +379,14 @@ describe('B27-T9 (B33) golden shape: the live generators and the fixtures', () =
     }
   });
 
-  it('the Payment Change golden is byte-identical to the archived pre-B27 fixture again (B33-R8; red until sr-dev regenerates)', () => {
+  // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off. B37 regenerates the PC golden (approved 2026-10-09),
+  // so the history fact "the B33 PC golden equals the archived pre-B27 fixture" is checked on the pre-B37 PC golden,
+  // rebuilt byte for byte by the leap-off replay (support/preB37Golden.ts), instead of on the live file.
+  it('the Payment Change golden is byte-identical to the archived pre-B27 fixture again (B33-R8; B37: the pre-B37 golden, rebuilt with the leap switch off)', () => {
     const archived = readFileSync(join(ROOT, 'archive' + '/pre-b27', 'golden_engine_pc_v1.json'), 'utf8');
     expect(sha256(archived)).toBe('5ab1c6a6c086ba737d790bb1e42f2eb36ccd61c3c256e2634a6d5cc312fa7df5');
-    expect(readFileSync(join(FIXTURES_DIR, 'golden_engine_pc_v1.json'), 'utf8') === archived).toBe(true);
-  });
+    expect(preB37GoldenText('pc') === archived).toBe(true);
+  }, 120_000);
 });
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -439,7 +446,9 @@ describe('B27-T11 (B33) the Chrome scripts do not drive a disabled select and as
     // the six earlier scenarios unchanged); sha 9877c0c6... -> 4d5a64c1....
     // Re-pinned 2026-10-06 by QA (B34 verify, DEC-B34-TERM): capture regenerated (user approved Q-B34-FIX; term hint x4,
     // term value strings for 5 scenarios, new key contractTermChoice, nothing else); sha 4d5a64c1... -> 9577121c....
-    expect(sha256(fixture)).toBe('9577121c47faad12823be463d7ca84ebee7bc41cd59c73b730807b2b2a62cdeb');
+    // Re-pinned 2026-10-09 by QA (B37 verify, DEC-B37-LEAP-N): capture regenerated (user approved; REF-01 and S1_fees
+    // figures, schedule digits and CSV only; DEV-B37-LEAPN); sha 9577121c... -> 6c3686d3....
+    expect(sha256(fixture)).toBe('6c3686d387197b707518fd45e278414113c32846a04d8c1ac3c587a16d61b824');
     expect(capture).toMatch(/productType: 'personalLoan', rateType: 'variable', paymentFrequency: 'monthly'/);
   });
 

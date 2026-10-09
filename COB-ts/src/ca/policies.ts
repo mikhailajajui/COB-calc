@@ -60,3 +60,13 @@ export const UNPAID_INTEREST_CAPITALISED = false;
  * `true`: a fixed-rate mortgage must supply it.
  */
 export const SEMI_ANNUAL_DATE_REQUIRED = false;
+
+/**
+ * @decision DEC-B37-LEAP-N — payments per year n in equation 1 (fixed-rate mortgage, SEMI-ANNUAL basis) for the
+ * 7- and 14-day frequencies (Weekly, Accelerated weekly, Bi-weekly, Accelerated bi-weekly).
+ * Switch (ADR-14): shipped `true`; the other branch `false` is built and tested.
+ * `true`: n = (D / P) / Y, with D the actual days from the flow's start date to the End date, P = 7 or 14 and Y the
+ * same span in leap-aware years (dayCountFraction). Monthly and Semi-monthly keep 12 and 24.
+ * `false`: n = PAYMENTS_PER_YEAR (52 or 26), the workbook's converter.
+ */
+export const LEAP_AWARE_PAYMENTS_PER_YEAR = true;

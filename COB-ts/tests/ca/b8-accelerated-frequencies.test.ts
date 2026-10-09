@@ -54,6 +54,10 @@ const corpus = {
 import { asInput, utcDate } from './support/builders.js';
 import { withinRel as withinRelTol } from './support/compare.js';
 import { loadFixture } from './support/fixtures.js';
+import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
+
+// B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off. Used by B8-4 and B8-5, which characterise the workbook.
+const calcLeapOff = (x: CobCanadaInput) => calculateWith(x, SHIPPED, LEAP_OFF);
 
 const d = utcDate;
 const AW = 'acceleratedWeekly' as PaymentFrequency;
@@ -204,11 +208,11 @@ describe('B8-4 BRD Appendix A through the engine (fixed mortgage, 3.74%, m = 2)'
     });
 
   it('acceleratedWeekly (n = 52): calculatedRatePercent 3.706781471105014', () => {
-    expect(calculateCobCanada(input(AW)).calculatedRatePercent).toBe(3.706781471105014);
+    expect(calcLeapOff(input(AW)).calculatedRatePercent).toBe(3.706781471105014); // B37: workbook converter (n = 52/26), switch off
   });
 
   it('acceleratedBiweekly (n = 26): calculatedRatePercent 3.7081026469586664', () => {
-    expect(calculateCobCanada(input(AB)).calculatedRatePercent).toBe(3.7081026469586664);
+    expect(calcLeapOff(input(AB)).calculatedRatePercent).toBe(3.7081026469586664); // B37: workbook converter (n = 52/26), switch off
   });
 });
 
@@ -243,7 +247,7 @@ describe('B8-5 REF-01 real Excel output, run as entered in the workbook (Acceler
 
   function run(): ReturnType<typeof calculateCobCanada> | Error {
     try {
-      return calculateCobCanada(make(AW));
+      return calcLeapOff(make(AW)); // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off
     } catch (e) {
       return e as Error;
     }
@@ -256,7 +260,7 @@ describe('B8-5 REF-01 real Excel output, run as entered in the workbook (Acceler
 
   it('result JSON is byte-identical to the weekly run (REF-01 engine hash 14c8c98b...a709)', () => {
     const json = JSON.stringify(ok());
-    expect(json).toBe(JSON.stringify(calculateCobCanada(make('weekly'))));
+    expect(json).toBe(JSON.stringify(calcLeapOff(make('weekly')))); // B37: workbook converter (n = 52/26), switch off
     expect(createHash('sha256').update(json).digest('hex')).toBe(
       '14c8c98be1b693563b9d73d3d10a9082031018162327c2527da6b3010a60a709',
     );

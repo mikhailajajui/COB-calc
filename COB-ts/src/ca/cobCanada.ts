@@ -5,12 +5,14 @@ import {
   PRINCIPAL_PAID,
   PRIOR_ACCRUED_IN_COB,
   PRIOR_ACCRUED_IN_P,
+  LEAP_AWARE_PAYMENTS_PER_YEAR,
   P_BASIS,
   UNPAID_INTEREST_CAPITALISED,
 } from './policies.js';
 import {
   applyPaymentWaterfall,
   calculatedRateFor,
+  conversionPaymentsPerYear,
   cobAmount as cobAmountEquation,
   costOfBorrowingRatePercent,
   periodInterest,
@@ -204,7 +206,11 @@ export function calculateCobCanada(input: CobCanadaInput): CobCanadaResult {
   return calculateCobCanadaWith(input, SHIPPED_SWITCHES);
 }
 
-export function calculateCobCanadaWith(input: CobCanadaInput, switches: EngineSwitches): CobCanadaResult {
+export function calculateCobCanadaWith(
+  input: CobCanadaInput,
+  switches: EngineSwitches,
+  leapAware: boolean = LEAP_AWARE_PAYMENTS_PER_YEAR,
+): CobCanadaResult {
   const { startDate } = validateCobCanadaInput(input);
 
   const paymentsPerYear = PAYMENTS_PER_YEAR[input.paymentFrequency];
@@ -220,11 +226,20 @@ export function calculateCobCanadaWith(input: CobCanadaInput, switches: EngineSw
 
   // Equations 1/2 -- the Calculated Rate by rate basis (OQ-C): the contract rate
   // as entered (MONTHLY) or converted at m = 2 (SEMI-ANNUAL, fixed mortgage).
+  // B37 (DEC-B37-LEAP-N): n for equation 1 (leap-aware for the 7/14-day frequencies of a fixed-rate mortgage).
+  const nForRate = conversionPaymentsPerYear(
+    input.productType,
+    input.rateType,
+    input.paymentFrequency,
+    startDate,
+    input.endDate,
+    leapAware,
+  );
   const { percent: calculatedRatePercent, decimal: calculatedRateDecimal } = calculatedRateFor(
     input.productType,
     input.rateType,
     input.contractRatePercent,
-    paymentsPerYear,
+    nForRate,
   );
 
   const flowSpec = FLOWS[input.flow];
@@ -376,4 +391,22 @@ export function contractTermOptions(
     lastPayment: roundUpToWholeMonths(toLastPayment),
     endDate: roundUpToWholeMonths(termBetween(start, end)),
   };
+}
+
+/**
+ * B37 addendum (Q-B37-LABEL): the payments per year n that equation 1 uses for `input` at `paymentFrequency`, with the
+ * shipped LEAP_AWARE_PAYMENTS_PER_YEAR. Reads only flow, productType, rateType, the flow's start date and endDate; the
+ * rest of `input` may be invalid. Never throws for any form state (unknown flow or missing/invalid date -> 52/26/24/12);
+ * RangeError only for a frequency outside PaymentFrequency.
+ */
+export function paymentsPerYearFor(input: CobCanadaInput, paymentFrequency: PaymentFrequency): number {
+  const start: unknown = FLOW_IDS.includes(input.flow) ? input[FLOWS[input.flow].startDateField] : undefined;
+  return conversionPaymentsPerYear(
+    input.productType,
+    input.rateType,
+    paymentFrequency,
+    start instanceof Date ? start : undefined,
+    input.endDate,
+    LEAP_AWARE_PAYMENTS_PER_YEAR,
+  );
 }

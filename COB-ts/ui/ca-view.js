@@ -27,6 +27,13 @@ export function label(kind, value) {
   return LABELS[kind][value] ?? value;
 }
 
+// B37 addendum (Q-B37-LABEL; format: "DEC-B37-LEAP-N: label format", no decimals): the text of one Payment frequency
+// option. `paymentsPerYear` is the engine's paymentsPerYearFor(input, frequency), shown rounded to the nearest whole
+// number; display only, never read back ('Weekly (52/yr)'; 26.0956 -> 'Bi-weekly (26/yr)').
+export function frequencyOptionText(frequency, paymentsPerYear) {
+  return `${label('paymentFrequency', frequency)} (${Math.round(paymentsPerYear)}/yr)`;
+}
+
 // --- formats ---
 
 const currency = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' });

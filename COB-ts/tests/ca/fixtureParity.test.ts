@@ -4,7 +4,7 @@ import type { CobCanadaInput, CobCanadaResult } from '../../src/ca/index.js';
 import { isoDay, wireToInput } from './support/builders.js';
 import { withinRel } from './support/compare.js';
 import { loadFixture as load } from './support/fixtures.js';
-import { SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
+import { LEAP_OFF, SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
 import type { Switches } from './support/switches.js';
 
 /**
@@ -96,7 +96,9 @@ function mismatches(
 describe('fixture parity (shared JSON fixtures, 1e-9 relative, every row)', () => {
   for (const v of wire.vectors) {
     const run = (switches: Switches = v.id === 'S6_underpay' ? WORKBOOK : SHIPPED) => {
-      const result = calculateWith(toEngineInput(v.request), switches);
+      // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off. These vectors are workbook / oracle output
+      // (V007_live, S0_007, S3_leap_weekly, S6_underpay, S7_biweekly, S8_10y_weekly are fixed weekly / bi-weekly).
+      const result = calculateWith(toEngineInput(v.request), switches, LEAP_OFF);
       if (v.id === 'V007_live') return mismatches(result, live007.totals, live007.rows);
       const sc = oracle.scenarios.find((s) => s.inputs.id === v.id);
       if (!sc) throw new Error(`no oracle scenario ${v.id}`);

@@ -21,6 +21,7 @@ import type { CobFlow, ProductType, RateType } from '../../src/ca/index.js';
 import type * as View from '../../ui/ca-view.js';
 import { ROOT, stripComments } from '../architecture/support.js';
 import { loadFixture } from './support/fixtures.js';
+import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 import { ON, OFF } from './support/uiSwitches.js';
 import type { TestUiSwitches } from './support/uiSwitches.js';
 import { createHash } from 'node:crypto';
@@ -91,7 +92,9 @@ describe('A10-C characterisation: ca-view reproduces the page byte for byte', ()
         const p = pin.modes[mode]!;
         const raw = pin.raw;
         const ctx = ctxOf(raw, ON);
-        const r = calculateCobCanada(v.toInput(raw, ctx));
+        // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (the pins are the pre-B23 page; REF-01 and
+        // S1_fees are fixed weekly and move with the leap switch on). "switch on" in this test's name is the UI financedOption.
+        const r = calculateWith(v.toInput(raw, ctx), SHIPPED, LEAP_OFF);
         // B31 (DEC-B31-LAYOUT): the figure lists are re-arranged, not changed; replayed in the pre-B31
         // order (tests/ca/support/legacyFigureOrder.ts) they still hash to the untouched pre-B23 pins.
         const { left, right } = v.printFigures(r, ctx);
@@ -278,7 +281,7 @@ describe('A10-P source guards', () => {
   });
 
   // B34 (DEC-B34-TERM): re-baselined, + contractTermMonthsParts, contractTermChoice (B34-R3; 39 -> 41 names).
-  it('A10-P3 (A10-R2): ui/ca-view.js exports exactly the 41 names of ui/ca-view.d.ts (B22 adds flowLabels, B23 adds UI_SWITCHES and FEE_KEYS, B28 adds switchedOut, B27 added frequencyLock and FREQUENCY_LOCK_HINT and B33 (DEC-B33-FREQ) removed them, B24 adds contractTermParts, contractTermText and contractTermHint, B25 adds firstDateMoveNote, B34 adds contractTermMonthsParts and contractTermChoice), and pins the branches no capture reaches', async () => {
+  it('A10-P3 (A10-R2): ui/ca-view.js exports exactly the 42 names of ui/ca-view.d.ts (B37 adds frequencyOptionText, B22 adds flowLabels, B23 adds UI_SWITCHES and FEE_KEYS, B28 adds switchedOut, B27 added frequencyLock and FREQUENCY_LOCK_HINT and B33 (DEC-B33-FREQ) removed them, B24 adds contractTermParts, contractTermText and contractTermHint, B25 adds firstDateMoveNote, B34 adds contractTermMonthsParts and contractTermChoice), and pins the branches no capture reaches', async () => {
     const v = await loadView();
     // Pre-A10 values (ui/ca.js) for branches the 5 captured scenarios never take; the escaping
     // string is Chrome 154's own outerHTML of the same td (checked 2026-09-29), i.e. A10-R3.
@@ -303,6 +306,7 @@ describe('A10-P source guards', () => {
         'printFeesNodes', 'printFigures', 'printInputNodes', 'printInputRows', 'scheduleCsv', 'scheduleTableNodes',
         'switchedOut', 'toInput', 'typedMoney', 'contractTermParts', 'contractTermText', 'contractTermHint', 'firstDateMoveNote',
         'contractTermMonthsParts', 'contractTermChoice', // B34 (DEC-B34-TERM)
+        'frequencyOptionText', // B37 addendum (Q-B37-LABEL, DEC-B37-LEAP-N label format)
       ].sort(),
     );
   });

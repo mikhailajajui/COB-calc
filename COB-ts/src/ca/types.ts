@@ -30,7 +30,8 @@ export type PaymentFrequency =
 
 /** Payments/year per payment frequency -- standard counts (12/24/26/52), used
  *  throughout equations 1-8. Per BR-09, Accelerated Weekly has the same n as Weekly (52)
- *  and Accelerated Bi-weekly the same n as Bi-weekly (26). */
+ *  and Accelerated Bi-weekly the same n as Bi-weekly (26). Equation 1 uses a leap-aware n instead for the 7/14-day
+ *  frequencies of a fixed-rate mortgage when `LEAP_AWARE_PAYMENTS_PER_YEAR` is on (B37). */
 export const PAYMENTS_PER_YEAR: Record<PaymentFrequency, number> = {
   monthly: 12,
   semiMonthly: 24,

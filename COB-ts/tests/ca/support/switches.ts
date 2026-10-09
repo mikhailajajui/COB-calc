@@ -24,11 +24,28 @@ export const BOTH: ReadonlyArray<readonly [string, Switches]> = [
   ['shipped (capitalised: false)', SHIPPED],
 ];
 
-type WithFn = (input: CobCanadaInput, switches: Switches) => CobCanadaResult;
+type WithFn = (input: CobCanadaInput, switches: Switches, leapAware?: boolean) => CobCanadaResult;
 
-/** `calculateCobCanadaWith(input, switches)`; throws until cobCanada.ts exports it. */
-export function calculateWith(input: CobCanadaInput, switches: Switches): CobCanadaResult {
+/**
+ * `calculateCobCanadaWith(input, switches[, leapAware])`; throws until cobCanada.ts exports it.
+ * B37 (DEC-B37-LEAP-N, brief B37-D1): `leapAware` is the engine's third, defaulted parameter (the
+ * LEAP_AWARE_PAYMENTS_PER_YEAR switch); it is passed only when given, so a two-argument call is exactly the pre-B37 call.
+ */
+export function calculateWith(input: CobCanadaInput, switches: Switches, leapAware?: boolean): CobCanadaResult {
   const fn = (cob as unknown as { calculateCobCanadaWith?: WithFn }).calculateCobCanadaWith;
   if (typeof fn !== 'function') throw new Error('B19: cobCanada.ts does not export calculateCobCanadaWith yet');
-  return fn(input, switches);
+  return leapAware === undefined ? fn(input, switches) : fn(input, switches, leapAware);
 }
+
+/**
+ * B37 (DEC-B37-LEAP-N, ADR-14): the two states of `LEAP_AWARE_PAYMENTS_PER_YEAR`. `LEAP_ON` is the shipped state (n for
+ * equation 1 = (D / P) / Y for the 7/14-day frequencies of a fixed-rate mortgage); `LEAP_OFF` is the workbook converter
+ * (n = 52 / 26). The value pin is in b37-leap-aware-n.test.ts (B37-T1).
+ */
+export const LEAP_ON = true;
+export const LEAP_OFF = false;
+/** Both leap states, for `it.each(BOTH_LEAP)`. */
+export const BOTH_LEAP: ReadonlyArray<readonly [string, boolean]> = Object.freeze([
+  ['leap-aware n (shipped)', LEAP_ON],
+  ['workbook n 52/26', LEAP_OFF],
+] as const);

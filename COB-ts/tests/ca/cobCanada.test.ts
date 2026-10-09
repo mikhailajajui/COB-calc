@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { calculateCobCanada } from '../../src/ca/index.js';
 import type { CobCanadaInput } from '../../src/ca/index.js';
+import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 
 /** A well-formed new fixed-rate mortgage, overridable per test. */
 function fixedMortgageInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
@@ -46,7 +47,8 @@ describe('calculateCobCanada -- doc 007 worked validation vector (permanent regr
       semiAnnualCompoundingDate: new Date('2026-03-17'),
     };
 
-    const result = calculateCobCanada(input);
+    // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (doc 007's vector is live-workbook output).
+    const result = calculateWith(input, SHIPPED, LEAP_OFF);
 
     expect(result.numberOfPayments).toBe(156);
 

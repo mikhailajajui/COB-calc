@@ -1,7 +1,7 @@
 # COB Calculator: domain overview for review
 
 **Audience:** lending and Credit Ops staff reviewing how the Cost of Borrowing (COB) calculator works. It is not a developer document.
-**State:** 2026-10-02, after every planned item (B19 to B28, A11, A14) was delivered. Every box below is **today** or **open**. How each change came about is in `COB-ts/CHANGES.md`; this page does not repeat it. *2026-10-05:* B32 (Contract term from the start date, DEC-B32-TERM) is delivered and QA-verified (CHANGES §71) and is shown as today. *2026-10-05:* B33 (personal loans at every payment frequency, DEC-B33-FREQ; removes B27's Monthly-only rule, no switch) is delivered and QA-verified (CHANGES §72) and is shown as today. *2026-10-06:* B34 (Contract term in whole years and months, with a choice of end point, DEC-B34-TERM) is delivered and QA-verified (CHANGES §73) and is shown as today. *2026-10-06:* B35 (Payment amount hint reads "The scheduled payment.", DEC-B35-HINT; CHANGES §74) is a wording change only and changes no box below.
+**State:** 2026-10-02, after every planned item (B19 to B28, A11, A14) was delivered. Every box below is **today** or **open**. How each change came about is in `COB-ts/CHANGES.md`; this page does not repeat it. *2026-10-05:* B32 (Contract term from the start date, DEC-B32-TERM) is delivered and QA-verified (CHANGES §71) and is shown as today. *2026-10-05:* B33 (personal loans at every payment frequency, DEC-B33-FREQ; removes B27's Monthly-only rule, no switch) is delivered and QA-verified (CHANGES §72) and is shown as today. *2026-10-06:* B34 (Contract term in whole years and months, with a choice of end point, DEC-B34-TERM) is delivered and QA-verified (CHANGES §73) and is shown as today. *2026-10-06:* B35 (Payment amount hint reads "The scheduled payment.", DEC-B35-HINT; CHANGES §74) is a wording change only and changes no box below. *2026-10-09:* B37 (leap-aware payments per year for fixed-rate mortgages at Weekly and Bi-weekly, DEC-B37-LEAP-N, deviation DEV-B37-LEAPN; CHANGES §75) is delivered and QA-verified and is shown as today (§3.2, §4). B36 (spreading accrued interest at 37.5 % per payment) was withdrawn before it was built; accrued interest is still paid first, as in §3.4.
 
 ## How to read this
 
@@ -156,12 +156,20 @@ flowchart TD
     Q{"Product and rate type?"}:::today
     Fix["Fixed-rate mortgage:<br/>n × ((1 + r ÷ 2) ^ (2 ÷ n) − 1)<br/>r = contract rate, n = payments per year"]:::today
     AsIs["Variable mortgage or personal loan:<br/>the contract rate as entered"]:::today
+    NFreq{"Payment frequency?"}:::today
+    NLeap["Weekly or Bi-weekly (and accelerated):<br/>n = (D ÷ P) ÷ Y, leap-aware (B37)<br/>D = days from start date to End date<br/>P = 7 or 14, Y = the same span in years"]:::today
+    NFix["Semi-monthly 24, Monthly 12"]:::today
     Q -->|"mortgage + fixed"| Fix
     Q -->|"anything else"| AsIs
+    Fix --> NFreq
+    NFreq -->|"7 or 14 days"| NLeap
+    NFreq -->|"semi-monthly or monthly"| NFix
     classDef today fill:#e6f4ea,stroke:#1e7e34,color:#111
 ```
 
-n: Weekly 52, Bi-weekly 26, Semi-monthly 24, Monthly 12. The two accelerated frequencies are hidden in the page (B28); the engine still accepts them with n 52 and 26. Sources: BRD §4.2, BR-01, BR-02, OQ-C. Check: the workbook's saved case REF-01 (fixed 3.74%, Accelerated Weekly) gives 3.706781471105014%, identical to Excel.
+**Today (B37, DEC-B37-LEAP-N; CHANGES §75).** For a fixed-rate mortgage at Weekly or Bi-weekly (and their accelerated forms), n is the actual number of 7- or 14-day periods per year over the loan: n = (D ÷ P) ÷ Y, where D is the days from the start date (Disbursal date, Renewal date or Date of change) to the End date, P is 7 or 14, and Y is the same span in years, counting a leap year's days over 366. n is therefore a little above 52 or 26 (about 52.14 to 52.29 weekly, 26.07 to 26.14 bi-weekly), which makes the calculated rate slightly lower than with 52 or 26. Semi-monthly is 24 and Monthly 12, as before. Variable mortgages and personal loans are not converted, so n plays no part. The workbook uses 52 and 26 (DEV-B37-LEAPN, §4); one engine switch restores that rule. The Payment frequency list shows n as a whole number, so it reads "Weekly (52/yr)", "Bi-weekly (26/yr)", "Semi-monthly (24/yr)", "Monthly (12/yr)"; the figure comes from the same engine rule as the calculation. The two accelerated frequencies are hidden in the page (B28); the engine still accepts them and treats them like Weekly and Bi-weekly. Sources: BRD §4.2, BR-01, BR-02, OQ-C; DEC-B37-LEAP-N. Checks: the user's Bi-weekly case 1 gives total interest $60,137.62 (the user's Excel $60,137.63, a 1-cent difference the user accepted) and example 2 gives $74,326.11, to the cent. The workbook's saved case REF-01 (fixed 3.74%, Accelerated Weekly) now gives total interest $22,514.07 instead of the workbook's $22,514.11; with the switch off it still matches Excel exactly (calculated rate 3.706781471105014%).
+
+*Before B37:* n was Weekly 52, Bi-weekly 26, Semi-monthly 24, Monthly 12 for every case, as in the workbook.
 
 ### 3.3 Payment dates
 
@@ -278,6 +286,7 @@ Everything else matches Excel: REF-01 matches on 2,193 values.
 | Financed option; accelerated frequencies; contract rate entry | Offered; offered; typed on a second sheet | Not offered; hidden; one contract-rate field | Decision 7; B28; OQ-N | Today (same results, no DEV ID) |
 | P in the COB rate | Average opening principal | Average opening balance (BRD wording) | OQ-Q, candidate DEV-OQQ | Today; **open** |
 | "Total principal paid" | Total payments − total interest | Sum of principal paid (BRD wording) | OQ-R, candidate DEV-OQR | Today; **open** |
+| Payments per year in the fixed-rate conversion (Weekly, Bi-weekly) | 52 and 26 | The actual 7- or 14-day periods per year from the start date to the End date (leap-aware, about 52.19 and 26.10); REF-01 total interest $22,514.11 → $22,514.07 | DEC-B37-LEAP-N, DEV-B37-LEAPN | Today (B37, CHANGES §75; a switch can restore the workbook rule) |
 
 Sources: `COB-architecture.md` §2.1 (register of deviations); `COB-user-stories.md` §7.3, §7.5; `reference/workbook-macro-source.txt`.
 

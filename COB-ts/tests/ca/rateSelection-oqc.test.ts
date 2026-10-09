@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { calculateCobCanada } from '../../src/ca/index.js';
 import type { CobCanadaInput } from '../../src/ca/index.js';
 import { expectRelFloor1 } from './support/compare.js';
+import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 
 /**
  * T2 / OQ-C (resolved 2026-09-27 from the workbook): which annual rate feeds the
@@ -118,12 +119,16 @@ describe('OQ-C fixed mortgage 3.74%: semi-annual conversion, BRD Appendix A (wor
   };
 
   it.each(FREQS)('%s: calculatedRatePercent matches Appendix A to 1e-12', (freq) => {
-    const res = calculateCobCanada(input('mortgage', 'fixed', freq, 3.74));
+    // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (Q-B37-APPA: Appendix A at the stated n; Monthly and
+    // Semi-monthly are the same in both states, the weekly / bi-weekly rows are the workbook's).
+    const res = calculateWith(input('mortgage', 'fixed', freq, 3.74), SHIPPED, LEAP_OFF);
     expect(Math.abs(res.calculatedRatePercent - APPENDIX_A[freq])).toBeLessThanOrEqual(APPENDIX_A_ABS_TOL);
   });
 
   it.each(FREQS)('%s: row-1 interest uses the converted rate, not the contract rate', (freq) => {
-    const res = calculateCobCanada(input('mortgage', 'fixed', freq, 3.74));
+    // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (Q-B37-APPA: Appendix A at the stated n; Monthly and
+    // Semi-monthly are the same in both states, the weekly / bi-weekly rows are the workbook's).
+    const res = calculateWith(input('mortgage', 'fixed', freq, 3.74), SHIPPED, LEAP_OFF);
     const expected = 10000 * (APPENDIX_A[freq] / 100) * (FIRST_PAYMENT[freq].days / 365);
     expectRel(res.amortizationSchedule[0]!.periodInterest, expected, 1e-11);
     expect(res.calculatedRatePercent).not.toBe(3.74);

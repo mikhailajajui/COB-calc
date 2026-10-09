@@ -1,6 +1,6 @@
-import { calculateCobCanada, contractTermOptions, FLOWS, requiresSemiAnnualDate } from '/dist/ca/index.js';
+import { calculateCobCanada, contractTermOptions, FLOWS, paymentsPerYearFor, requiresSemiAnnualDate } from '/dist/ca/index.js';
 import {
-  contractTermChoice, contractTermHint, csvFileName, firstDateMoveNote, isoDay, figureNodes, flowLabels, formatAmount, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures,
+  contractTermChoice, contractTermHint, csvFileName, firstDateMoveNote, frequencyOptionText, isoDay, figureNodes, flowLabels, formatAmount, formatCurrency, formatInputDate, headlineFigures, html, label, mainFigures,
   moreFigures, parseDateInput, paymentsText, printFeesNodes, printFigures, printInputNodes, printInputRows, scheduleCsv,
   scheduleTableNodes, toInput, switchedOut, UI_SWITCHES,
 } from './ca-view.js';
@@ -484,12 +484,21 @@ function viewCtx() {
   return viewContext({ flow: flowEl.value, productType: productTypeEl.value, rateType: rateTypeEl.value });
 }
 
+// B37 addendum (Q-B37-LABEL): each option's per-year figure is the engine's n for the current inputs; the selection
+// and the select's accessible name are untouched.
+function renderFrequencyLabels(input) {
+  for (const option of paymentFrequencyEl.querySelectorAll('option')) {
+    option.textContent = frequencyOptionText(option.value, paymentsPerYearFor(input, option.value));
+  }
+}
+
 function recompute() {
   updateConditionalVisibility();
   try {
     const raw = readForm();
     const ctx = viewContext(raw);
     const input = toInput(raw, ctx);
+    renderFrequencyLabels(input);
     const result = calculateCobCanada(input);
     const calculatedAt = new Date();
     const choice = contractTermChoice(contractTermOptions(input, result), form.elements.contractTermBasis.value);

@@ -5,7 +5,7 @@ import type * as View from '../../ui/ca-view.js';
 import { asInput, isoDay, utcDate, wireToInput } from './support/builders.js';
 import { expectRangeErrorMatching, withinRel as withinRelTol } from './support/compare.js';
 import { loadFixture as load } from './support/fixtures.js';
-import { SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
+import { LEAP_OFF, SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
 import type { Switches } from './support/switches.js';
 import { ON } from './support/uiSwitches.js';
 
@@ -108,7 +108,8 @@ function mismatches(result: CobCanadaResult, expected: Expected, opts: CompareOp
 
 const run = (id: string, opts?: CompareOpts) => {
   const { input, expected } = vector(id);
-  return mismatches(calculateCobCanada(input), expected, opts);
+  // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (012 vectors are workbook / macro-oracle output).
+  return mismatches(calculateWith(input, SHIPPED, LEAP_OFF), expected, opts);
 };
 
 /** A valid 007-style new-mortgage input, for the validation defects. */
@@ -173,7 +174,7 @@ describe('012 D-02 unpaid interest compounds; totalInterest / C / endingBalance 
   // B19 (DEV-OQL): D-02 is the workbook's capitalisation, so it runs against the workbook branch by default.
   const check = (id: string, switches: Switches = WORKBOOK) => {
     const { input, expected } = vector(id);
-    const r = calculateWith(input, switches);
+    const r = calculateWith(input, switches, LEAP_OFF); // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off
     const out = mismatches(r, expected, { totals: [], rowFields: ['date', 'periodInterest'], rate: false });
     const accrued = expected.totals.total_interest!;
     if (!withinRel(r.totalInterest, accrued)) out.push(`totalInterest: ${r.totalInterest} vs ${accrued}`);
@@ -271,7 +272,8 @@ describe('DEV-OQS (OQ-S, was 012 D-05): cash fees stay out of principal and the 
   };
   const brd = d9.cases.find((c) => c.id === 'S1_financed_only')!;
   const workbook = oracle.scenarios.find((s) => s.inputs.id === 'S1_fees')!;
-  const s1 = () => calculateCobCanada(vector('S1_fees').input);
+  // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (S1_fees is fixed weekly; the oracle is the macro).
+  const s1 = () => calculateWith(vector('S1_fees').input, SHIPPED, LEAP_OFF);
 
   // known_divergence DEV-OQS: workbook fixture values kept; the difference is asserted, not hidden.
   it('known_divergence DEV-OQS: S1_fees differs from the workbook only in the fee/principal split', () => {
@@ -322,7 +324,7 @@ describe('DEV-OQS (OQ-S, was 012 D-05): cash fees stay out of principal and the 
     expect(withinRel(r.cobAmount, cOracle)).toBe(true);
     // Same schedule (so same T and P, whatever P's definition after D-04), so the COB rate
     // scales with C alone: rate(F + N) / rate(F) = (I + F + N) / (I + F).
-    const financedOnly = calculateCobCanada(toEngineInput(brd.request));
+    const financedOnly = calculateWith(toEngineInput(brd.request), SHIPPED, LEAP_OFF); // B37: same (off) state as s1()
     const ratio = cOracle / (brd.totals.total_interest! + S1_FIN);
     expect(withinRel(r.cobRatePercent / financedOnly.cobRatePercent, ratio)).toBe(true);
     expect(r.cobRatePercent).toBeGreaterThan(financedOnly.cobRatePercent);

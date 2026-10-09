@@ -30,6 +30,9 @@
  * - ADR-13(i), B34 (QA red step, 2026-10-06; DEC-B34-TERM; additive): + runtime contractTermOptions (CA_EXPORTS 7 -> 8)
  *   and types ContractTermMonths, ContractTermOptions (CA_TYPE_EXPORTS 12 -> 14); the root re-exports the same names by
  *   name. roundUpToWholeMonths stays internal to src/ca/calendar.ts. Red until the B34 barrel edits land.
+ * - ADR-13(j), B37 addendum (QA red step, 2026-10-09; Q-B37-LABEL; additive): + runtime paymentsPerYearFor (CA_EXPORTS 8 -> 9);
+ *   the root re-exports it by name. conversionPaymentsPerYear, leapAwarePaymentsPerYear, paymentPeriodDays and
+ *   LEAP_AWARE_PAYMENTS_PER_YEAR stay off both barrels. Red until the B37 barrel edits land.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -40,7 +43,8 @@ import * as root from '../../src/index.js';
 // ADR-13(h), B27 (DEV-FB24): + allowedPaymentFrequencies (the product catalogue).
 // ADR-13(h), B24 (DEV-OQP): + contractTerm (runtime) and the type ContractTerm.
 // ADR-13(i), B34 (DEC-B34-TERM): + contractTermOptions (runtime) and the types ContractTermMonths, ContractTermOptions (additive).
-const CA_EXPORTS = ['FLOWS', 'PAYMENTS_PER_YEAR', 'allowedPaymentFrequencies', 'calculateCobCanada', 'collectInputIssues', 'contractTerm', 'contractTermOptions', 'requiresSemiAnnualDate'];
+// ADR-13(j), B37 addendum (Q-B37-LABEL): + paymentsPerYearFor (runtime; additive).
+const CA_EXPORTS = ['FLOWS', 'PAYMENTS_PER_YEAR', 'allowedPaymentFrequencies', 'calculateCobCanada', 'collectInputIssues', 'contractTerm', 'contractTermOptions', 'paymentsPerYearFor', 'requiresSemiAnnualDate'];
 
 const CA_TYPE_EXPORTS = [
   'CobCanadaInput',
@@ -91,8 +95,8 @@ describe('export surface', () => {
     expect(Object.keys(root).sort()).toEqual(Object.keys(ca).sort());
   });
 
-  it('root has exactly 8 runtime exports (B27: + allowedPaymentFrequencies; B24: + contractTerm; B34 (DEC-B34-TERM): + contractTermOptions) and the lists have no duplicates (ADR-13(f))', () => {
-    expect(ROOT_EXPORTS).toHaveLength(8);
+  it('root has exactly 9 runtime exports (B27: + allowedPaymentFrequencies; B24: + contractTerm; B34 (DEC-B34-TERM): + contractTermOptions; B37: + paymentsPerYearFor) and the lists have no duplicates (ADR-13(f))', () => {
+    expect(ROOT_EXPORTS).toHaveLength(9);
     expect(new Set(ROOT_EXPORTS).size).toBe(ROOT_EXPORTS.length);
     expect(new Set(CA_EXPORTS).size).toBe(CA_EXPORTS.length);
   });

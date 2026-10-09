@@ -4,7 +4,7 @@ import type { CobCanadaInput, CobCanadaResult, CobScheduleRow } from '../../src/
 import { wireToInput } from './support/builders.js';
 import { relDiffFloor1 } from './support/compare.js';
 import { loadFixture as load } from './support/fixtures.js';
-import { BOTH, SHIPPED, calculateWith } from './support/switches.js';
+import { BOTH, LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 import type { Switches } from './support/switches.js';
 
 /**
@@ -214,7 +214,8 @@ describe('I-011-12 MACRO-MATCH, FINANCED FEES ONLY (D9/D8)', () => {
 
   for (const c of d9.cases) {
     it(`${c.id}: every row and total matches macro_oracle.calculate_all(non_fin_fee=0)`, () => {
-      const res = calculateCobCanada(toEngineInput(c.request));
+      // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (the expected rows are the macro oracle's).
+      const res = calculateWith(toEngineInput(c.request), SHIPPED, LEAP_OFF);
       const rows = rowsOf(res);
       expect(rows.length).toBe(c.rows.length);
       let maxRel = 0;
