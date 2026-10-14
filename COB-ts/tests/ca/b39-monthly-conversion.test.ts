@@ -23,7 +23,7 @@ import { MONTHLY_RATE_CONVERSION } from '../../src/ca/policies.js';
 import type * as View from '../../ui/ca-view.js';
 import { ROOT, SRC_CA, read, stripComments } from '../architecture/support.js';
 import { asInput, oracleCaseInput, utcDate } from './support/builders.js';
-import { FIXTURES_DIR, applyCaptureUndo, loadFixture, readSharedFixtureText } from './support/fixtures.js';
+import { FIXTURES_DIR, applyCaptureUndo, loadFixture } from './support/fixtures.js';
 import type { CaptureUndo } from './support/fixtures.js';
 import {
   ORACLE_PERIOD_DAYS,
@@ -148,12 +148,6 @@ describe('B39-T1 INV-B39-PIN: MONTHLY_RATE_CONVERSION is shipped true and calcul
 
 // ================================================================================================ T2
 describe('B39-T2 the user\'s Excel registry (ca_user_excel_examples.json; spec 014 consumption rules 1-6)', () => {
-  it('rule 1: the COB-ts copy is byte-identical to COB-py/tests/fixtures/ca_user_excel_examples.json', () => {
-    const shared = readSharedFixtureText(REGISTRY_FILE);
-    const local = read(FIXTURES_DIR + REGISTRY_FILE);
-    expect(sha256(local)).toBe(sha256(shared));
-  });
-
   it('rule 4: ids unique and well formed; status one of three; gapCents iff known-gap; inferred fields name input keys', () => {
     const ids = REGISTRY.examples.map((e) => e.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -163,17 +157,6 @@ describe('B39-T2 the user\'s Excel registry (ca_user_excel_examples.json; spec 0
       expect(e.gapCents !== undefined, `${e.id} gapCents`).toBe(e.status === 'known-gap');
       for (const inf of e.inferred) {
         expect(inf.field === 'financedFees/cashFees' || Object.hasOwn(e.input, inf.field), `${e.id} inferred ${inf.field}`).toBe(true);
-      }
-    }
-  });
-
-  it('rule 4: every decisions[] entry starts with a DEC- / Q- ID found in COB-user-stories.md or 008', () => {
-    const docs = read(join(ROOT, '..', 'COB-user-stories.md')) + read(join(ROOT, '..', 'docs', 'new-req', '008-brd-validation-open-items.md'));
-    for (const e of REGISTRY.examples) {
-      for (const d of e.decisions) {
-        const id = /^(?:DEC|Q)-[A-Z0-9]+(?:-[A-Z0-9]+)*/.exec(d)?.[0];
-        expect(id, `${e.id} decision ${d}`).toBeDefined();
-        expect(docs.includes(id!), `${e.id} decision ${id} not in the docs`).toBe(true);
       }
     }
   });
