@@ -13,6 +13,15 @@
  * first + k * P days, inclusive of the End date), financed fees inside the balance and recovered after interest, cash
  * fees only in C, equation 7's no-fee short-circuit. Trust check (b37-leap-aware-n.test.ts, B37-T0): at n = 52 / 26 it
  * reproduces the saved workbook's REF-01 and today's engine on the B37 vectors exactly.
+ *
+ * B38 (spec 013, user decision DEC-B38-YEARFRAC-ROUND): with `yearFrac` / `yearFracRounded`, Y is Excel YEARFRAC basis 1
+ * (oracleYearFracBasis1, E-B38-1) and, in the B37 cases, each row's period interest is rounded to the cent half away from
+ * zero on its 15-significant-digit decimal (oracleRoundCent, E-B38-3, BigInt arithmetic on toPrecision(15)). Both are
+ * written from the spec text, not from src/.
+ *
+ * B39 (spec 014, user decision DEC-B39-VAR-PL-M12): with `monthlyConversion`, the MONTHLY basis (variable-rate mortgage,
+ * personal loan) at the 7/14-day frequencies takes the same leap-aware n (E-B39-2) and equation 1 at m = 12
+ * (oracleMonthlyConvertedDecimal, E-B39-3); its period interest is never rounded (E-B39-4). Written from the spec text.
  */
 
 /** Days since 1970-01-01 of a proleptic Gregorian civil date (H. Hinnant's days_from_civil). */
@@ -68,10 +77,65 @@ export function oracleYears(startIso: string, endIso: string): number {
   return y;
 }
 
-/** n = (D / P) / Y, left to right. */
-export function oracleLeapN(periodDays: number, startIso: string, endIso: string): number {
+/** E-B38-1: Excel YEARFRAC(start, end, 1) on ISO days. Within a year: the same year's length, or across a year end 366
+ *  when some Feb 29 lies in [start, end], else 365; otherwise the average length of the touched calendar years. */
+export function oracleYearFracBasis1(startIso: string, endIso: string): number {
+  const s = civilDays(startIso);
+  const e = civilDays(endIso);
+  if (s > e) throw new RangeError('start after end');
+  const days = e - s;
+  if (days === 0) return 0;
+  const [y1, m1, d1] = startIso.split('-').map(Number) as [number, number, number];
+  const [y2, m2, d2] = endIso.split('-').map(Number) as [number, number, number];
+  const len = (y: number): number => (oracleIsLeap(y) ? 366 : 365);
+  const pad = (y: number): string => String(y).padStart(4, '0');
+  const sameOrEarlierMonthDay = m2 < m1 || (m2 === m1 && d2 <= d1);
+  if (y1 === y2) return days / len(y1);
+  if (y2 === y1 + 1 && sameOrEarlierMonthDay) {
+    let feb29 = false;
+    for (const y of [y1, y2]) {
+      if (!oracleIsLeap(y)) continue;
+      const f = civilDays(`${pad(y)}-02-29`);
+      if (s <= f && f <= e) feb29 = true;
+    }
+    return days / (feb29 ? 366 : 365);
+  }
+  let total = 0;
+  for (let y = y1; y <= y2; y += 1) total += len(y);
+  return days / (total / (y2 - y1 + 1));
+}
+
+/** E-B38-3: Excel ROUND(x, 2). The 15-significant-digit decimal of |x| (toPrecision(15)), times 100, rounded half away
+ *  from zero in BigInt arithmetic, sign restored; 0 cents is 0 (never -0). RangeError for a non-finite x. */
+export function oracleRoundCent(x: number): number {
+  if (!Number.isFinite(x)) throw new RangeError(`not finite: ${x}`);
+  const text = Math.abs(x).toPrecision(15);
+  const m = /^(\d+)(?:\.(\d+))?(?:e([+-]\d+))?$/.exec(text);
+  if (m === null) throw new Error(`unexpected toPrecision output ${text}`);
+  const frac = m[2] ?? '';
+  const digits = BigInt(m[1]! + frac);
+  const exp10 = Number(m[3] ?? '0') - frac.length + 2; // cents = digits x 10^exp10
+  let cents: bigint;
+  if (exp10 >= 0) {
+    cents = digits * 10n ** BigInt(exp10);
+  } else {
+    const div = 10n ** BigInt(-exp10);
+    cents = digits / div;
+    if (2n * (digits % div) >= div) cents += 1n;
+  }
+  if (cents === 0n) return 0;
+  return (x < 0 ? -1 : 1) * Number(cents) / 100;
+}
+
+/** n = (D / P) / Y, left to right; Y is oracleYears, or with `yearFrac` (B38) oracleYearFracBasis1. */
+export function oracleLeapN(periodDays: number, startIso: string, endIso: string, yearFrac = false): number {
   const d = civilDays(endIso) - civilDays(startIso);
-  return d / periodDays / oracleYears(startIso, endIso);
+  return d / periodDays / (yearFrac ? oracleYearFracBasis1(startIso, endIso) : oracleYears(startIso, endIso));
+}
+
+/** B39 E-B39-3: equation 1 at m = 12, in the same operand order (annual / 100, / 12, ^(12 / n), - 1, x n). Decimal. */
+export function oracleMonthlyConvertedDecimal(contractRatePercent: number, n: number): number {
+  return n * (Math.pow(1 + contractRatePercent / 100 / 12, 12 / n) - 1);
 }
 
 /** Equation 1 at m = 2, in the workbook's operand order (annual / 100, / 2, ^(2 / n), - 1, x n). Decimal. */
@@ -97,7 +161,8 @@ export const ORACLE_BASE_N: Readonly<Record<string, number>> = Object.freeze({
   acceleratedWeekly: 52,
 });
 
-/** The decided n for a (product, rate type, frequency, start, end) with the switch in `leapAware`. */
+/** The decided n for a (product, rate type, frequency, start, end) with the switch in `leapAware`. B39: with
+ *  `monthlyConversion` the MONTHLY basis (anything but a fixed mortgage) takes the leap path too (E-B39-2 step 4). */
 export function oracleN(
   productType: string,
   rateType: string,
@@ -105,14 +170,16 @@ export function oracleN(
   startIso: string | null,
   endIso: string | null,
   leapAware: boolean,
+  yearFrac = false,
+  monthlyConversion = false,
 ): number {
   const base = ORACLE_BASE_N[frequency];
   if (base === undefined) throw new RangeError(`unknown frequency ${frequency}`);
   const p = ORACLE_PERIOD_DAYS[frequency] ?? null;
-  const converted = productType === 'mortgage' && rateType === 'fixed';
+  const converted = (productType === 'mortgage' && rateType === 'fixed') || monthlyConversion;
   if (!leapAware || p === null || !converted || startIso === null || endIso === null) return base;
   if (!(civilDays(endIso) - civilDays(startIso) > 0)) return base;
-  return oracleLeapN(p, startIso, endIso);
+  return oracleLeapN(p, startIso, endIso, yearFrac);
 }
 
 export interface OracleCase {
@@ -153,14 +220,22 @@ export interface OracleResult {
   cobRatePercent: number;
 }
 
-/** The shipped-branch schedule for a 7/14-day frequency at the given switch state. */
-export function oracleSchedule(c: OracleCase, leapAware: boolean): OracleResult {
+/** The shipped-branch schedule for a 7/14-day frequency at the given switch state (B38: `yearFracRounded`; B39:
+ *  `monthlyConversion`, the MONTHLY basis at m = 12 on the leap path, never rounded). */
+export function oracleSchedule(c: OracleCase, leapAware: boolean, yearFracRounded = false, monthlyConversion = false): OracleResult {
   const p = ORACLE_PERIOD_DAYS[c.frequency];
   if (p === null || p === undefined) throw new RangeError('oracleSchedule covers the 7/14-day frequencies only');
-  const n = oracleN(c.productType, c.rateType, c.frequency, c.start, c.end, leapAware);
+  const n = oracleN(c.productType, c.rateType, c.frequency, c.start, c.end, leapAware, yearFracRounded, monthlyConversion);
   const converted = c.productType === 'mortgage' && c.rateType === 'fixed';
-  const decimal = converted ? oracleConvertedDecimal(c.contractRatePercent, n) : c.contractRatePercent / 100;
-  const percent = converted ? decimal * 100 : c.contractRatePercent;
+  const onLeapPath = leapAware && civilDays(c.end) > civilDays(c.start);
+  const rounds = onLeapPath && yearFracRounded && converted;
+  const monthly = onLeapPath && monthlyConversion && !converted;
+  const decimal = converted
+    ? oracleConvertedDecimal(c.contractRatePercent, n)
+    : monthly
+      ? oracleMonthlyConvertedDecimal(c.contractRatePercent, n)
+      : c.contractRatePercent / 100;
+  const percent = converted || monthly ? decimal * 100 : c.contractRatePercent;
   const fin = c.financedFees.reduce((s, x) => s + x, 0);
   const cash = c.cashFees.reduce((s, x) => s + x, 0);
   const startDay = civilDays(c.start);
@@ -177,7 +252,8 @@ export function oracleSchedule(c: OracleCase, leapAware: boolean): OracleResult 
     const day = firstDay + k * p;
     if (day > endDay) break;
     const date = civilIso(day);
-    const interest = open * decimal * oracleYears(prior, date);
+    const raw = open * decimal * oracleYears(prior, date);
+    const interest = rounds ? oracleRoundCent(raw) : raw;
     const due = interest + bucket;
     const paidInterest = Math.min(c.paymentAmount, due);
     const afterInterest = c.paymentAmount - paidInterest;

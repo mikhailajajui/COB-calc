@@ -29,6 +29,7 @@ import { FIXTURES_DIR } from './support/fixtures.js';
 import { frequenciesFor } from './support/products.js';
 import { preB37GoldenText } from './support/preB37Golden.js';
 import { rehome, rehomeCase } from './support/rehome.js';
+import { B39_OFF, SHIPPED, calculateWith } from './support/switches.js';
 // @ts-ignore -- plain .mjs (no .d.ts): the LIVE (reshaped) generators.
 import * as gen1 from './fixtures/generate_golden.mjs';
 // @ts-ignore -- plain .mjs (no .d.ts).
@@ -100,7 +101,9 @@ describe('B27-T1 catalogue: allowedPaymentFrequencies (src/ca/products.ts, read 
 
 // ---------------------------------------------------------------------------------------------------------------
 // B33 (DEC-B33-FREQ): B27-T2 was the rejection matrix; the same 30 cases are now ACCEPTED, with the contract rate unconverted.
-describe('B27-T2 (B33) acceptance matrix: personal loan + a non-monthly frequency (5 frequencies x 2 rate types x 3 flows: new, renewal, paymentChange)', () => {
+// B39 (DEC-B39-VAR-PL-M12, spec 014): the shipped engine converts a personal loan's rate at the 7/14-day frequencies (m = 12,
+// leap-aware n), so the unconverted-rate claim runs with MONTHLY_RATE_CONVERSION false (INV-B39-OFF); validation is unchanged.
+describe('B27-T2 (B33) acceptance matrix: personal loan + a non-monthly frequency (5 frequencies x 2 rate types x 3 flows: new, renewal, paymentChange) — B39 off (MONTHLY_RATE_CONVERSION false)', () => {
   const CASES: [PaymentFrequency, RateType, CobFlow][] = NON_MONTHLY.flatMap((f) =>
     RATES.flatMap((r) => (['newMortgageOrLoan', 'renewal', 'paymentChange'] as const).map((fl) => [f, r, fl] as [PaymentFrequency, RateType, CobFlow])),
   );
@@ -110,7 +113,7 @@ describe('B27-T2 (B33) acceptance matrix: personal loan + a non-monthly frequenc
     const x = input(fl, 'personalLoan', r, f);
     expect(collectInputIssues(x)).toEqual([]);
     expect(() => validateCobCanadaInput(x)).not.toThrow();
-    const res = calculateCobCanada(x);
+    const res = calculateWith(x, SHIPPED, undefined, undefined, B39_OFF);
     expect(res.calculatedRatePercent).toBe(6);
     expect(res.triggerRatePercent).toBeNull();
   });
@@ -214,17 +217,20 @@ describe('B27-INV-reject / INV-accept / INV-order (B33): the whole cross product
 // ---------------------------------------------------------------------------------------------------------------
 describe('B27-T6 no off state (revision 27: a fixed rule, no switch, no parameter; B33-R10: the removal adds no switch either)', () => {
   // B37 (DEC-B37-LEAP-N, brief B37 test plan 6): + LEAP_AWARE_PAYMENTS_PER_YEAR (an ADR-14 engine switch of B37, not a B27
-  // switch). Red until sr-dev adds it.
-  it('policies.ts exports exactly the same names as before B27 (B24 adds SEMI_ANNUAL_DATE_REQUIRED, B37 LEAP_AWARE_PAYMENTS_PER_YEAR)', async () => {
+  // switch). B38 (spec 013): + YEARFRAC_ROUNDED_INTEREST (an ADR-14 engine switch of B38). B39 (spec 014):
+  // + MONTHLY_RATE_CONVERSION (an ADR-14 engine switch of B39).
+  it('policies.ts exports exactly the same names as before B27 (B24 adds SEMI_ANNUAL_DATE_REQUIRED, B37 LEAP_AWARE_PAYMENTS_PER_YEAR, B38 YEARFRAC_ROUNDED_INTEREST, B39 MONTHLY_RATE_CONVERSION)', async () => {
     const mod = (await import('../../src/ca/policies.js')) as Record<string, unknown>;
     expect(Object.keys(mod).sort()).toEqual([
       'LEAP_AWARE_PAYMENTS_PER_YEAR',
+      'MONTHLY_RATE_CONVERSION',
       'PRINCIPAL_PAID',
       'PRIOR_ACCRUED_IN_COB',
       'PRIOR_ACCRUED_IN_P',
       'P_BASIS',
       'SEMI_ANNUAL_DATE_REQUIRED',
       'UNPAID_INTEREST_CAPITALISED',
+      'YEARFRAC_ROUNDED_INTEREST',
     ]);
   });
 
@@ -448,7 +454,11 @@ describe('B27-T11 (B33) the Chrome scripts do not drive a disabled select and as
     // term value strings for 5 scenarios, new key contractTermChoice, nothing else); sha 4d5a64c1... -> 9577121c....
     // Re-pinned 2026-10-09 by QA (B37 verify, DEC-B37-LEAP-N): capture regenerated (user approved; REF-01 and S1_fees
     // figures, schedule digits and CSV only; DEV-B37-LEAPN); sha 9577121c... -> 6c3686d3....
-    expect(sha256(fixture)).toBe('6c3686d387197b707518fd45e278414113c32846a04d8c1ac3c587a16d61b824');
+    // Re-pinned 2026-10-10 (B38, DEC-B38-YEARFRAC-ROUND): capture regenerated (user approved; REF-01 and S1_fees
+    // figures, schedule digits and CSV number tokens only; DEV-B38-ROUND); sha 6c3686d3... -> 89329245....
+    // Re-pinned 2026-10-13 (B39, DEC-B39-VAR-PL-M12): capture regenerated (VRPC_zero_accrued and PL_WEEKLY figures,
+    // schedule digits and CSV number tokens only; DEV-B39-M12; reverse patch b39_capture_undo.json); sha 89329245... -> e22f0161....
+    expect(sha256(fixture)).toBe('e22f016172c733cfaaf97c36567bab81c1b8b9a5e032b3e88a42c73ebdfa77df');
     expect(capture).toMatch(/productType: 'personalLoan', rateType: 'variable', paymentFrequency: 'monthly'/);
   });
 

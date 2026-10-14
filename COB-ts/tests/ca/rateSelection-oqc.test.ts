@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { calculateCobCanada } from '../../src/ca/index.js';
 import type { CobCanadaInput } from '../../src/ca/index.js';
 import { expectRelFloor1 } from './support/compare.js';
-import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
+import { B39_OFF, LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 
 /**
  * T2 / OQ-C (resolved 2026-09-27 from the workbook): which annual rate feeds the
@@ -92,15 +92,18 @@ const UNCONVERTED_CASES: [string, CobCanadaInput['productType'], CobCanadaInput[
   ['variable mortgage', 'mortgage', 'variable', 6, FREQS],
 ];
 
+// B39 (DEC-B39-VAR-PL-M12, spec 014): the shipped engine converts the MONTHLY basis at the 7/14-day frequencies (m = 12,
+// leap-aware n); this block is the OQ-C workbook rule, so it runs with MONTHLY_RATE_CONVERSION false (INV-B39-OFF). The
+// shipped rule is tested in b39-monthly-conversion.test.ts.
 for (const [label, productType, rateType, contract, freqs] of UNCONVERTED_CASES) {
-  describe(`OQ-C ${label}: contract rate ${contract}% used unconverted at every frequency (workbook MONTHLY)`, () => {
+  describe(`OQ-C ${label}: contract rate ${contract}% used unconverted at every frequency (workbook MONTHLY) — B39 off (MONTHLY_RATE_CONVERSION false)`, () => {
     it.each(freqs)('%s: calculatedRatePercent (OUT-01) === contract rate exactly', (freq) => {
-      const res = calculateCobCanada(input(productType, rateType, freq, contract));
+      const res = calculateWith(input(productType, rateType, freq, contract), SHIPPED, undefined, undefined, B39_OFF);
       expect(res.calculatedRatePercent).toBe(contract);
     });
 
     it.each(freqs)('%s: row-1 interest == loan x contract/100 x days/365', (freq) => {
-      const res = calculateCobCanada(input(productType, rateType, freq, contract));
+      const res = calculateWith(input(productType, rateType, freq, contract), SHIPPED, undefined, undefined, B39_OFF);
       const row1 = res.amortizationSchedule[0]!;
       expect(row1.daysInPeriod).toBe(FIRST_PAYMENT[freq].days);
       expect(row1.openingBalance).toBe(10000);

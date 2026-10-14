@@ -25,7 +25,7 @@ import type * as View from '../../ui/ca-view.js';
 import { ROOT } from '../architecture/support.js';
 import { utcDate } from './support/builders.js';
 import { loadFixture } from './support/fixtures.js';
-import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
+import { B39_OFF, LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 import { BOTH, OFF, ON } from './support/uiSwitches.js';
 import type { TestUiSwitches } from './support/uiSwitches.js';
 // @ts-ignore -- plain .mjs shared with the generators (no .d.ts).
@@ -275,15 +275,17 @@ interface Corpus {
   makeInput(params: object): CobCanadaInput;
 }
 interface Swept { key: string; label: string; input: CobCanadaInput; result: CobCanadaResult; value: number }
+// B39 (DEC-B39-VAR-PL-M12, spec 014): the pinned minimum (5,092.19, a weekly personal loan) and the named cases are pre-B39
+// figures, so the sweep runs with MONTHLY_RATE_CONVERSION false (INV-B39-OFF); the shipped corpora are in the goldens.
 const sweep = (corpus: Corpus): Swept[] =>
   corpus.buildGroups().flatMap((g) =>
     g.cases.map((c) => {
       const input = corpus.makeInput(c.params);
-      const result = calculateCobCanada(input);
+      const result = calculateWith(input, SHIPPED, undefined, undefined, B39_OFF);
       return { key: g.key, label: c.label, input, result, value: result.amortizationSchedule.at(-1)!.carriedAccruedInterestClosing };
     }));
 
-describe('B26-T6: golden-corpus sweep (v1 and Payment Change): the line is present iff the last closing accrued interest is > 0', () => {
+describe('B26-T6: golden-corpus sweep (v1 and Payment Change): the line is present iff the last closing accrued interest is > 0 — B39 off (MONTHLY_RATE_CONVERSION false)', () => {
   const swept: Record<string, Swept[]> = {};
   beforeAll(() => {
     swept.v1 = sweep(corpusV1 as unknown as Corpus);

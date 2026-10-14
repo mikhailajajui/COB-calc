@@ -12,7 +12,16 @@ import {
   selectCompoundingPeriodsPerYear,
   selectRateBasis,
   triggerRatePercent,
+  conversionPaymentsPerYear,
+  leapAwarePaymentsPerYear,
+  roundToCentHalfAwayFromZero,
+  convertsMonthlyRate,
+  roundsPeriodInterestToCent,
 } from '../../src/ca/equations.js';
+import type { PaymentFrequency, ProductType, RateType } from '../../src/ca/index.js';
+import { expectRangeErrorMatching } from './support/compare.js';
+import { utcDate } from './support/builders.js';
+import { oracleMonthlyConvertedDecimal, oracleRoundCent } from './support/leapNOracle.js';
 
 describe('calculatedRate (equation 1)', () => {
   // Hand-computed: (1 + 0.05/2)^(2/12) - 1 = 1.025^(1/6) - 1 = 0.0041239154651442345
@@ -280,5 +289,145 @@ describe('cobAmount (equation 8)', () => {
 
   it('throws RangeError on negative total_interest', () => {
     expect(() => cobAmount(-1, 0, 0)).toThrow(RangeError);
+  });
+});
+
+// B38 (spec 013 E-B38-3, DEC-B38-YEARFRAC-ROUND, DEV-B38-ROUND): Excel ROUND(x, 2) on the 15-significant-digit decimal.
+describe('B38 INV-B38-ROUND roundToCentHalfAwayFromZero', () => {
+  const T: [number, number, string][] = [
+    [1.005, 1.01, 'Math.round(x * 100) / 100 gives 1'],
+    [-1.005, -1.01, ''],
+    [2.675, 2.68, ''],
+    [0.005, 0.01, ''],
+    [0.0049999999, 0, ''],
+    [0.0025, 0, ''],
+    [0.0001, 0, ''],
+    [1e-9, 0, ''],
+    [0.015, 0.02, 'half-even would give 0.02 too; 1.005 kills half-even'],
+    [1.115, 1.12, ''],
+    [10.235, 10.24, ''],
+    [1234.565, 1234.57, ''],
+    [1234.5649999999, 1234.56, ''],
+    [123456789.125, 123456789.13, ''],
+    [758.3018733743622, 758.3, 'V-CASE1 row 1'],
+    [0, 0, ''],
+  ];
+  it.each(T)('%f -> %f %s (and the QA oracle agrees)', (x, want) => {
+    expect(Object.is(roundToCentHalfAwayFromZero(x), want)).toBe(true);
+    expect(Object.is(oracleRoundCent(x), want)).toBe(true);
+  });
+
+  it('INV-B38-ROUND-RANGE: above 1e12 the cent decision is toExponential\'s (pinned): 1e15 / 7 -> 142857142857143', () => {
+    expect(roundToCentHalfAwayFromZero(1e15 / 7)).toBe(142857142857143);
+    expect(roundToCentHalfAwayFromZero(999999999999.995)).toBe(oracleRoundCent(999999999999.995));
+  });
+
+  it('never returns -0: -0, -0.004 and -1e-9 give +0', () => {
+    for (const x of [-0, -0.004, -1e-9, -0.0049999]) expect(Object.is(roundToCentHalfAwayFromZero(x), 0), String(x)).toBe(true);
+    expect(roundToCentHalfAwayFromZero(-0.005)).toBe(-0.01);
+  });
+
+  it('NaN and +-Infinity are RangeErrors', () => {
+    for (const x of [NaN, Infinity, -Infinity]) {
+      expectRangeErrorMatching(() => roundToCentHalfAwayFromZero(x), /^x must be a finite number, got /);
+    }
+  });
+});
+
+describe('B38 leapAwarePaymentsPerYear / conversionPaymentsPerYear YEARFRAC parameter (defaults false)', () => {
+  const s = utcDate('2026-10-08');
+  const e = utcDate('2029-09-23');
+  it('leapAwarePaymentsPerYear(14, V-CASE1 dates, true) is 1081 / 14 / (1081 / 365.25); without the flag it is the B37 n', () => {
+    expect(leapAwarePaymentsPerYear(14, s, e, true)).toBe(26.089285714285715);
+    expect(leapAwarePaymentsPerYear(14, s, e, true)).toBe(1081 / 14 / (1081 / 365.25));
+    expect(leapAwarePaymentsPerYear(14, s, e)).toBe(26.095568783068778);
+    expect(leapAwarePaymentsPerYear(14, s, e, false)).toBe(26.095568783068778);
+  });
+  it('conversionPaymentsPerYear: the seventh parameter defaults to false; with leapAware false or a monthly frequency it changes nothing', () => {
+    expect(conversionPaymentsPerYear('mortgage', 'fixed', 'biweekly', s, e, true)).toBe(conversionPaymentsPerYear('mortgage', 'fixed', 'biweekly', s, e, true, false));
+    expect(conversionPaymentsPerYear('mortgage', 'fixed', 'biweekly', s, e, true, true)).toBe(26.089285714285715);
+    expect(conversionPaymentsPerYear('mortgage', 'fixed', 'biweekly', s, e, false, true)).toBe(26);
+    expect(conversionPaymentsPerYear('mortgage', 'fixed', 'monthly', s, e, true, true)).toBe(12);
+    expect(conversionPaymentsPerYear('mortgage', 'variable', 'weekly', s, e, true, true)).toBe(52);
+  });
+  it('leapAwarePaymentsPerYear(…, true) keeps the guards: start === end is a RangeError', () => {
+    expectRangeErrorMatching(() => leapAwarePaymentsPerYear(14, s, s, true), /^start must be before end$/);
+  });
+});
+
+describe('B39 calculatedRateFor fifth parameter convertMonthly (E-B39-3; spec 014, DEC-B39-VAR-PL-M12)', () => {
+  const N_VAR1 = 52.17857142857142;
+  const N_VAR2 = 26.083333333333332;
+  it('defaults to false: four arguments are byte-identical to convertMonthly false (MONTHLY basis = the contract rate)', () => {
+    expect(calculatedRateFor('mortgage', 'variable', 4, N_VAR1)).toEqual({ percent: 4, decimal: 0.04 });
+    expect(calculatedRateFor('mortgage', 'variable', 4, N_VAR1, false)).toEqual(calculatedRateFor('mortgage', 'variable', 4, N_VAR1));
+    expect(calculatedRateFor('personalLoan', 'fixed', 8, 52.166666666666664)).toEqual({ percent: 8, decimal: 0.08 });
+  });
+  it('MONTHLY basis, true: equation 1 at m = 12, percent = decimal * 100 (VAR-1 3.994876602469461, VAR-2 3.796756654443251; the oracle)', () => {
+    const v1 = calculatedRateFor('mortgage', 'variable', 4, N_VAR1, true);
+    expect(v1.decimal).toBe(calculatedRate(4, 12, N_VAR1));
+    expect(v1.percent).toBe(v1.decimal * 100);
+    expect(v1.percent).toBe(3.994876602469461);
+    expect(v1.decimal).toBe(oracleMonthlyConvertedDecimal(4, N_VAR1));
+    const v2 = calculatedRateFor('mortgage', 'variable', 3.8, N_VAR2, true);
+    expect(v2.percent).toBe(3.796756654443251);
+    // E-B39-3: the pin is decimal * 100, not 100 * n * (...), which differs in the last bit.
+    expect(100 * N_VAR2 * (Math.pow(1 + 3.8 / 100 / 12, 12 / N_VAR2) - 1)).toBe(3.7967566544432505);
+    expect(calculatedRateFor('personalLoan', 'variable', 8, 52.166666666666664, true).percent).toBe(7.979547907300506);
+  });
+  it('SEMI-ANNUAL basis ignores convertMonthly (m = 2 either way)', () => {
+    expect(calculatedRateFor('mortgage', 'fixed', 4.34, 26.089285714285715, true)).toEqual(calculatedRateFor('mortgage', 'fixed', 4.34, 26.089285714285715));
+  });
+  it('edge: contract rate 0 converts to exactly 0 (INV-B39-ZERO); for n > 12 and i > 0 the result is below the contract rate (INV-B39-BELOW)', () => {
+    expect(calculatedRateFor('mortgage', 'variable', 0, N_VAR1, true)).toEqual({ percent: 0, decimal: 0 });
+    expect(calculatedRateFor('mortgage', 'variable', 0.01, N_VAR1, true).percent).toBeLessThan(0.01);
+    expect(calculatedRateFor('mortgage', 'variable', 0.01, N_VAR1, true).percent).toBeGreaterThan(0);
+  });
+  it('invalid: a negative contract rate or n <= 0 is still a RangeError with convertMonthly true', () => {
+    expectRangeErrorMatching(() => calculatedRateFor('mortgage', 'variable', -1, N_VAR1, true), /^contractRatePercent must be >= 0, got -1$/);
+    expectRangeErrorMatching(() => calculatedRateFor('mortgage', 'variable', 4, 0, true), /^paymentsPerYear must be > 0, got 0$/);
+  });
+});
+
+describe('B39 convertsMonthlyRate (predicate M, E-B39-1) and conversionPaymentsPerYear eighth parameter (E-B39-2)', () => {
+  const s = utcDate('2026-10-08');
+  const e = utcDate('2029-09-27');
+  const SIX: PaymentFrequency[] = ['weekly', 'acceleratedWeekly', 'biweekly', 'acceleratedBiweekly', 'semiMonthly', 'monthly'];
+  const BASES: [ProductType, RateType, 'MONTHLY' | 'SEMI-ANNUAL'][] = [
+    ['mortgage', 'fixed', 'SEMI-ANNUAL'],
+    ['mortgage', 'variable', 'MONTHLY'],
+    ['personalLoan', 'fixed', 'MONTHLY'],
+  ];
+  it('table: 8 switch states x 6 frequencies x 3 bases; M = monthlyConversion && leapAware && MONTHLY basis && P in {7, 14}; S (rounding) is never true for the MONTHLY basis', () => {
+    const bad: string[] = [];
+    for (const la of [true, false]) for (const yf of [true, false]) for (const mc of [true, false]) {
+      for (const f of SIX) for (const [pt, rt, basis] of BASES) {
+        const day = f !== 'semiMonthly' && f !== 'monthly';
+        const want = mc && la && basis === 'MONTHLY' && day;
+        if (convertsMonthlyRate(pt, rt, f, s, e, la, mc) !== want) bad.push(`M ${la} ${yf} ${mc} ${f} ${pt}/${rt}`);
+        if (basis === 'MONTHLY' && roundsPeriodInterestToCent(pt, rt, f, s, e, la, yf)) bad.push(`S ${la} ${yf} ${f} ${pt}/${rt}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+  it('edge: invalid or empty spans give false, never a throw (start missing, NaN, start === end, start after end, unknown frequency)', () => {
+    expect(convertsMonthlyRate('mortgage', 'variable', 'weekly', undefined, e, true, true)).toBe(false);
+    expect(convertsMonthlyRate('mortgage', 'variable', 'weekly', s, new Date(NaN), true, true)).toBe(false);
+    expect(convertsMonthlyRate('mortgage', 'variable', 'weekly', s, s, true, true)).toBe(false);
+    expect(convertsMonthlyRate('mortgage', 'variable', 'weekly', e, s, true, true)).toBe(false);
+    expect(convertsMonthlyRate('mortgage', 'variable', 'daily' as PaymentFrequency, s, e, true, true)).toBe(false);
+  });
+  it('conversionPaymentsPerYear: the eighth parameter defaults to false (seven arguments = 52 / 26 for the MONTHLY basis); true gives D / P / YEARFRAC (VAR-1 52.17857142857142)', () => {
+    for (const [pt, rt] of [['mortgage', 'variable'], ['personalLoan', 'fixed'], ['personalLoan', 'variable']] as [ProductType, RateType][]) {
+      expect(conversionPaymentsPerYear(pt, rt, 'weekly', s, e, true, true)).toBe(52);
+      expect(conversionPaymentsPerYear(pt, rt, 'weekly', s, e, true, true, false)).toBe(52);
+      expect(conversionPaymentsPerYear(pt, rt, 'biweekly', s, e, true, true, false)).toBe(26);
+      expect(conversionPaymentsPerYear(pt, rt, 'weekly', s, e, true, true, true)).toBe(52.17857142857142);
+      expect(conversionPaymentsPerYear(pt, rt, 'weekly', s, e, false, true, true)).toBe(52);
+      expect(conversionPaymentsPerYear(pt, rt, 'monthly', s, e, true, true, true)).toBe(12);
+      expect(conversionPaymentsPerYear(pt, rt, 'semiMonthly', s, e, true, true, true)).toBe(24);
+    }
+    expect(conversionPaymentsPerYear('mortgage', 'fixed', 'weekly', s, e, true, true, true)).toBe(conversionPaymentsPerYear('mortgage', 'fixed', 'weekly', s, e, true, true));
+    expectRangeErrorMatching(() => conversionPaymentsPerYear('mortgage', 'variable', 'daily' as PaymentFrequency, s, e, true, true, true), /^paymentFrequency must be one of /);
   });
 });

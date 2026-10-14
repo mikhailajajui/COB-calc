@@ -1,8 +1,13 @@
 /**
  * F4 (COB-architecture.md §6, ADR-02): no rounding in the calculation path.
- * No Math.round/floor/ceil/trunc, toFixed, toPrecision or round2 in src/ca (code only,
+ * No Math.round/floor/ceil/trunc, toFixed, toPrecision, toExponential or round2 in src/ca (code only,
  * comments stripped), except lines marked `// fitness:day-count` (the integer day counts in
- * daysBetween / dayCountFraction).
+ * daysBetween / dayCountFraction) and the one line marked `// fitness:cent-round`.
+ *
+ * Exemption (B38, spec 013, user decision DEC-B38-YEARFRAC-ROUND; deviation DEV-B38-ROUND): the
+ * `toExponential(14)` line of roundToCentHalfAwayFromZero in src/ca/equations.ts, which rounds
+ * period interest to the cent for fixed-rate Weekly / Bi-weekly mortgages, as the user's Excel does
+ * (Excel ROUND has no non-rounding equivalent). Pinned to that one line by "F4 [B38]".
  *
  * Known debt: none (A4 verified 2026-09-28). The two integer day counts (daysBetween,
  *   dayCountFraction) now live in src/ca/calendar.ts with `// fitness:day-count` on the same
@@ -10,12 +15,15 @@
  * History: round2 in src/ca/fees.ts (import + 4 fee totals) removed by B1 (012 D-10 / OQ-H, 2026-09-27).
  */
 import { describe, expect, it } from 'vitest';
-import { SRC_CA, fmt, grepCode, listFiles } from './support.js';
+import { SRC_CA, fmt, grepCode, listFiles, read, rel } from './support.js';
 
 const files = listFiles(SRC_CA, /\.ts$/);
-const ROUNDING = /Math\.(round|floor|ceil|trunc)\b|\.toFixed\(|\.toPrecision\(|\bround2\b/;
+const ROUNDING = /Math\.(round|floor|ceil|trunc)\b|\.toFixed\(|\.toPrecision\(|\.toExponential\(|\bround2\b/;
 const MARK = '// fitness:day-count';
-const unmarked = grepCode(files, ROUNDING).filter((h) => !h.text.includes(MARK));
+const CENT_MARK = '// fitness:cent-round';
+const CENT_ROUND_LINE =
+  "const [mantissa, exponentText] = Math.abs(x).toExponential(14).split('e') as [string, string]; // fitness:cent-round";
+const unmarked = grepCode(files, ROUNDING).filter((h) => !h.text.includes(MARK) && !h.text.includes(CENT_MARK));
 const marked = grepCode(files, ROUNDING).filter((h) => h.text.includes(MARK));
 /** A4 Goal 6: the two lines, exactly as the spec gives them (original text, trimmed). */
 const MARKED_DAY_COUNT_LINES = [
@@ -24,6 +32,20 @@ const MARKED_DAY_COUNT_LINES = [
 ];
 
 describe('F4 no rounding in src/ca', () => {
+  // B38 (DEC-B38-YEARFRAC-ROUND, DEV-B38-ROUND): the cent-round marker appears exactly once, on exactly this line.
+  it('F4 [B38]: `// fitness:cent-round` marks exactly one line, the toExponential(14) line in src/ca/equations.ts', () => {
+    const hits = files.flatMap((f) =>
+      read(f)
+        .split('\n')
+        .map((text, i) => ({ file: rel(f), line: i + 1, text: text.trim() }))
+        .filter((h) => h.text.includes(CENT_MARK)),
+    );
+    expect(hits.map((h) => `${h.file} ${h.text}`)).toEqual([`src/ca/equations.ts ${CENT_ROUND_LINE}`]);
+    expect(grepCode(files, ROUNDING).filter((h) => h.text.includes(CENT_MARK)).map((h) => `${h.file} ${h.text}`)).toEqual([
+      `src/ca/equations.ts ${CENT_ROUND_LINE}`,
+    ]);
+  });
+
   it('F4: no unmarked rounding', () => {
     expect(files.length).toBeGreaterThanOrEqual(5);
     expect(fmt(unmarked)).toEqual([]);

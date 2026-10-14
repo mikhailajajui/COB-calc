@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { calculateCobCanada } from '../../src/ca/index.js';
 import type { CobCanadaInput } from '../../src/ca/index.js';
-import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
+import { B39_OFF, LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 
 /** A well-formed new fixed-rate mortgage, overridable per test. */
 function fixedMortgageInput(overrides: Partial<CobCanadaInput> = {}): CobCanadaInput {
@@ -270,7 +270,7 @@ describe('calculateCobCanada', () => {
     expect(result.triggerRatePercent).not.toBeNull(); // mortgage + variable
   });
 
-  it('a schedule that straddles a leap-year boundary (Dec 31 / Jan 1 into 2028) prorates interest with a split 365/366 day count', () => {
+  it('a schedule that straddles a leap-year boundary (Dec 31 / Jan 1 into 2028) prorates interest with a split 365/366 day count — B39 off (MONTHLY_RATE_CONVERSION false)', () => {
     // 50,000 personal loan (fixed), weekly, 6% nominal -- period #5 runs
     // 2027-12-29 -> 2028-01-05 (7 actual days: 3 in 2027, 4 in 2028, a leap year).
     // OQ-C 2026-09-27: MONTHLY rate type = contract rate unconverted
@@ -299,7 +299,9 @@ describe('calculateCobCanada', () => {
       disbursalDate: new Date('2027-12-01'),
     };
 
-    const result = calculateCobCanada(input);
+    // B39 (DEC-B39-VAR-PL-M12, spec 014): the hand figures use the contract rate as entered (pre-B39), so this runs with
+    // MONTHLY_RATE_CONVERSION false; the day-count split it checks is unchanged by B39.
+    const result = calculateWith(input, SHIPPED, undefined, undefined, B39_OFF);
     expect(result.numberOfPayments).toBe(8);
 
     const row5 = result.amortizationSchedule[4]!;

@@ -156,11 +156,14 @@ flowchart TD
     Q{"Product and rate type?"}:::today
     Fix["Fixed-rate mortgage:<br/>n × ((1 + r ÷ 2) ^ (2 ÷ n) − 1)<br/>r = contract rate, n = payments per year"]:::today
     AsIs["Variable mortgage or personal loan:<br/>the contract rate as entered"]:::today
+    M12["Variable mortgage or personal loan,<br/>Weekly or Bi-weekly (and accelerated):<br/>n × ((1 + r ÷ 12) ^ (12 ÷ n) − 1), same n (B39)"]:::today
     NFreq{"Payment frequency?"}:::today
-    NLeap["Weekly or Bi-weekly (and accelerated):<br/>n = (D ÷ P) ÷ Y, leap-aware (B37)<br/>D = days from start date to End date<br/>P = 7 or 14, Y = the same span in years"]:::today
+    NLeap["Weekly or Bi-weekly (and accelerated):<br/>n = (D ÷ P) ÷ Y, leap-aware (B37)<br/>D = days from start date to End date<br/>P = 7 or 14, Y = YEARFRAC of the same span (B38)"]:::today
     NFix["Semi-monthly 24, Monthly 12"]:::today
     Q -->|"mortgage + fixed"| Fix
-    Q -->|"anything else"| AsIs
+    Q -->|"anything else, Semi-monthly or Monthly"| AsIs
+    Q -->|"anything else, 7 or 14 days"| M12
+    M12 --> NLeap
     Fix --> NFreq
     NFreq -->|"7 or 14 days"| NLeap
     NFreq -->|"semi-monthly or monthly"| NFix
@@ -168,6 +171,10 @@ flowchart TD
 ```
 
 **Today (B37, DEC-B37-LEAP-N; CHANGES §75).** For a fixed-rate mortgage at Weekly or Bi-weekly (and their accelerated forms), n is the actual number of 7- or 14-day periods per year over the loan: n = (D ÷ P) ÷ Y, where D is the days from the start date (Disbursal date, Renewal date or Date of change) to the End date, P is 7 or 14, and Y is the same span in years, counting a leap year's days over 366. n is therefore a little above 52 or 26 (about 52.14 to 52.29 weekly, 26.07 to 26.14 bi-weekly), which makes the calculated rate slightly lower than with 52 or 26. Semi-monthly is 24 and Monthly 12, as before. Variable mortgages and personal loans are not converted, so n plays no part. The workbook uses 52 and 26 (DEV-B37-LEAPN, §4); one engine switch restores that rule. The Payment frequency list shows n as a whole number, so it reads "Weekly (52/yr)", "Bi-weekly (26/yr)", "Semi-monthly (24/yr)", "Monthly (12/yr)"; the figure comes from the same engine rule as the calculation. The two accelerated frequencies are hidden in the page (B28); the engine still accepts them and treats them like Weekly and Bi-weekly. Sources: BRD §4.2, BR-01, BR-02, OQ-C; DEC-B37-LEAP-N. Checks: the user's Bi-weekly case 1 gives total interest $60,137.62 (the user's Excel $60,137.63, a 1-cent difference the user accepted) and example 2 gives $74,326.11, to the cent. The workbook's saved case REF-01 (fixed 3.74%, Accelerated Weekly) now gives total interest $22,514.07 instead of the workbook's $22,514.11; with the switch off it still matches Excel exactly (calculated rate 3.706781471105014%).
+
+**Today (B38, DEC-B38-YEARFRAC-ROUND; CHANGES §76).** For the same fixed-rate cases, Y is the span in years as Excel's YEARFRAC (basis 1) counts it, and each schedule row's period interest is rounded to the cent. The user's case 1 now gives $60,137.63 and example 2 $74,326.11, both matching the user's Excel to the cent. REF-01 gives $22,514.06 (workbook $22,514.11). A switch restores B37 (DEV-B38-ROUND).
+
+**Today (B39, DEC-B39-VAR-PL-M12; CHANGES §77).** A variable-rate mortgage or a personal loan at Weekly or Bi-weekly (and their accelerated forms) no longer uses the contract rate as entered: the rate is treated as compounded monthly and converted with n × ((1 + r ÷ 12) ^ (12 ÷ n) − 1), using the same n as above. Row interest stays at full precision. Semi-monthly and Monthly still use the contract rate as entered, and the trigger rate keeps 52 / 26. Checks: the user's variable bi-weekly example (3.80%) gives a Calculated rate of 3.79676% and total interest $57,808.56, matching the user's Excel to the cent (was $57,862.71); the variable weekly example gives $12,463.92 against Excel's $12,463.91, a known 1-cent gap. The user's Excel examples are kept in `COB-py/tests/fixtures/ca_user_excel_examples.json` for checking future examples. A switch restores B38 (DEV-B39-M12, suggested ID).
 
 *Before B37:* n was Weekly 52, Bi-weekly 26, Semi-monthly 24, Monthly 12 for every case, as in the workbook.
 
@@ -281,12 +288,14 @@ Everything else matches Excel: REF-01 matches on 2,193 values.
 | Unpaid interest | Added to the balance; earns interest | Held aside; earns none; paid first, oldest first; all charged interest counts in C | Decision 1, DEV-OQL | Today (a switch can restore the workbook rule) |
 | Accrued interest input | Does not exist | Required for Renewal, Payment change, VRPC ($0 allowed); outside the balance; earns no interest | OQ-W interim, DEV-W; decision 4 | Today; OQ-W2 parked |
 | Contract term | An input | Read-only result; End date required | Decision 8, OQ-P, DEV-OQP | Today: measured from the start date, "Remaining contract term" for Renewal and Payment change (DEC-B32-TERM, B32, CHANGES §71); whole years and months, rounded up, with a choice between the End date and the final payment when they differ (DEC-B34-TERM, B34, CHANGES §73) |
-| Personal-loan frequency | Any | Any, contract rate as entered (matches the workbook again; was Monthly only from B27 to B33) | DEC-B33-FREQ (reverses FB-24); DEV-FB24 retired | Today (B33, CHANGES §72); no difference left |
+| Personal-loan frequency | Any | Any; contract rate as entered at Semi-monthly and Monthly, converted as monthly-compounded at Weekly and Bi-weekly (B39); was Monthly only from B27 to B33 | DEC-B33-FREQ (reverses FB-24); DEV-FB24 retired; DEC-B39-VAR-PL-M12 | Today (B33, CHANGES §72; B39, CHANGES §77) |
 | Use cases | Do not exist | Three on screen (VRPC hidden), own start dates and labels; Renewal takes Mortgage or Personal loan | BRD IN-01, OQ-A; CHANGES §59 | Today (no workbook equivalent) |
 | Financed option; accelerated frequencies; contract rate entry | Offered; offered; typed on a second sheet | Not offered; hidden; one contract-rate field | Decision 7; B28; OQ-N | Today (same results, no DEV ID) |
 | P in the COB rate | Average opening principal | Average opening balance (BRD wording) | OQ-Q, candidate DEV-OQQ | Today; **open** |
 | "Total principal paid" | Total payments − total interest | Sum of principal paid (BRD wording) | OQ-R, candidate DEV-OQR | Today; **open** |
 | Payments per year in the fixed-rate conversion (Weekly, Bi-weekly) | 52 and 26 | The actual 7- or 14-day periods per year from the start date to the End date (leap-aware, about 52.19 and 26.10); REF-01 total interest $22,514.11 → $22,514.07 | DEC-B37-LEAP-N, DEV-B37-LEAPN | Today (B37, CHANGES §75; a switch can restore the workbook rule) |
+| Year count in that n; rounding of row interest (fixed mortgage, Weekly, Bi-weekly) | Not applicable; never rounded | YEARFRAC (basis 1); each row's interest rounded to the cent; REF-01 $22,514.06 | DEC-B38-YEARFRAC-ROUND, DEV-B38-ROUND | Today (B38, CHANGES §76; a switch restores B37) |
+| Rate for a variable mortgage or personal loan at Weekly, Bi-weekly | Contract rate as entered | Converted as monthly-compounded with the same n; full-precision rows | DEC-B39-VAR-PL-M12, DEV-B39-M12 (suggested) | Today (B39, CHANGES §77; a switch restores B38) |
 
 Sources: `COB-architecture.md` §2.1 (register of deviations); `COB-user-stories.md` §7.3, §7.5; `reference/workbook-macro-source.txt`.
 
@@ -296,7 +305,7 @@ Sources: `COB-architecture.md` §2.1 (register of deviations); `COB-user-stories
 
 1. **Scope.** Is a printout the record kept on file (the CSV holds the schedule only; export format OQ-J is open)? Is the payment always worked out elsewhere and typed in? Should an invalid input show no result, or a result with a warning?
 2. **Use cases.** Renewal accepts Mortgage and Personal loan (at any payment frequency, since B33); is that right? Should VRPC come back to the Flow list? Will staff know the arrears figure for Payment change, or is $0 too easy to type? The disclosed rate for the same loan moves about −0.09 points in the FB-16 example because the term starts earlier; acceptable?
-3. **Rate and dates.** Variable mortgages are never converted. Monthly from Apr 30 goes May 31, Jun 30. Semi-monthly start days are moved (10th to 15th, 20th to month-end). No weekend or holiday shifting. Personal loans at any frequency, using the contract rate as entered (B33). Accelerated options hidden. Is each right for your contracts?
+3. **Rate and dates.** Variable mortgages and personal loans are converted as monthly-compounded at Weekly and Bi-weekly only (B39), and use the contract rate as entered at Semi-monthly and Monthly. Monthly from Apr 30 goes May 31, Jun 30. Semi-monthly start days are moved (10th to 15th, 20th to month-end). No weekend or holiday shifting. Personal loans at any frequency (B33). Accelerated options hidden. Is each right for your contracts?
 4. **Period.** Interest then principal, for every product; leap-year days over 366; a shortfall earns no interest. Does this match how arrears work in the banking system?
 5. **Ending.** Is a balance still owing at the End date expected? Is the workbook's payoff-row display acceptable on a disclosure? Is the line "Unpaid interest at end date" (hint: "Unpaid after the last payment; interest since then is not included") clear, given the interest since the last payment is not in it?
 6. **COB rate.** With no fees the rate is the calculated rate even if C includes accrued interest paid (QA F-2; FB-11 on hold). Should P include financed fees (OQ-Q) and should entered accrued interest count in C (FB-25 W2, parked)?

@@ -121,6 +121,7 @@ describe('A13 timezone hygiene: test:tz matches the spec command', () => {
         'tests/ca/b33-personal-loan-frequencies.test.ts', // B33 (DEC-B33-FREQ, QA 2026-10-05): personal-loan schedules at every frequency (payment dates, semi-monthly move, workbook vectors); same answers in both zones
         'tests/ca/b34-term-options.test.ts', // B34 (DEC-B34-TERM, QA 2026-10-06): the terms rounded up to whole months read UTC calendar dates; same answers in both zones (B34-BV-99)
         'tests/ca/b37-leap-aware-n.test.ts', // B37 (DEC-B37-LEAP-N, QA 2026-10-09): D and Y read UTC calendar dates; same answers in both zones (B37-INV-PURE)
+        'tests/ca/b39-monthly-conversion.test.ts', // B39 (DEC-B39-VAR-PL-M12, spec 014, 2026-10-13): the leap-aware n of the MONTHLY basis reads UTC calendar dates; same answers in both zones
         'tests/ca/b3b-date-validation.test.ts',
         'tests/ca/b8-accelerated-frequencies.test.ts', // B8 (QA 2026-09-29): asserts payment dates
         'tests/ca/calendar-a4.test.ts',

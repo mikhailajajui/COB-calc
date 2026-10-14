@@ -32,6 +32,8 @@ import { calculateCobCanada } from '../../src/ca/index.js';
 import type { CobCanadaInput, PaymentFrequency } from '../../src/ca/index.js';
 import { SRC_CA, grepCode, listFiles, read, stripComments } from '../architecture/support.js';
 import { asInput, utcDate } from './support/builders.js';
+import { expectRangeErrorMatching } from './support/compare.js';
+import { oracleYearFracBasis1 } from './support/leapNOracle.js';
 
 const d = utcDate;
 const iso = (x: Date) => x.toISOString();
@@ -126,6 +128,7 @@ const EXPORTS = [
   'isLastDayOfMonth', 'isLeapYear', 'nextSemiMonthlyDate', 'periodDateFor', 'termBetween', 'utcDateOnly', // B24-R1 adds termBetween; B25-R2 adds effectiveFirstPaymentDate
   'roundUpToWholeMonths', // B34 (DEC-B34-TERM, B34-R2): the display-only rounding of a term, internal to src/ca
   'paymentPeriodDays', // B37 (DEC-B37-LEAP-N, B37-R2): 7 / 14 days per period, null for Monthly / Semi-monthly; internal to src/ca
+  'excelYearFracBasis1', // B38 (DEC-B38-YEARFRAC-ROUND, E-B38-1): Excel YEARFRAC basis 1, Y of the leap-aware n; internal to src/ca
 ].sort();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -148,7 +151,7 @@ function cal(): Cal {
 }
 
 describe('A4 calendar.ts module', () => {
-  it('a. exports exactly the 11 functions of Goal 4 plus termBetween (B24-R1), effectiveFirstPaymentDate (B25-R2), roundUpToWholeMonths (B34-R2) and paymentPeriodDays (B37-R2) (MS_PER_DAY stays private)', () => {
+  it('a. exports exactly the 11 functions of Goal 4 plus termBetween (B24-R1), effectiveFirstPaymentDate (B25-R2), roundUpToWholeMonths (B34-R2), paymentPeriodDays (B37-R2) and excelYearFracBasis1 (B38, E-B38-1) (MS_PER_DAY stays private)', () => {
     const c = cal();
     expect(Object.keys(c).sort()).toEqual(EXPORTS);
     for (const k of EXPORTS) expect(typeof c[k], k).toBe('function');
@@ -263,5 +266,54 @@ describe('A4 source guards (comments stripped)', () => {
     expect(files.some((f) => f.endsWith('/calendar.ts')), 'src/ca/calendar.ts exists').toBe(true);
     const hits = grepCode(files, /Date\.UTC\(|getUTC/).filter((h) => h.file !== 'src/ca/calendar.ts');
     expect(hits.map((h) => `${h.file}:${h.line} ${h.text}`)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------
+// 4. B38 (spec 013 E-B38-1, DEC-B38-YEARFRAC-ROUND): excelYearFracBasis1 = Excel YEARFRAC(start, end, 1)
+// ---------------------------------------------------------------------------------------
+
+describe('B38 INV-B38-YF excelYearFracBasis1 (Excel YEARFRAC basis 1)', () => {
+  const T: [string, string, string, number][] = [
+    ['2026-10-08', '2029-09-23', 'multi (4 years, one leap)', 2.9596167008898013],
+    ['2026-10-08', '2031-03-27', 'multi (6 years, one leap)', 4.466453674121405],
+    ['2000-01-01', '2004-01-31', 'multi (two leaps)', 4.080459770114943],
+    ['2000-01-01', '2000-01-02', 'same year, leap', 1 / 366],
+    ['2028-01-10', '2028-12-18', 'same year, leap', 343 / 366],
+    ['2100-01-04', '2100-12-27', 'same year, 2100 not leap', 357 / 365],
+    ['2027-06-01', '2028-03-15', 'cross, Feb 29 2028 inside', 288 / 366],
+    ['2027-06-01', '2028-02-28', 'cross, no Feb 29', 272 / 365],
+    ['2027-06-01', '2028-02-29', 'cross, end = Feb 29', 273 / 366],
+    ['2028-03-01', '2029-02-28', 'cross, start after Feb 29', 364 / 365],
+    ['2028-02-29', '2029-02-28', 'cross, start = Feb 29', 365 / 366],
+    ['2027-12-31', '2028-01-01', 'cross, Feb 29 2028 not reached', 1 / 365],
+    ['2028-12-31', '2029-01-01', 'cross, Feb 29 2028 behind start', 1 / 365],
+    ['2000-01-01', '2001-01-01', 'exactly one year', 1],
+    ['2027-12-15', '2028-12-15', 'exactly one year', 1],
+    ['2028-02-29', '2029-03-01', 'multi (not within a year)', 366 / 365.5],
+    ['2028-03-01', '2028-12-01', 'same year, no Feb 29 inside (366, not 365)', 275 / 366],
+  ];
+  it.each(T)('%s -> %s (%s) is %f exactly, and the oracle agrees', (s, e, _branch, y) => {
+    expect(Object.is(cal().excelYearFracBasis1(utcDate(s), utcDate(e)), y)).toBe(true);
+    expect(Object.is(oracleYearFracBasis1(s, e), y)).toBe(true);
+  });
+
+  it('Wheeler\'s 10-digit figure: 2000-01-01 -> 2004-01-31 is 4.080459770 (1e-9)', () => {
+    expect(Math.abs(cal().excelYearFracBasis1(utcDate('2000-01-01'), utcDate('2004-01-31')) - 4.08045977)).toBeLessThan(1e-9);
+  });
+
+  it('start = end is 0; start after end and an invalid Date are RangeErrors; 2000 is leap and 2100 is not', () => {
+    expect(cal().excelYearFracBasis1(utcDate('2026-10-08'), utcDate('2026-10-08'))).toBe(0);
+    expectRangeErrorMatching(() => cal().excelYearFracBasis1(utcDate('2026-10-09'), utcDate('2026-10-08')), /^start must be on or before end$/);
+    expectRangeErrorMatching(() => cal().excelYearFracBasis1(new Date(NaN), utcDate('2026-10-08')), /^start\/end must be valid Dates$/);
+    expectRangeErrorMatching(() => cal().excelYearFracBasis1(utcDate('2026-10-08'), new Date(NaN)), /^start\/end must be valid Dates$/);
+    expect(cal().excelYearFracBasis1(utcDate('2000-02-01'), utcDate('2000-03-01'))).toBe(29 / 366);
+    expect(cal().excelYearFracBasis1(utcDate('2100-02-01'), utcDate('2100-03-01'))).toBe(28 / 365);
+  });
+
+  it('a time of day is ignored (UTC calendar days)', () => {
+    const a = new Date('2027-06-01T23:59:00Z');
+    const b = new Date('2028-03-15T00:01:00Z');
+    expect(cal().excelYearFracBasis1(a, b)).toBe(288 / 366);
   });
 });

@@ -14,7 +14,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type * as View from '../../ui/ca-view.js';
 import { ROOT, read, stripComments } from '../architecture/support.js';
-import { FIXTURES_DIR, loadFixture } from './support/fixtures.js';
+import { FIXTURES_DIR, applyCaptureUndo, loadFixture } from './support/fixtures.js';
+import type { CaptureUndo } from './support/fixtures.js';
 
 const loadView = () => import('../../ui/ca-view.js') as Promise<typeof View>;
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -170,10 +171,22 @@ describe('B33-T10 capture: scenario PL_WEEKLY appended (B33-R9); the six earlier
     return copy as unknown as Scenario;
   };
 
-  it('seven scenarios; scenarios[0..5], formDefaults and flowScreens equal QA\'s pre-B33 pin once B37\'s number tokens and B34\'s R8b strings are mapped back (B34-BV-87)', () => {
+  // B38 (DEC-B38-YEARFRAC-ROUND, DEV-B38-ROUND; 2026-10-10): re-baselined the same way. B38 changed number tokens of REF-01
+  // and S1_fees only; fixtures/b38_capture_undo.json maps them back to the B37 capture, then B37's and B34's mappings apply.
+  const B38_UNDO = loadFixture<CaptureUndo>('b38_capture_undo.json');
+  const undoB38 = (sc: Scenario): Scenario => applyCaptureUndo(sc, B38_UNDO);
+  // B39 (DEC-B39-VAR-PL-M12, DEV-B39-M12; spec 014): re-baselined the same way. B39 changed number tokens of
+  // VRPC_zero_accrued and PL_WEEKLY only; fixtures/b39_capture_undo.json maps them back to the B38 capture first. The B39
+  // page figures of PL_WEEKLY are pinned in b39-monthly-conversion.test.ts (B39-T7).
+  const B39_UNDO = loadFixture<CaptureUndo>('b39_capture_undo.json');
+  const undoB39 = (sc: Scenario): Scenario => applyCaptureUndo(sc, B39_UNDO);
+
+  it('seven scenarios; scenarios[0..5], formDefaults and flowScreens equal QA\'s pre-B33 pin once B38\'s and B37\'s number tokens and B34\'s R8b strings are mapped back (B34-BV-87)', () => {
     expect(cap.scenarios.map((s) => s.id)).toEqual([...pin.scenarioIds, 'PL_WEEKLY']);
     expect(Object.keys(B37_UNDO.scenarios)).toEqual(['REF-01', 'S1_fees']);
-    expect(sha256(JSON.stringify(cap.scenarios.slice(0, 6).map(undoB37).map(undoB34)))).toBe(pin.scenariosSha256);
+    expect(Object.keys(B38_UNDO.scenarios)).toEqual(['REF-01', 'S1_fees']);
+    expect(Object.keys(B39_UNDO.scenarios)).toEqual(['VRPC_zero_accrued', 'PL_WEEKLY']);
+    expect(sha256(JSON.stringify(cap.scenarios.slice(0, 6).map(undoB39).map(undoB38).map(undoB37).map(undoB34)))).toBe(pin.scenariosSha256);
     expect(sha256(JSON.stringify(cap.formDefaults))).toBe(pin.formDefaultsSha256);
     const screens = Object.fromEntries(Object.entries(cap.flowScreens as Record<string, Record<string, string>>).map(([f, sc]) =>
       [f, { ...sc, termHint: sc['termHint'] === `From the ${sc['startDate']!.toLowerCase()}; part months count as a full month.` ? PRE_B34_HINT(sc['startDate']!) : `(not B34) ${sc['termHint']}` }]));
@@ -181,8 +194,8 @@ describe('B33-T10 capture: scenario PL_WEEKLY appended (B33-R9); the six earlier
   });
 
   // B34 (DEC-B34-TERM, R8b): re-baselined, the field shows the End date rule "3 years" (was 2 years, 10 months, 13 days).
-  it('PL_WEEKLY: raw personal loan / fixed / weekly, no error, Contract term 3 years (B34), the R9 figures in both modes', () => {
-    const s = cap.scenarios[6]!;
+  it('PL_WEEKLY: raw personal loan / fixed / weekly, no error, Contract term 3 years (B34), the R9 figures in both modes — B39 off (the B39 capture mapped back with b39_capture_undo.json)', () => {
+    const s = undoB39(cap.scenarios[6]!);
     expect(s.id).toBe('PL_WEEKLY');
     expect(s.raw).toMatchObject({ flow: 'newMortgageOrLoan', productType: 'personalLoan', rateType: 'fixed', paymentFrequency: 'weekly' });
     expect(s.error).toBeNull();
