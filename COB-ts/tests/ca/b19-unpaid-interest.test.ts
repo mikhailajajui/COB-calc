@@ -22,7 +22,7 @@ import { SRC_CA, read, stripComments } from '../architecture/support.js';
 import { asInput, utcDate } from './support/builders.js';
 import { withinRel } from './support/compare.js';
 import { rehome } from './support/rehome.js';
-import { BOTH, SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
+import { B39_OFF, BOTH, SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
 // @ts-ignore -- plain .mjs shared with the golden generator (no .d.ts).
 import * as corpus from './fixtures/generate_golden.mjs';
 
@@ -211,10 +211,15 @@ describe('B19 switch constant and source shape (DEV-OQL, ADR-14)', () => {
 
 // =============================================================================================
 
+// B39 (DEC-B39-VAR-PL-M12, spec 014): V5 is a weekly variable mortgage, which the shipped engine converts at m = 12; the
+// brief's V5 figures are the pre-B39 rule, so V5 runs with MONTHLY_RATE_CONVERSION false (INV-B39-OFF).
+const B39_OFF_IDS: ReadonlySet<string> = new Set(['V5']);
+
 describe('B19-V vectors: both switch states, exact figures (table in the brief)', () => {
   for (const id of ['V1', 'V2', 'V3', 'V4', 'V5', 'V6']) {
-    it.each(BOTH)(`B19-${id} %s`, (label, switches) => {
-      const r = calculateWith(VECTORS[id]!, switches);
+    const b39Off = B39_OFF_IDS.has(id);
+    it.each(BOTH)(`B19-${id} %s${b39Off ? ' — B39 off (MONTHLY_RATE_CONVERSION false)' : ''}`, (label, switches) => {
+      const r = b39Off ? calculateWith(VECTORS[id]!, switches, undefined, undefined, B39_OFF) : calculateWith(VECTORS[id]!, switches);
       const shipped = switches === SHIPPED;
       expect(digest(r)).toEqual(shipped ? EXPECTED[id]!.shipped : EXPECTED[id]!.workbook);
       if (!shipped) return;

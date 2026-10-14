@@ -6,7 +6,7 @@ import { isoDay, utcDate, wireToInput } from './support/builders.js';
 import { withinRel as withinRelTol } from './support/compare.js';
 import { loadFixture } from './support/fixtures.js';
 import { rehome } from './support/rehome.js';
-import { SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
+import { B39_OFF, SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
 import type { Switches } from './support/switches.js';
 
 /**
@@ -86,9 +86,18 @@ const TOTALS: [string, string, (r: CobCanadaResult) => number][] = [
   ['termDays', 'term_days', (r) => r.termDays],
 ];
 
-/** Every mismatch (rows, dates, totals, ending balance), as readable strings. */
-function mismatches(v: Vector, opts: { rows?: number; totalInterestAccrued?: boolean; switches?: Switches } = {}): string[] {
-  const r = opts.switches ? calculateWith(toInput(v.request), opts.switches) : calculateCobCanada(toInput(v.request));
+/** Every mismatch (rows, dates, totals, ending balance), as readable strings. B39 (spec 014): `monthlyConversion` is
+ *  passed to the engine as MONTHLY_RATE_CONVERSION when given (`switches` default SHIPPED). */
+function mismatches(
+  v: Vector,
+  opts: { rows?: number; totalInterestAccrued?: boolean; switches?: Switches; monthlyConversion?: boolean } = {},
+): string[] {
+  const r =
+    opts.monthlyConversion !== undefined
+      ? calculateWith(toInput(v.request), opts.switches ?? SHIPPED, undefined, undefined, opts.monthlyConversion)
+      : opts.switches
+        ? calculateWith(toInput(v.request), opts.switches)
+        : calculateCobCanada(toInput(v.request));
   const rows = r.amortizationSchedule;
   const out: string[] = [];
   if (opts.rows === undefined && rows.length !== v.rows.length) out.push(`rows: ${rows.length} vs ${v.rows.length}`);
@@ -155,7 +164,9 @@ describe('T5 leap split: engine dayCountFraction == VBA getRate / rate, every ro
   }
 });
 
-describe('T5 leap split: full schedule parity with the VBA oracle (payment covers interest)', () => {
+// B39 (DEC-B39-VAR-PL-M12, spec 014, acceptance 3): workbook-oracle parity is asserted with MONTHLY_RATE_CONVERSION false.
+// L3, L4 and L7 are 7/14-day MONTHLY-basis vectors, which the shipped engine converts by decision (DEV-B39-M12, below).
+describe('T5 leap split: full schedule parity with the VBA oracle (payment covers interest) — B39 off (MONTHLY_RATE_CONVERSION false)', () => {
   for (const id of [
     'L1_into_leap_monthly',
     'L2_out_of_leap_monthly',
@@ -166,7 +177,19 @@ describe('T5 leap split: full schedule parity with the VBA oracle (payment cover
     'L7_multiyear_no_leap',
   ]) {
     it(`${id}: every row, date and total within 1e-9`, () => {
-      expect(mismatches(vec(id))).toEqual([]);
+      expect(mismatches(vec(id), { monthlyConversion: B39_OFF })).toEqual([]);
+    });
+  }
+});
+
+describe('T5 shipped twins of the 7/14-day MONTHLY-basis vectors (B39)', () => {
+  for (const id of ['L3_dec31_start_nonleap', 'L4_dec31_start_leap', 'L7_multiyear_no_leap']) {
+    // known_divergence DEV-B39-M12: the workbook uses the contract rate as entered; the shipped engine converts it at m = 12.
+    it(`known_divergence DEV-B39-M12 ${id}: shipped Calculated rate is below the workbook's contract rate, so the vector does not match`, () => {
+      const v = vec(id);
+      const r = calculateCobCanada(toInput(v.request));
+      expect(r.calculatedRatePercent).toBeLessThan(v.converted_rate_pct);
+      expect(mismatches(v).length).toBeGreaterThan(0);
     });
   }
 });
@@ -181,12 +204,13 @@ describe('T5 OQ-L unpaid interest is capitalised (negative amortization), row by
     }
   });
 
+  // B39 (spec 014, acceptance 3): N2 is a weekly MONTHLY-basis vector; workbook parity is asserted with B39 off.
   for (const id of ['N1_negam_monthly', 'N2_negam_weekly_leap', 'N3_negam_then_covered']) {
-    it(`${id}: first 4 rows -- Loan balance includes unpaid interest, next interest charged on it`, () => {
-      expect(mismatches(vec(id), { rows: 4, switches: WORKBOOK })).toEqual([]);
+    it(`${id}: first 4 rows -- Loan balance includes unpaid interest, next interest charged on it — B39 off (MONTHLY_RATE_CONVERSION false)`, () => {
+      expect(mismatches(vec(id), { rows: 4, switches: WORKBOOK, monthlyConversion: B39_OFF })).toEqual([]);
     });
-    it(`${id}: every row, totals, endingBalance and totalInterest (= interest accrued)`, () => {
-      expect(mismatches(vec(id), { totalInterestAccrued: true, switches: WORKBOOK })).toEqual([]);
+    it(`${id}: every row, totals, endingBalance and totalInterest (= interest accrued) — B39 off (MONTHLY_RATE_CONVERSION false)`, () => {
+      expect(mismatches(vec(id), { totalInterestAccrued: true, switches: WORKBOOK, monthlyConversion: B39_OFF })).toEqual([]);
     });
   }
 

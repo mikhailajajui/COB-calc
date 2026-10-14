@@ -35,7 +35,7 @@ import type { CobCanadaInput, FeeSchedule, PaymentFrequency, ProductType, RateTy
 import { SRC_CA, read, stripComments } from '../architecture/support.js';
 import { asInput, utcDate } from './support/builders.js';
 import { rehomeCase } from './support/rehome.js';
-import { LEAP_OFF, SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
+import { B39_OFF, LEAP_OFF, SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
 import type { Switches } from './support/switches.js';
 
 const d = utcDate;
@@ -71,7 +71,17 @@ const mk = (o: Record<string, unknown>) => rehomeCase(asInput({ ...base, ...o })
 // ---------------------------------------------------------------------------------------
 // B19 (DEV-OQL): `switches` picks the engine branch; absent = the shipped `calculateCobCanada`. The four cases
 // whose pinned figures are the workbook's capitalisation run on WORKBOOK; each has a `...Shipped` twin.
-interface Pinned { input: CobCanadaInput; restore?: <R extends object>(result: R) => R; sha?: string; rows?: number; lastClosing?: number; error?: string; switches?: Switches }
+/** B39 (spec 014): `monthlyConversion` is passed as MONTHLY_RATE_CONVERSION when given (`switches` default SHIPPED). */
+interface Pinned {
+  input: CobCanadaInput;
+  restore?: <R extends object>(result: R) => R;
+  sha?: string;
+  rows?: number;
+  lastClosing?: number;
+  error?: string;
+  switches?: Switches;
+  monthlyConversion?: boolean;
+}
 const CASES: Record<string, Pinned> = {
   // OQ-Y revised minimum $0.01 payment + OQ-L capitalised interest: opening grows each row.
   minPayCapitalised: {
@@ -172,6 +182,9 @@ const CASES: Record<string, Pinned> = {
     ...((t) => ({ input: t.twin, restore: t.restore }))(
       rehomeCase(asInput({ ...base, loanAmount: 1.5e308, contractRatePercent: 100, paymentFrequency: 'weekly' })),
     ),
+    // B39 (DEC-B39-VAR-PL-M12, spec 014): a weekly variable twin, converted at m = 12 by the shipped engine; the pinned sha is
+    // the pre-B39 result, so this case runs with MONTHLY_RATE_CONVERSION false (INV-B39-OFF).
+    monthlyConversion: B39_OFF,
     sha: 'c88a5419f8e4f6d9d8a7c606ce4655f5214efd536df5df08590662366b58888b', rows: 48, lastClosing: 1.5e308,
   },
   // Finite opening and rate, infinite product on row 1: the waterfall rejects.
@@ -181,11 +194,16 @@ const CASES: Record<string, Pinned> = {
   },
 };
 
-const run = (c: Pinned) => (c.switches ? calculateWith(c.input, c.switches) : calculateCobCanada(c.input));
+const run = (c: Pinned) =>
+  c.monthlyConversion !== undefined
+    ? calculateWith(c.input, c.switches ?? SHIPPED, undefined, undefined, c.monthlyConversion)
+    : c.switches
+      ? calculateWith(c.input, c.switches)
+      : calculateCobCanada(c.input);
 
 describe('A5 characterisation: guard-edge inputs through calculateCobCanada (green now)', () => {
   for (const [name, c] of Object.entries(CASES)) {
-    it(name, () => {
+    it(`${name}${c.monthlyConversion === B39_OFF ? ' — B39 off (MONTHLY_RATE_CONVERSION false)' : ''}`, () => {
       if (c.input.disbursalDate === undefined) delete (c.input as { disbursalDate?: Date }).disbursalDate;
       if (c.error !== undefined) {
         let msg: string | undefined;

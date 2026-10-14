@@ -31,7 +31,8 @@ export type PaymentFrequency =
 /** Payments/year per payment frequency -- standard counts (12/24/26/52), used
  *  throughout equations 1-8. Per BR-09, Accelerated Weekly has the same n as Weekly (52)
  *  and Accelerated Bi-weekly the same n as Bi-weekly (26). Equation 1 uses a leap-aware n instead for the 7/14-day
- *  frequencies of a fixed-rate mortgage when `LEAP_AWARE_PAYMENTS_PER_YEAR` is on (B37). */
+ *  frequencies of a fixed-rate mortgage when `LEAP_AWARE_PAYMENTS_PER_YEAR` is on (B37), and for the 7/14-day
+ *  frequencies of the MONTHLY basis when `MONTHLY_RATE_CONVERSION` is on (B39). */
 export const PAYMENTS_PER_YEAR: Record<PaymentFrequency, number> = {
   monthly: 12,
   semiMonthly: 24,
@@ -175,7 +176,8 @@ export interface CobScheduleRow {
   daysInPeriod: number;
   openingBalance: number;
   /** openingBalance x calculated_rate x (days_in_period / 365), split across a
-   *  leap-year boundary if the period straddles one (equation 3). */
+   *  leap-year boundary if the period straddles one (equation 3); rounded to the cent in
+   *  the B38 cases (DEC-B38-YEARFRAC-ROUND). */
   periodInterest: number;
   /** Unpaid interest entering this row: the bucket of all unpaid interest (IN-11 and
    *  period shortfalls), outside openingBalance and earning nothing (DEV-OQL). In the
@@ -210,7 +212,8 @@ export interface CobCanadaResult {
   /** docx OUT-01 ("Semi-Annual Compounding Rate") -- the frequency-equivalent
    *  nominal rate equations 1/2 derive from contractRatePercent (e.g. 3.74% at m=2,
    *  n=52 -> 3.706781471105014%). Was computed and used internally (periodInterest,
-   *  costOfBorrowingRatePercent's short-circuit) but not previously exposed here. */
+   *  costOfBorrowingRatePercent's short-circuit) but not previously exposed here.
+   *  MONTHLY basis: the contract rate, or its m = 12 conversion at 7/14-day frequencies (B39). */
   calculatedRatePercent: number;
   /** spec: cob_amount (equation 8) -- total_interest + all fees, unconditionally. */
   cobAmount: number;

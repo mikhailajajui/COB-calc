@@ -1,0 +1,692 @@
+{
+ "registry": "User-provided Excel examples (COB Canada) -- the cross-reference point of truth",
+ "version": 1,
+ "note": "Append-only list of figures the user produced in their OWN Excel spreadsheet (which the user names the point of truth for COB-ts), plus pending cases awaiting that Excel. This is not the reference workbook (Cost of Borrowing Rate Calc_Current.xlsm) and not a macro-oracle output. Owner: architect (spec docs/new-req/014-b39-monthly-conversion-variable-personal-loan.md, section 'Registry'). Consumed by COB-ts (tests/ca/b39-monthly-conversion.test.ts via a byte-identical copy in tests/ca/fixtures/). COB-py, COB-xlsx and app/engine do not consume it yet (Q-B39-ENGINES).",
+ "howToAdd": [
+  "1. Append a new object to 'examples'. Never edit or delete an existing entry's input, excel or received fields. Ids are never reused: confirmed examples UX-NNN, pending cases UX-PNN, next free number.",
+  "2. Record every engine input in the 'input' shape (same keys as COB-ts tests/ca/fixtures/b37_leap_n_vectors.json cases: rates in percent, dates as ISO calendar days, fees as amount lists). 'start' is the flow's start date (disbursal / renewal / date of change), 'first' the first or next payment date, 'end' the End date.",
+  "3. List in 'stated' the fields the user gave; put every field the user did not give, or gave and then corrected, in 'inferred' with the value used and why. An inferred field is a question for the user until confirmed.",
+  "4. Copy the user's Excel figures to 'excel' exactly as given (2 dp). Run the shipped COB-ts engine; put its 2-dp totals in 'expected' and its full-precision figures in 'engineWhenRecorded' (information only, tests do not pin them).",
+  "5. status: 'match' when expected equals excel; 'known-gap' when it differs, with gapCents = expected - excel per figure in signed whole cents, and an open item in docs/new-req/008 that names the entry id; 'pending-excel' when no Excel figure exists yet (excel null, expected = the engine's prediction).",
+  "6. When the user supplies Excel figures for a pending case, fill 'excel' and 'received' and set the status per rule 5. Keep 'expected' unless the engine is changed by a decision.",
+  "7. A new example that contradicts the rule currently decided (status would be 'known-gap', or a pending prediction is refuted) must be logged as an open item in docs/new-req/008-brd-validation-open-items.md and taken to the user. Never silently re-pin 'expected' or change the engine to fit it. After a decision changes the engine, update 'expected' and 'decisions' of every affected entry in the same change and say so in COB-ts/CHANGES.md.",
+  "8. Copy this file byte for byte to COB-ts/tests/ca/fixtures/ca_user_excel_examples.json (a test checks the two are identical)."
+ ],
+ "fields": {
+  "expected": "Engine totals at the shipped switches, rounded to 2 dp half away from zero (Excel ROUND). COB-ts test rule: round2(engine) == expected for every entry; and for status match: expected == excel; known-gap: expected == excel + gapCents/100; pending-excel: excel is null.",
+  "gapCents": "Signed whole cents, expected - excel, per figure. Present only for known-gap.",
+  "engineWhenRecorded": "Shipped COB-ts state when the entry was last (re)computed: D (days start->end), Y (Excel YEARFRAC basis 1), n (payments per year used in equation 1), the Calculated rate and full-precision totals; preB39 = the same engine with MONTHLY_RATE_CONVERSION false. Information for re-evaluating candidate rules (spec 014 Appendix R); not a test pin.",
+  "status": "match | known-gap | pending-excel"
+ },
+ "engineState": {
+  "engine": "COB-ts",
+  "switches": {
+   "LEAP_AWARE_PAYMENTS_PER_YEAR": true,
+   "YEARFRAC_ROUNDED_INTEREST": true,
+   "MONTHLY_RATE_CONVERSION": true,
+   "UNPAID_INTEREST_CAPITALISED": false
+  },
+  "recordedOn": "2026-10-13",
+  "computedBy": "architect prototype of spec 014 (scratch copy of COB-ts/src/ca); to be reproduced by QA's oracle"
+ },
+ "examples": [
+  {
+   "id": "UX-001",
+   "label": "FIX-1",
+   "aliases": [
+    "case 1",
+    "V-CASE1"
+   ],
+   "received": "2026-10-08",
+   "receivedNote": "Date taken from the cited file name; first used 2026-10-09 (DEC-B37-LEAP-N).",
+   "source": {
+    "who": "user (own Excel spreadsheet, not the reference workbook)",
+    "where": "reviews/accrued-gap/case-2026-10-08.json (cited path; not present in the repo working tree on 2026-10-13)",
+    "citedIn": [
+     "COB-user-stories.md US-08",
+     "docs/new-req/013-b38-yearfrac-rounded-interest.md (V-CASE1)",
+     "COB-ts/CHANGES.md §75, §76"
+    ]
+   },
+   "input": {
+    "financedFees": [],
+    "cashFees": [],
+    "flow": "paymentChange",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "frequency": "biweekly",
+    "loanAmount": 495466.87,
+    "contractRatePercent": 4.34,
+    "paymentAmount": 1350.64,
+    "accruedInterest": 58.33,
+    "start": "2026-10-08",
+    "first": "2026-10-21",
+    "end": "2029-09-23"
+   },
+   "stated": [
+    "financedFees",
+    "cashFees",
+    "flow",
+    "productType",
+    "rateType",
+    "frequency",
+    "loanAmount",
+    "contractRatePercent",
+    "paymentAmount",
+    "accruedInterest",
+    "start",
+    "first",
+    "end"
+   ],
+   "inferred": [
+    {
+     "field": "financedFees/cashFees",
+     "value": [],
+     "why": "user said no fees"
+    }
+   ],
+   "excel": {
+    "totalInterest": 60137.63,
+    "principalPayment": 43861.65
+   },
+   "status": "match",
+   "expected": {
+    "totalInterest": 60137.63,
+    "principalPayment": 43861.65
+   },
+   "decisions": [
+    "DEC-B37-LEAP-N",
+    "DEC-B38-YEARFRAC-ROUND",
+    "DEC-B39-VAR-PL-M12 (out of scope: fixed-rate mortgage, unchanged)"
+   ],
+   "engineWhenRecorded": {
+    "D": 1081,
+    "Y": 2.9596167008898013,
+    "n": 26.089285714285715,
+    "calculatedRatePercent": 4.297116290973523,
+    "numberOfPayments": 77,
+    "totalInterest": 60137.63,
+    "principalPayment": 43861.65,
+    "endingBalance": 451605.2199999999,
+    "row1PeriodInterest": 758.3,
+    "lastRowDate": "2029-09-19",
+    "triggerRatePercent": null,
+    "preB39": {
+     "calculatedRatePercent": 4.297116290973523,
+     "totalInterest": 60137.63,
+     "principalPayment": 43861.65
+    }
+   }
+  },
+  {
+   "id": "UX-002",
+   "label": "FIX-2",
+   "aliases": [
+    "example 2",
+    "V-EX2"
+   ],
+   "received": "2026-10-09",
+   "source": {
+    "who": "user (own Excel spreadsheet)",
+    "where": "reviews/accrued-gap/case-2026-10-09-ex2.json (cited path; not present in the repo working tree on 2026-10-13)",
+    "citedIn": [
+     "COB-user-stories.md US-08",
+     "docs/new-req/013-b38-yearfrac-rounded-interest.md (V-EX2)",
+     "COB-ts/CHANGES.md §75, §76"
+    ]
+   },
+   "input": {
+    "financedFees": [],
+    "cashFees": [],
+    "flow": "paymentChange",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "frequency": "biweekly",
+    "loanAmount": 413337.42,
+    "contractRatePercent": 4.3,
+    "paymentAmount": 1050,
+    "accruedInterest": 530.49,
+    "start": "2026-10-08",
+    "first": "2026-10-08",
+    "end": "2031-03-27"
+   },
+   "stated": [
+    "financedFees",
+    "cashFees",
+    "flow",
+    "productType",
+    "rateType",
+    "frequency",
+    "loanAmount",
+    "contractRatePercent",
+    "paymentAmount",
+    "accruedInterest",
+    "start",
+    "first",
+    "end"
+   ],
+   "inferred": [
+    {
+     "field": "financedFees/cashFees",
+     "value": [],
+     "why": "user said no fees"
+    }
+   ],
+   "excel": {
+    "totalInterest": 74326.11,
+    "principalPayment": 48523.89
+   },
+   "status": "match",
+   "expected": {
+    "totalInterest": 74326.11,
+    "principalPayment": 48523.89
+   },
+   "decisions": [
+    "DEC-B37-LEAP-N",
+    "DEC-B38-YEARFRAC-ROUND",
+    "DEC-B39-VAR-PL-M12 (out of scope: fixed-rate mortgage, unchanged)"
+   ],
+   "engineWhenRecorded": {
+    "D": 1631,
+    "Y": 4.466453674121405,
+    "n": 26.083333333333336,
+    "calculatedRatePercent": 4.257898619563019,
+    "numberOfPayments": 117,
+    "totalInterest": 74326.10999999997,
+    "principalPayment": 48523.89000000001,
+    "endingBalance": 364813.53000000026,
+    "row1PeriodInterest": 0,
+    "lastRowDate": "2031-03-20",
+    "triggerRatePercent": null,
+    "preB39": {
+     "calculatedRatePercent": 4.257898619563019,
+     "totalInterest": 74326.10999999997,
+     "principalPayment": 48523.89000000001
+    }
+   }
+  },
+  {
+   "id": "UX-003",
+   "label": "VAR-1",
+   "aliases": [],
+   "received": "2026-10-13",
+   "source": {
+    "who": "user (own Excel spreadsheet), given in the session of 2026-10-13",
+    "where": "session message; no file",
+    "citedIn": [
+     "COB-user-stories.md US-08 (B39)",
+     "docs/new-req/008-brd-validation-open-items.md §I Q-B39-VAR1-CENT",
+     "docs/new-req/014-b39-monthly-conversion-variable-personal-loan.md"
+    ]
+   },
+   "input": {
+    "financedFees": [],
+    "cashFees": [],
+    "flow": "paymentChange",
+    "productType": "mortgage",
+    "rateType": "variable",
+    "frequency": "weekly",
+    "loanAmount": 109939.12,
+    "contractRatePercent": 4,
+    "paymentAmount": 145.16,
+    "accruedInterest": 0,
+    "start": "2026-10-08",
+    "first": "2026-10-15",
+    "end": "2029-09-27"
+   },
+   "stated": [
+    "flow",
+    "productType",
+    "rateType",
+    "frequency",
+    "loanAmount",
+    "contractRatePercent",
+    "paymentAmount",
+    "start",
+    "first"
+   ],
+   "inferred": [
+    {
+     "field": "accruedInterest",
+     "value": 0,
+     "why": "not given at first; user confirmed 0 on 2026-10-13"
+    },
+    {
+     "field": "end",
+     "value": "2029-09-27",
+     "why": "user typed '27 sep 2026' (before the start date), then confirmed 2029 on 2026-10-13"
+    },
+    {
+     "field": "financedFees/cashFees",
+     "value": [],
+     "why": "user said no fees"
+    }
+   ],
+   "excel": {
+    "totalInterest": 12463.91,
+    "principalPayment": 10035.89,
+    "check": "155 x 145.16 = 22,499.80 = interest + principal"
+   },
+   "status": "known-gap",
+   "gapCents": {
+    "totalInterest": 1,
+    "principalPayment": -1
+   },
+   "gapNote": "gapCents = engine (2 dp) - Excel, in cents. Not accepted by the user yet (Q-B39-VAR1-CENT). Raw B39 total 12,463.91672...; the 6-dp-truncated-rate alternative gives 12,463.91 (Appendix R of spec 014).",
+   "expected": {
+    "totalInterest": 12463.92,
+    "principalPayment": 10035.88
+   },
+   "decisions": [
+    "DEC-B39-VAR-PL-M12",
+    "DEC-B38-YEARFRAC-ROUND (Y only)",
+    "DEC-B37-LEAP-N (n only)"
+   ],
+   "engineWhenRecorded": {
+    "D": 1085,
+    "Y": 2.97056810403833,
+    "n": 52.17857142857142,
+    "calculatedRatePercent": 3.994876602469461,
+    "numberOfPayments": 155,
+    "totalInterest": 12463.91672273959,
+    "principalPayment": 10035.883277260407,
+    "endingBalance": 99903.23672273953,
+    "row1PeriodInterest": 84.22883636407059,
+    "lastRowDate": "2029-09-27",
+    "triggerRatePercent": 6.865909059486741,
+    "preB39": {
+     "calculatedRatePercent": 4,
+     "totalInterest": 12480.898934294939,
+     "principalPayment": 10018.90106570506
+    }
+   }
+  },
+  {
+   "id": "UX-004",
+   "label": "VAR-2",
+   "aliases": [],
+   "received": "2026-10-13",
+   "source": {
+    "who": "user (own Excel spreadsheet), given in the session of 2026-10-13",
+    "where": "session message; no file",
+    "citedIn": [
+     "COB-user-stories.md US-08 (B39)",
+     "docs/new-req/008-brd-validation-open-items.md §I Q-B39-VAR2-FREQ",
+     "docs/new-req/014-b39-monthly-conversion-variable-personal-loan.md"
+    ]
+   },
+   "input": {
+    "financedFees": [],
+    "cashFees": [],
+    "flow": "paymentChange",
+    "productType": "mortgage",
+    "rateType": "variable",
+    "frequency": "biweekly",
+    "loanAmount": 333623.25,
+    "contractRatePercent": 3.8,
+    "paymentAmount": 863.15,
+    "accruedInterest": 277.63,
+    "start": "2026-10-13",
+    "first": "2026-10-19",
+    "end": "2031-09-15"
+   },
+   "stated": [
+    "flow",
+    "productType",
+    "rateType",
+    "loanAmount",
+    "contractRatePercent",
+    "paymentAmount",
+    "accruedInterest",
+    "start",
+    "first",
+    "end"
+   ],
+   "inferred": [
+    {
+     "field": "frequency",
+     "value": "biweekly",
+     "why": "not stated by the user; 129 payments x 863.15 = 111,346.35 = Excel interest + principal, and only a 14-day schedule from 2026-10-19 to 2031-09-15 has 129 payments (Q-B39-VAR2-FREQ, unconfirmed)"
+    },
+    {
+     "field": "financedFees/cashFees",
+     "value": [],
+     "why": "user said no fees"
+    }
+   ],
+   "excel": {
+    "totalInterest": 57808.56,
+    "principalPayment": 53537.79,
+    "check": "129 x 863.15 = 111,346.35 = interest + principal"
+   },
+   "status": "match",
+   "expected": {
+    "totalInterest": 57808.56,
+    "principalPayment": 53537.79
+   },
+   "decisions": [
+    "DEC-B39-VAR-PL-M12",
+    "DEC-B38-YEARFRAC-ROUND (Y only)",
+    "DEC-B37-LEAP-N (n only)"
+   ],
+   "engineWhenRecorded": {
+    "D": 1798,
+    "Y": 4.923779096303058,
+    "n": 26.083333333333332,
+    "calculatedRatePercent": 3.796756654443251,
+    "numberOfPayments": 129,
+    "totalInterest": 57808.56142971458,
+    "principalPayment": 53537.788570285404,
+    "endingBalance": 280085.4614297146,
+    "row1PeriodInterest": 208.22240457772344,
+    "lastRowDate": "2031-09-15",
+    "triggerRatePercent": 6.726719435770738,
+    "preB39": {
+     "calculatedRatePercent": 3.8,
+     "totalInterest": 57862.70692515041,
+     "principalPayment": 53483.643074849584
+    }
+   }
+  },
+  {
+   "id": "UX-P01",
+   "label": "CHECK",
+   "aliases": [
+    "V-PEND",
+    "Q-B38-PEND",
+    "fixed check case"
+   ],
+   "received": null,
+   "source": {
+    "who": "user's own prediction (B38), awaiting the user's Excel",
+    "where": "docs/new-req/013-b38-yearfrac-rounded-interest.md INV-B38-PENDING / Q-B38-PEND"
+   },
+   "input": {
+    "financedFees": [],
+    "cashFees": [],
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "frequency": "biweekly",
+    "loanAmount": 300000,
+    "contractRatePercent": 5,
+    "paymentAmount": 900,
+    "accruedInterest": 0,
+    "start": "2026-11-02",
+    "first": "2026-11-16",
+    "end": "2030-06-28"
+   },
+   "stated": [
+    "flow",
+    "productType",
+    "rateType",
+    "frequency",
+    "loanAmount",
+    "contractRatePercent",
+    "paymentAmount",
+    "start",
+    "first",
+    "end"
+   ],
+   "inferred": [
+    {
+     "field": "frequency",
+     "value": "biweekly",
+     "why": "verified against spec 013 / b37_leap_n_vectors.json b38.cases V-PEND (biweekly)"
+    },
+    {
+     "field": "flow",
+     "value": "newMortgageOrLoan",
+     "why": "caller's description (new loan, disbursal date); 013's fixture records V-PEND as paymentChange with accrued 0, which gives a bit-identical result (architect prototype 2026-10-13)"
+    },
+    {
+     "field": "accruedInterest",
+     "value": 0,
+     "why": "not taken by newMortgageOrLoan"
+    }
+   ],
+   "excel": null,
+   "status": "pending-excel",
+   "expected": {
+    "totalInterest": 51018.08,
+    "principalPayment": 34481.92
+   },
+   "predictionNote": "B38 prediction (user's own), unchanged by B39. Discriminates B38 from the unified alternative of spec 014 Appendix R, which gives 51,018.04 / 34,481.96.",
+   "decisions": [
+    "DEC-B37-LEAP-N",
+    "DEC-B38-YEARFRAC-ROUND"
+   ],
+   "engineWhenRecorded": {
+    "D": 1334,
+    "Y": 3.652792990142388,
+    "n": 26.085714285714285,
+    "calculatedRatePercent": 4.943200251390675,
+    "numberOfPayments": 95,
+    "totalInterest": 51018.07999999999,
+    "principalPayment": 34481.91999999999,
+    "endingBalance": 265518.07999999996,
+    "row1PeriodInterest": 568.81,
+    "lastRowDate": "2030-06-24",
+    "triggerRatePercent": null,
+    "preB39": {
+     "calculatedRatePercent": 4.943200251390675,
+     "totalInterest": 51018.07999999999,
+     "principalPayment": 34481.91999999999
+    }
+   }
+  },
+  {
+   "id": "UX-P02",
+   "label": "T1",
+   "aliases": [],
+   "received": null,
+   "source": {
+    "who": "architect test case proposed 2026-10-13 (VAR-1 at Accelerated weekly), awaiting the user's Excel",
+    "where": "docs/new-req/014-b39-monthly-conversion-variable-personal-loan.md"
+   },
+   "input": {
+    "financedFees": [],
+    "cashFees": [],
+    "flow": "paymentChange",
+    "productType": "mortgage",
+    "rateType": "variable",
+    "frequency": "acceleratedWeekly",
+    "loanAmount": 109939.12,
+    "contractRatePercent": 4,
+    "paymentAmount": 145.16,
+    "accruedInterest": 0,
+    "start": "2026-10-08",
+    "first": "2026-10-15",
+    "end": "2029-09-27"
+   },
+   "stated": [
+    "financedFees",
+    "cashFees",
+    "flow",
+    "productType",
+    "rateType",
+    "frequency",
+    "loanAmount",
+    "contractRatePercent",
+    "paymentAmount",
+    "accruedInterest",
+    "start",
+    "first",
+    "end"
+   ],
+   "inferred": [],
+   "excel": null,
+   "status": "pending-excel",
+   "expected": {
+    "totalInterest": 12463.92,
+    "principalPayment": 10035.88
+   },
+   "predictionNote": "B39 prediction; identical to VAR-1 because the engine takes the payment as entered and P = 7 for both weekly frequencies. If the user's Excel gives 12,463.91 here, record it with the same +1-cent known gap as UX-003.",
+   "decisions": [
+    "DEC-B39-VAR-PL-M12"
+   ],
+   "engineWhenRecorded": {
+    "D": 1085,
+    "Y": 2.97056810403833,
+    "n": 52.17857142857142,
+    "calculatedRatePercent": 3.994876602469461,
+    "numberOfPayments": 155,
+    "totalInterest": 12463.91672273959,
+    "principalPayment": 10035.883277260407,
+    "endingBalance": 99903.23672273953,
+    "row1PeriodInterest": 84.22883636407059,
+    "lastRowDate": "2029-09-27",
+    "triggerRatePercent": 6.865909059486741,
+    "preB39": {
+     "calculatedRatePercent": 4,
+     "totalInterest": 12480.898934294939,
+     "principalPayment": 10018.90106570506
+    }
+   }
+  },
+  {
+   "id": "UX-P03",
+   "label": "T2",
+   "aliases": [],
+   "received": null,
+   "source": {
+    "who": "architect test case proposed 2026-10-13 (VAR-2 at Semi-monthly), awaiting the user's Excel",
+    "where": "docs/new-req/014-b39-monthly-conversion-variable-personal-loan.md"
+   },
+   "input": {
+    "financedFees": [],
+    "cashFees": [],
+    "flow": "paymentChange",
+    "productType": "mortgage",
+    "rateType": "variable",
+    "frequency": "semiMonthly",
+    "loanAmount": 333623.25,
+    "contractRatePercent": 3.8,
+    "paymentAmount": 935.08,
+    "accruedInterest": 277.63,
+    "start": "2026-10-13",
+    "first": "2026-11-01",
+    "end": "2031-09-15"
+   },
+   "stated": [
+    "financedFees",
+    "cashFees",
+    "flow",
+    "productType",
+    "rateType",
+    "frequency",
+    "loanAmount",
+    "contractRatePercent",
+    "paymentAmount",
+    "accruedInterest",
+    "start",
+    "first",
+    "end"
+   ],
+   "inferred": [],
+   "excel": null,
+   "status": "pending-excel",
+   "expected": {
+    "totalInterest": 58219.01,
+    "principalPayment": 51185.35
+   },
+   "predictionNote": "Unchanged by B39 (contract rate as entered, n = 24). A different Excel figure would mean the user's Excel also converts at Semi-monthly: log in 008, do not re-pin.",
+   "decisions": [
+    "DEC-B39-VAR-PL-M12 (out of scope: Semi-monthly, unchanged)"
+   ],
+   "engineWhenRecorded": {
+    "D": 1798,
+    "Y": 4.923779096303058,
+    "n": 24,
+    "calculatedRatePercent": 3.8,
+    "numberOfPayments": 117,
+    "totalInterest": 58219.00820034338,
+    "principalPayment": 51185.35179965663,
+    "endingBalance": 282437.89820034354,
+    "row1PeriodInterest": 1146.2015219178081,
+    "lastRowDate": "2031-09-15",
+    "triggerRatePercent": 6.726725430556773,
+    "preB39": {
+     "calculatedRatePercent": 3.8,
+     "totalInterest": 58219.00820034338,
+     "principalPayment": 51185.35179965663
+    }
+   }
+  },
+  {
+   "id": "UX-P04",
+   "label": "T3",
+   "aliases": [],
+   "received": null,
+   "source": {
+    "who": "architect test case proposed 2026-10-13 (personal loan, Weekly), awaiting the user's Excel",
+    "where": "docs/new-req/014-b39-monthly-conversion-variable-personal-loan.md"
+   },
+   "input": {
+    "financedFees": [],
+    "cashFees": [],
+    "flow": "newMortgageOrLoan",
+    "productType": "personalLoan",
+    "rateType": "fixed",
+    "frequency": "weekly",
+    "loanAmount": 30000,
+    "contractRatePercent": 8,
+    "paymentAmount": 140,
+    "accruedInterest": 0,
+    "start": "2026-11-01",
+    "first": "2026-11-08",
+    "end": "2031-11-01"
+   },
+   "stated": [
+    "financedFees",
+    "cashFees",
+    "flow",
+    "productType",
+    "rateType",
+    "frequency",
+    "loanAmount",
+    "contractRatePercent",
+    "paymentAmount",
+    "accruedInterest",
+    "start",
+    "first",
+    "end"
+   ],
+   "inferred": [
+    {
+     "field": "accruedInterest",
+     "value": 0,
+     "why": "not taken by newMortgageOrLoan"
+    }
+   ],
+   "excel": null,
+   "status": "pending-excel",
+   "expected": {
+    "totalInterest": 6376.33,
+    "principalPayment": 30000.0
+   },
+   "predictionNote": "B39 prediction (pre-B39 engine: 6,397.62). The loan is paid off on the last row (2031-10-26, ending balance 0). The unified alternative gives 6,376.32 at 2 dp too, so T3 does not discriminate between the rules; it tests the personal-loan scope (Q-B39-PL-EXAMPLE).",
+   "decisions": [
+    "DEC-B39-VAR-PL-M12"
+   ],
+   "engineWhenRecorded": {
+    "D": 1826,
+    "Y": 5.0004564125969875,
+    "n": 52.166666666666664,
+    "calculatedRatePercent": 7.979547907300506,
+    "numberOfPayments": 260,
+    "totalInterest": 6376.325798799797,
+    "principalPayment": 30000.00000000002,
+    "endingBalance": 0,
+    "row1PeriodInterest": 45.909727685838526,
+    "lastRowDate": "2031-10-26",
+    "triggerRatePercent": null,
+    "preB39": {
+     "calculatedRatePercent": 8,
+     "totalInterest": 6397.62434132225,
+     "principalPayment": 30000.000000000015
+    }
+   }
+  }
+ ]
+}

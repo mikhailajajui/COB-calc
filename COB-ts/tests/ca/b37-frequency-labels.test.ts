@@ -36,14 +36,15 @@ function fnOf<T extends Fn>(mod: object, name: string): T {
   return f as T;
 }
 const paymentsPerYearFor = (x: CobCanadaInput, f: string): number => fnOf<(x: CobCanadaInput, f: string) => number>(ca, 'paymentsPerYearFor')(x, f);
-const conversionPaymentsPerYear = (x: CobCanadaInput, f: PaymentFrequency, leap: boolean): number =>
-  fnOf<(p: string, r: string, f: string, s: Date | undefined, e: Date | undefined, l: boolean) => number>(equations, 'conversionPaymentsPerYear')(
+const conversionPaymentsPerYear = (x: CobCanadaInput, f: PaymentFrequency, leap: boolean, yearFracRounded = false): number =>
+  fnOf<(p: string, r: string, f: string, s: Date | undefined, e: Date | undefined, l: boolean, y: boolean) => number>(equations, 'conversionPaymentsPerYear')(
     x.productType,
     x.rateType,
     f,
     x.flow === 'newMortgageOrLoan' ? x.disbursalDate : x.renewalDate,
     x.endDate,
     leap,
+    yearFracRounded,
   );
 const text = async (f: string, n: number): Promise<string> => {
   const v = await loadView();
@@ -134,13 +135,26 @@ describe('B37-T10 page texts on the default inputs (REF-01 dates), both leap sta
     }
     expect(texts).toEqual(['Weekly (52/yr)', 'Bi-weekly (26/yr)', 'Semi-monthly (24/yr)', 'Monthly (12/yr)']);
     if (leap) {
-      // the on-state numbers are the leap-aware n (not integers), so the label really is computed and rounded
-      expect(paymentsPerYearFor(REF01, 'weekly')).toBe(52.1904761904762);
-      expect(paymentsPerYearFor(REF01, 'biweekly')).toBe(26.0952380952381);
+      // the on-state numbers are the leap-aware n (not integers), so the label really is computed and rounded.
+      // B38 (spec 013, DEC-B38-YEARFRAC-ROUND): shipped n uses Y = YEARFRAC: 1096 / P / (1096 / 365.25).
+      expect(paymentsPerYearFor(REF01, 'weekly')).toBe(52.17857142857143);
+      expect(paymentsPerYearFor(REF01, 'biweekly')).toBe(26.089285714285715);
     } else {
       expect(conversionPaymentsPerYear(REF01, 'weekly', false)).toBe(52);
       expect(conversionPaymentsPerYear(REF01, 'biweekly', false)).toBe(26);
     }
+  });
+
+  it('[B37 state: leap on, YEARFRAC_ROUNDED_INTEREST false] the same four texts; the numbers are the B37 n', async () => {
+    const texts: string[] = [];
+    for (const f of SHOWN) {
+      const n = conversionPaymentsPerYear(REF01, f, true, false);
+      expect(Math.round(n), f).toBe(PAYMENTS_PER_YEAR[f]);
+      texts.push(await text(f, n));
+    }
+    expect(texts).toEqual(['Weekly (52/yr)', 'Bi-weekly (26/yr)', 'Semi-monthly (24/yr)', 'Monthly (12/yr)']);
+    expect(conversionPaymentsPerYear(REF01, 'weekly', true, false)).toBe(52.1904761904762);
+    expect(conversionPaymentsPerYear(REF01, 'biweekly', true, false)).toBe(26.0952380952381);
   });
 });
 

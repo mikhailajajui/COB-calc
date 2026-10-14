@@ -26,7 +26,7 @@ import { asInput, isoDay, utcDate, wireToInput } from './support/builders.js';
 import { withinRel } from './support/compare.js';
 import { loadFixture } from './support/fixtures.js';
 import { preB37GoldenText } from './support/preB37Golden.js';
-import { LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
+import { B39_OFF, LEAP_OFF, SHIPPED, calculateWith } from './support/switches.js';
 // @ts-ignore -- plain .mjs (no .d.ts): the live generators.
 import * as gen1 from './fixtures/generate_golden.mjs';
 // @ts-ignore -- plain .mjs (no .d.ts).
@@ -145,9 +145,12 @@ describe('B33-T3 INV-ORDER: the whole cross product (4 flows x 2 products x 2 ra
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-describe('B33-T4 INV-RATE: only a fixed mortgage converts the contract rate', () => {
+// B39 (DEC-B39-VAR-PL-M12, spec 014): the shipped engine converts the MONTHLY basis (personal loan, variable mortgage) at
+// the 7/14-day frequencies; B33's INV-RATE is the pre-B39 rule, so its personal-loan / variable-mortgage side runs with
+// MONTHLY_RATE_CONVERSION false (INV-B39-OFF). The shipped rule is tested in b39-monthly-conversion.test.ts.
+describe('B33-T4 INV-RATE: only a fixed mortgage converts the contract rate — B39 off (MONTHLY_RATE_CONVERSION false)', () => {
   it('vectors: personal loan fixed 8 % weekly -> Calculated rate 8 and row 1 interest 10000 x 0.08 x 7/365; mortgage fixed 8 % weekly -> 52 x (1.04^(2/52) - 1)', () => {
-    const pl = calculateCobCanada(input('newMortgageOrLoan', 'personalLoan', 'fixed', 'weekly', { firstPaymentDate: utcDate('2027-01-08') }));
+    const pl = calculateWith(input('newMortgageOrLoan', 'personalLoan', 'fixed', 'weekly', { firstPaymentDate: utcDate('2027-01-08') }), SHIPPED, undefined, undefined, B39_OFF);
     expect(pl.calculatedRatePercent).toBe(8);
     expect(isoDay(pl.amortizationSchedule[0]!.date)).toBe('2027-01-08');
     expect(withinRel(pl.amortizationSchedule[0]!.periodInterest, (10000 * 0.08 * 7) / 365, 1e-12)).toBe(true);
@@ -161,9 +164,9 @@ describe('B33-T4 INV-RATE: only a fixed mortgage converts the contract rate', ()
   it('the 432-case sweep: personal loan (both types) and variable mortgage === contract rate exactly; fixed mortgage = equation 1 within 1e-12', () => {
     let checked = 0;
     for (const [fl, f, r, rate, loan, pay] of SWEEP) {
-      const pl = calculateCobCanada(sweepInput(fl, 'personalLoan', r, f, rate, loan, pay));
+      const pl = calculateWith(sweepInput(fl, 'personalLoan', r, f, rate, loan, pay), SHIPPED, undefined, undefined, B39_OFF);
       expect(pl.calculatedRatePercent, `PL ${fl}/${f}/${r}/${rate}`).toBe(rate);
-      const vm = calculateCobCanada(sweepInput(fl, 'mortgage', 'variable', f, rate, loan, pay));
+      const vm = calculateWith(sweepInput(fl, 'mortgage', 'variable', f, rate, loan, pay), SHIPPED, undefined, undefined, B39_OFF);
       expect(vm.calculatedRatePercent).toBe(rate);
       // B37 (DEC-B37-LEAP-N): workbook converter (n = 52/26), switch off (expectedRatePercent uses PAYMENTS_PER_YEAR).
       const fm = calculateWith(sweepInput(fl, 'mortgage', 'fixed', f, rate, loan, pay), SHIPPED, LEAP_OFF);
@@ -193,7 +196,9 @@ describe('B33-T5 INV-TWIN: a personal loan equals its mortgage / variable twin e
 // ---------------------------------------------------------------------------------------------------------------
 type Row = Record<string, number | string>;
 type Vector = { id: string; request: Record<string, unknown>; converted_rate_pct: number; totals: Record<string, number>; rows: Row[] };
-describe('B33-T6 INV-WORKBOOK: workbook oracle vectors L3, L4, L7 run directly as personal loans (no rehome)', () => {
+// B39 (DEC-B39-VAR-PL-M12, spec 014, acceptance 3): workbook-oracle parity holds with MONTHLY_RATE_CONVERSION false; the
+// shipped engine departs from the workbook here by decision (known_divergence DEV-B39-M12).
+describe('B33-T6 INV-WORKBOOK: workbook oracle vectors L3, L4, L7 run directly as personal loans (no rehome) — B39 off (MONTHLY_RATE_CONVERSION false)', () => {
   const fx = loadFixture<{ vectors: Vector[] }>('ca_t5_engine_rules_vectors.json');
   const TOL = 1e-9;
   const ROWS: [string, (r: CobCanadaResult['amortizationSchedule'][number]) => number][] = [
@@ -218,7 +223,7 @@ describe('B33-T6 INV-WORKBOOK: workbook oracle vectors L3, L4, L7 run directly a
     expect(v.request['paymentFrequency']).not.toBe('monthly');
     const x = wireToInput(v.request);
     expect(collectInputIssues(x)).toEqual([]);
-    const r = calculateCobCanada(x);
+    const r = calculateWith(x, SHIPPED, undefined, undefined, B39_OFF);
     expect(r.triggerRatePercent).toBeNull();
     expect(r.calculatedRatePercent).toBe(5);
     expect(v.converted_rate_pct).toBe(5);

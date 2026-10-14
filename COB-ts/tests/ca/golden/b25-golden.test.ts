@@ -207,7 +207,11 @@ describe('B25-T9 G4: the Payment Change golden and the A10 UI capture fixture do
   // term value strings for 5 scenarios, new key contractTermChoice, nothing else); sha 4d5a64c1... -> 9577121c....
   // Re-pinned 2026-10-09 by QA (B37 verify, DEC-B37-LEAP-N): capture regenerated (user approved; REF-01 and S1_fees
   // figures, schedule digits and CSV only; DEV-B37-LEAPN); sha 9577121c... -> 6c3686d3....
-  it('a10_ui_capture_v1.json is byte-identical (sha256 6c3686d3...b824, re-pinned for B37)', () => {
-    expect(sha256(text('a10_ui_capture_v1.json'))).toBe('6c3686d387197b707518fd45e278414113c32846a04d8c1ac3c587a16d61b824');
+  // Re-pinned 2026-10-10 (B38, DEC-B38-YEARFRAC-ROUND): capture regenerated (user approved; REF-01 and S1_fees
+  // figures, schedule digits and CSV number tokens only; DEV-B38-ROUND); sha 6c3686d3... -> 89329245....
+  // Re-pinned 2026-10-13 (B39, DEC-B39-VAR-PL-M12): capture regenerated (VRPC_zero_accrued and PL_WEEKLY figures,
+  // schedule digits and CSV number tokens only; DEV-B39-M12); sha 89329245... -> e22f0161....
+  it('a10_ui_capture_v1.json is byte-identical (sha256 e22f0161...77df, re-pinned for B39)', () => {
+    expect(sha256(text('a10_ui_capture_v1.json'))).toBe('e22f016172c733cfaaf97c36567bab81c1b8b9a5e032b3e88a42c73ebdfa77df');
   });
 });

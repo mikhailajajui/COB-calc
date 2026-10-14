@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fRX5wGn6BdlAMIV3KR1B6aGqppk/emNdw/Cio2kzowY='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6J8c8srRCZXmAVbDkoNy7GuK8l/a2JYEIDKuEXxF+oc='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
 <title>Cost of Borrowing Calculator | Alterna Savings</title>
 <style>
   :root {
@@ -796,7 +796,7 @@
     </div>
   </section>
 
-  <footer id="shareFooter">COB Calculator v0.1.0 · built 2026-10-09 · single-file edition, works offline</footer>
+  <footer id="shareFooter">COB Calculator v0.1.0 · built 2026-10-14 · single-file edition, works offline</footer>
 
   <script type="module">
 const __cobModules = {};
@@ -853,6 +853,51 @@ function dayCountFraction(start, end) {
         cursor = segmentEnd;
     }
     return fraction;
+}
+/**
+ * B38 (DEC-B38-YEARFRAC-ROUND): Excel `YEARFRAC(start, end, 1)` (actual/actual), the Y of the leap-aware n.
+ * days / L, with days = daysBetween(start, end) and L the year length:
+ *   - start and end within a year (same year, or the next year on or before the same month and day): the same year's
+ *     length; across a year end, 366 if a Feb 29 lies in [start, end], else 365;
+ *   - otherwise the average length of the calendar years from start's to end's (integer sum, one division).
+ * Excel's 1900 leap-year bug is not reproduced. RangeError for an invalid date or start after end; 0 when start = end.
+ */
+function excelYearFracBasis1(start, end) {
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        throw new RangeError('start/end must be valid Dates');
+    }
+    if (utcDateOnly(start) > utcDateOnly(end)) {
+        throw new RangeError('start must be on or before end');
+    }
+    const days = daysBetween(start, end);
+    if (days === 0)
+        return 0;
+    const y1 = start.getUTCFullYear();
+    const m1 = start.getUTCMonth();
+    const d1 = start.getUTCDate();
+    const y2 = end.getUTCFullYear();
+    const m2 = end.getUTCMonth();
+    const d2 = end.getUTCDate();
+    const daysInYear = (year) => (isLeapYear(year) ? 366 : 365);
+    const withinAYear = y1 === y2 || (y2 === y1 + 1 && (m1 > m2 || (m1 === m2 && d1 >= d2)));
+    let yearLength;
+    if (withinAYear) {
+        if (y1 === y2) {
+            yearLength = daysInYear(y1);
+        }
+        else {
+            const feb29Inside = (isLeapYear(y1) && utcDateOnly(start) < Date.UTC(y1, 2, 1)) ||
+                (isLeapYear(y2) && utcDateOnly(end) >= Date.UTC(y2, 1, 29));
+            yearLength = feb29Inside ? 366 : 365;
+        }
+    }
+    else {
+        let total = 0;
+        for (let year = y1; year <= y2; year += 1)
+            total += daysInYear(year);
+        yearLength = total / (y2 - y1 + 1);
+    }
+    return days / yearLength;
 }
 /** UTC-safe day/month stepping -- see utcDateOnly's doc comment above for why
  *  this module avoids local-timezone Date getters/setters entirely. */
@@ -1008,7 +1053,7 @@ function periodDateFor(frequency, firstPaymentDate, index, previousPaymentDate) 
             return index === 0 ? new Date(utcDateOnly(firstPaymentDate)) : nextSemiMonthlyDate(firstPaymentDate, previousPaymentDate);
     }
 }
-return { isLeapYear, utcDateOnly, daysBetween, dayCountFraction, addUtcDays, daysInUtcMonth, isLastDayOfMonth, addMonthsClamped, termBetween, roundUpToWholeMonths, endOfUtcMonth, nextSemiMonthlyDate, effectiveFirstPaymentDate, paymentPeriodDays, periodDateFor };
+return { isLeapYear, utcDateOnly, daysBetween, dayCountFraction, excelYearFracBasis1, addUtcDays, daysInUtcMonth, isLastDayOfMonth, addMonthsClamped, termBetween, roundUpToWholeMonths, endOfUtcMonth, nextSemiMonthlyDate, effectiveFirstPaymentDate, paymentPeriodDays, periodDateFor };
 })();
 __cobModules["dist/ca/types.js"] = (() => {
 /**
@@ -1020,7 +1065,8 @@ __cobModules["dist/ca/types.js"] = (() => {
 /** Payments/year per payment frequency -- standard counts (12/24/26/52), used
  *  throughout equations 1-8. Per BR-09, Accelerated Weekly has the same n as Weekly (52)
  *  and Accelerated Bi-weekly the same n as Bi-weekly (26). Equation 1 uses a leap-aware n instead for the 7/14-day
- *  frequencies of a fixed-rate mortgage when `LEAP_AWARE_PAYMENTS_PER_YEAR` is on (B37). */
+ *  frequencies of a fixed-rate mortgage when `LEAP_AWARE_PAYMENTS_PER_YEAR` is on (B37), and for the 7/14-day
+ *  frequencies of the MONTHLY basis when `MONTHLY_RATE_CONVERSION` is on (B39). */
 const PAYMENTS_PER_YEAR = {
     monthly: 12,
     semiMonthly: 24,
@@ -1163,7 +1209,28 @@ const SEMI_ANNUAL_DATE_REQUIRED = false;
  * `false`: n = PAYMENTS_PER_YEAR (52 or 26), the workbook's converter.
  */
 const LEAP_AWARE_PAYMENTS_PER_YEAR = true;
-return { P_BASIS, PRINCIPAL_PAID, PRIOR_ACCRUED_IN_COB, PRIOR_ACCRUED_IN_P, UNPAID_INTEREST_CAPITALISED, SEMI_ANNUAL_DATE_REQUIRED, LEAP_AWARE_PAYMENTS_PER_YEAR };
+/**
+ * @decision DEC-B38-YEARFRAC-ROUND — Excel YEARFRAC (basis 1) for Y in the leap-aware n, and period interest rounded
+ * to the cent before the payment waterfall, for the B37 cases only (fixed-rate mortgage, SEMI-ANNUAL basis, 7- and
+ * 14-day frequencies, all flows). Effective only while LEAP_AWARE_PAYMENTS_PER_YEAR is true.
+ * Switch (ADR-14): shipped `true`; the other branch `false` is built and tested.
+ * `true`: Y = YEARFRAC(start, end, 1) (excelYearFracBasis1); every schedule row's period interest is
+ * roundToCentHalfAwayFromZero(periodInterest(...)) (DEV-B38-ROUND).
+ * `false`: today's B37 rule (Y = dayCountFraction, period interest unrounded), byte for byte.
+ */
+const YEARFRAC_ROUNDED_INTEREST = true;
+/**
+ * @decision DEC-B39-VAR-PL-M12 — the MONTHLY rate basis (variable-rate mortgage, personal loan of either rate type) at
+ * the 7- and 14-day frequencies (Weekly, Accelerated weekly, Bi-weekly, Accelerated bi-weekly), all flows: the
+ * contract rate is treated as compounded monthly and converted with equation 1 at m = 12 and the leap-aware n of
+ * DEC-B37-LEAP-N (Y as chosen by YEARFRAC_ROUNDED_INTEREST). Period interest is not rounded (DEV-B39-M12).
+ * Effective only while LEAP_AWARE_PAYMENTS_PER_YEAR is true.
+ * Switch (ADR-14): shipped `true`; the other branch `false` is built and tested.
+ * `true`: Calculated rate = n x [(1 + i/12)^(12/n) - 1].
+ * `false`: the contract rate as entered at every frequency (OQ-C, workbook Calculator!D10), byte for byte.
+ */
+const MONTHLY_RATE_CONVERSION = true;
+return { P_BASIS, PRINCIPAL_PAID, PRIOR_ACCRUED_IN_COB, PRIOR_ACCRUED_IN_P, UNPAID_INTEREST_CAPITALISED, SEMI_ANNUAL_DATE_REQUIRED, LEAP_AWARE_PAYMENTS_PER_YEAR, YEARFRAC_ROUNDED_INTEREST, MONTHLY_RATE_CONVERSION };
 })();
 __cobModules["dist/ca/flows.js"] = (() => {
 const { SEMI_ANNUAL_DATE_REQUIRED } = __cobModules["dist/ca/policies.js"];
@@ -1236,7 +1303,7 @@ function requiresSemiAnnualDate(productType, rateType, required = SEMI_ANNUAL_DA
 return { FLOW_IDS, FLOWS, computesTriggerRate, requiresSemiAnnualDate };
 })();
 __cobModules["dist/ca/equations.js"] = (() => {
-const { dayCountFraction, daysBetween, paymentPeriodDays } = __cobModules["dist/ca/calendar.js"];
+const { dayCountFraction, daysBetween, excelYearFracBasis1, paymentPeriodDays } = __cobModules["dist/ca/calendar.js"];
 const { isFiniteNumber, PAYMENTS_PER_YEAR } = __cobModules["dist/ca/types.js"];
 /**
  * The eight equations, implemented as specified -- each function below is annotated with
@@ -1257,6 +1324,8 @@ const { isFiniteNumber, PAYMENTS_PER_YEAR } = __cobModules["dist/ca/types.js"];
  * would diverge from that vector by more than floating-point noise, so this module
  * matches the workbook's actual (unrounded) behavior instead. This is a deliberate,
  * documented deviation from the repo-wide rounding convention, scoped to this engine.
+ * One exception (B38, DEC-B38-YEARFRAC-ROUND, DEV-B38-ROUND): roundToCentHalfAwayFromZero, which the
+ * schedule applies to period interest only where roundsPeriodInterestToCent is true.
  */
 /**
  * Equation 1 -- frequency-equivalent nominal rate from a compounded contract rate,
@@ -1268,6 +1337,8 @@ const { isFiniteNumber, PAYMENTS_PER_YEAR } = __cobModules["dist/ca/types.js"];
  * SEMI-ANNUAL rate basis (fixed-rate mortgage, m = 2) is converted; the MONTHLY basis
  * uses the contract rate as entered (selectRateBasis below). When m==n this reduces
  * algebraically to contractRate/100, but not exactly in floating point.
+ * B39 (DEC-B39-VAR-PL-M12): the MONTHLY basis is also converted, at m = 12, at the 7/14-day frequencies when
+ * convertsMonthlyRate is true (calculatedRateFor).
  */
 function calculatedRate(contractRatePercent, compoundingPeriodsPerYear, paymentsPerYear) {
     if (!(contractRatePercent >= 0)) {
@@ -1294,6 +1365,7 @@ function selectRateBasis(productType, rateType) {
  *     m = n (paymentsPerYear), i.e. no conversion. The engine does not evaluate
  *     equation 1 for this basis; it uses the contract rate directly so the result is
  *     exact (see calculatedRateFor).
+ *     B39 (DEC-B39-VAR-PL-M12): where convertsMonthlyRate is true, calculatedRateFor uses m = 12 instead (not this function).
  */
 function selectCompoundingPeriodsPerYear(productType, rateType, paymentsPerYear) {
     if (!(paymentsPerYear > 0)) {
@@ -1301,15 +1373,18 @@ function selectCompoundingPeriodsPerYear(productType, rateType, paymentsPerYear)
     }
     return selectRateBasis(productType, rateType) === 'SEMI-ANNUAL' ? 2 : paymentsPerYear;
 }
+/** BRD §4.2 m = 12: the monthly compounding of the MONTHLY basis when it is converted (B39, DEC-B39-VAR-PL-M12). */
+const MONTHLY_COMPOUNDING_PERIODS_PER_YEAR = 12;
 /**
  * The Calculated Rate (workbook D10, app OUT-01) for a product/rate type and payment
  * frequency, as a percent and as the decimal fed to period interest (the macro's
  * getRate reads aRate = D10 / 100). MONTHLY basis: percent === contractRatePercent
- * exactly. SEMI-ANNUAL basis: equation 1 at m = 2.
+ * exactly, or with `convertMonthly` (B39, DEC-B39-VAR-PL-M12; the caller passes convertsMonthlyRate) equation 1 at
+ * BRD §4.2 m = 12. SEMI-ANNUAL basis: equation 1 at m = 2 (`convertMonthly` is ignored).
  * `paymentsPerYear` is n for equation 1: `PAYMENTS_PER_YEAR`, or for the 7/14-day frequencies with the B37 switch on,
  * `leapAwarePaymentsPerYear` (non-integer).
  */
-function calculatedRateFor(productType, rateType, contractRatePercent, paymentsPerYear) {
+function calculatedRateFor(productType, rateType, contractRatePercent, paymentsPerYear, convertMonthly = false) {
     if (!(contractRatePercent >= 0)) {
         throw new RangeError(`contractRatePercent must be >= 0, got ${contractRatePercent}`);
     }
@@ -1317,7 +1392,10 @@ function calculatedRateFor(productType, rateType, contractRatePercent, paymentsP
         throw new RangeError(`paymentsPerYear must be > 0, got ${paymentsPerYear}`);
     }
     if (selectRateBasis(productType, rateType) === 'MONTHLY') {
-        return { percent: contractRatePercent, decimal: contractRatePercent / 100 };
+        if (!convertMonthly)
+            return { percent: contractRatePercent, decimal: contractRatePercent / 100 };
+        const decimal = calculatedRate(contractRatePercent, MONTHLY_COMPOUNDING_PERIODS_PER_YEAR, paymentsPerYear);
+        return { percent: decimal * 100, decimal };
     }
     const m = selectCompoundingPeriodsPerYear(productType, rateType, paymentsPerYear);
     const decimal = calculatedRate(contractRatePercent, m, paymentsPerYear);
@@ -1327,10 +1405,10 @@ function calculatedRateFor(productType, rateType, contractRatePercent, paymentsP
  * B37 (DEC-B37-LEAP-N): leap-aware payments per year for a day-based payment period, used as n in equation 1:
  *   n = (D / P) / Y
  * D = daysBetween(start, end) (actual days), P = periodDays (7 or 14), Y = dayCountFraction(start, end) (the same span in
- * years, days in a leap year counted /366, others /365). Evaluated in exactly this order. RangeError unless start < end
- * and periodDays > 0.
+ * years, days in a leap year counted /366, others /365), or with `yearFrac` (B38, DEC-B38-YEARFRAC-ROUND)
+ * Y = excelYearFracBasis1(start, end). Evaluated in exactly this order. RangeError unless start < end and periodDays > 0.
  */
-function leapAwarePaymentsPerYear(periodDays, start, end) {
+function leapAwarePaymentsPerYear(periodDays, start, end, yearFrac = false) {
     if (!(periodDays > 0)) {
         throw new RangeError(`periodDays must be > 0, got ${periodDays}`);
     }
@@ -1338,7 +1416,7 @@ function leapAwarePaymentsPerYear(periodDays, start, end) {
     if (!(days > 0)) {
         throw new RangeError('start must be before end');
     }
-    return days / periodDays / dayCountFraction(start, end);
+    return days / periodDays / (yearFrac ? excelYearFracBasis1(start, end) : dayCountFraction(start, end));
 }
 /**
  * B37 addendum (DEC-B37-LEAP-N answers, Q-B37-LABEL): THE choice of n for equation 1. calculateCobCanadaWith and the
@@ -1347,23 +1425,75 @@ function leapAwarePaymentsPerYear(periodDays, start, end) {
  *   1. base = PAYMENTS_PER_YEAR[paymentFrequency] (own key only; RangeError otherwise)
  *   2. leapAware false -> base
  *   3. paymentPeriodDays(paymentFrequency) null (Monthly, Semi-monthly) -> base
- *   4. selectRateBasis(productType, rateType) !== 'SEMI-ANNUAL' -> base
+ *   4. selectRateBasis(productType, rateType) !== 'SEMI-ANNUAL' and not monthlyConversion -> base (B39,
+ *      DEC-B39-VAR-PL-M12: with monthlyConversion the MONTHLY basis takes the leap path too)
  *   5. start or end not a valid Date, or daysBetween(start, end) <= 0 -> base
- *   6. leapAwarePaymentsPerYear(periodDays, start, end)
+ *   6. leapAwarePaymentsPerYear(periodDays, start, end, yearFracRounded) (B38: Y is YEARFRAC when yearFracRounded)
  */
-function conversionPaymentsPerYear(productType, rateType, paymentFrequency, start, end, leapAware) {
+function conversionPaymentsPerYear(productType, rateType, paymentFrequency, start, end, leapAware, yearFracRounded = false, monthlyConversion = false) {
     const base = Object.hasOwn(PAYMENTS_PER_YEAR, paymentFrequency) ? PAYMENTS_PER_YEAR[paymentFrequency] : undefined;
     if (base === undefined) {
         throw new RangeError(`paymentFrequency must be one of ${Object.keys(PAYMENTS_PER_YEAR).join('/')}, got ${String(paymentFrequency)}`);
     }
+    if (!leapPathApplies(productType, rateType, paymentFrequency, start, end, leapAware, monthlyConversion))
+        return base;
+    return leapAwarePaymentsPerYear(paymentPeriodDays(paymentFrequency), start, end, yearFracRounded);
+}
+/** Steps 2 to 5 of conversionPaymentsPerYear: true when n takes the leap path (step 6). Shared with
+ *  roundsPeriodInterestToCent (six arguments: SEMI-ANNUAL basis only) and convertsMonthlyRate (B39: monthlyConversion
+ *  also admits the MONTHLY basis) so the rounding and conversion scopes cannot drift from the n scope. */
+function leapPathApplies(productType, rateType, paymentFrequency, start, end, leapAware, monthlyConversion = false) {
     if (!leapAware)
-        return base;
-    const periodDays = paymentPeriodDays(paymentFrequency);
-    if (periodDays === null || selectRateBasis(productType, rateType) !== 'SEMI-ANNUAL')
-        return base;
-    if (!isValidDate(start) || !isValidDate(end) || !(daysBetween(start, end) > 0))
-        return base;
-    return leapAwarePaymentsPerYear(periodDays, start, end);
+        return false;
+    if (paymentPeriodDays(paymentFrequency) == null)
+        return false;
+    if (selectRateBasis(productType, rateType) !== 'SEMI-ANNUAL' && !monthlyConversion)
+        return false;
+    return isValidDate(start) && isValidDate(end) && daysBetween(start, end) > 0;
+}
+/**
+ * B39 (DEC-B39-VAR-PL-M12) predicate M: the MONTHLY rate basis (variable-rate mortgage, personal loan of either rate
+ * type) is converted by equation 1 at m = 12 exactly when monthlyConversion is true and n takes the leap path of
+ * conversionPaymentsPerYear (7- or 14-day frequency, start < end, leapAware). Never throws. Disjoint from
+ * roundsPeriodInterestToCent (SEMI-ANNUAL basis only).
+ */
+function convertsMonthlyRate(productType, rateType, paymentFrequency, start, end, leapAware, monthlyConversion) {
+    return (monthlyConversion &&
+        selectRateBasis(productType, rateType) === 'MONTHLY' &&
+        leapPathApplies(productType, rateType, paymentFrequency, start, end, leapAware, true));
+}
+/**
+ * B38 (DEC-B38-YEARFRAC-ROUND) predicate S: each schedule row's period interest is rounded to the cent
+ * (roundToCentHalfAwayFromZero) exactly when n takes the leap path of conversionPaymentsPerYear (fixed-rate mortgage,
+ * 7- or 14-day frequency, start < end, leapAware) and yearFracRounded is true. Never for the MONTHLY basis (B39 keeps
+ * full precision, DEV-B39-M12).
+ */
+function roundsPeriodInterestToCent(productType, rateType, paymentFrequency, start, end, leapAware, yearFracRounded) {
+    return yearFracRounded && leapPathApplies(productType, rateType, paymentFrequency, start, end, leapAware);
+}
+/**
+ * B38 (DEC-B38-YEARFRAC-ROUND, deviation DEV-B38-ROUND): Excel `ROUND(x, 2)`. The 15-significant-digit decimal nearest
+ * |x| (toExponential(14)) is rounded to whole cents half away from zero in exact decimal arithmetic, then the sign is
+ * restored. Exact for |x| < 1e12. Never returns -0. RangeError for a non-finite x.
+ */
+function roundToCentHalfAwayFromZero(x) {
+    if (!Number.isFinite(x)) {
+        throw new RangeError(`x must be a finite number, got ${x}`);
+    }
+    if (x === 0)
+        return 0;
+    const sign = x < 0 ? -1 : 1;
+    const [mantissa, exponentText] = Math.abs(x).toExponential(14).split('e'); // fitness:cent-round
+    const digits = mantissa.replace('.', ''); // 15 significant digits
+    const shift = Number(exponentText) - 12; // cents = digits x 10^shift
+    if (shift >= 0)
+        return (sign * Number(digits + '0'.repeat(shift))) / 100;
+    const keep = 15 + shift; // leading digits that are whole cents
+    if (keep < 0)
+        return 0;
+    const wholeCents = keep === 0 ? 0 : Number(digits.slice(0, keep));
+    const cents = wholeCents + (Number(digits.charAt(keep)) >= 5 ? 1 : 0);
+    return cents === 0 ? 0 : (sign * cents) / 100;
 }
 function isValidDate(x) {
     return x instanceof Date && !Number.isNaN(x.getTime());
@@ -1548,7 +1678,7 @@ function cobAmount(totalInterest, totalFinancedFees, totalCashFees) {
     }
     return totalInterest + totalFinancedFees + totalCashFees;
 }
-return { calculatedRate, selectRateBasis, selectCompoundingPeriodsPerYear, calculatedRateFor, leapAwarePaymentsPerYear, conversionPaymentsPerYear, daysBetween: __re0.daysBetween, dayCountFraction: __re0.dayCountFraction, periodInterest, applyPaymentWaterfall, triggerRatePercent, cobRatePercent, costOfBorrowingRatePercent, cobAmount };
+return { calculatedRate, selectRateBasis, selectCompoundingPeriodsPerYear, calculatedRateFor, leapAwarePaymentsPerYear, conversionPaymentsPerYear, convertsMonthlyRate, roundsPeriodInterestToCent, roundToCentHalfAwayFromZero, daysBetween: __re0.daysBetween, dayCountFraction: __re0.dayCountFraction, periodInterest, applyPaymentWaterfall, triggerRatePercent, cobRatePercent, costOfBorrowingRatePercent, cobAmount };
 })();
 __cobModules["dist/ca/validate.js"] = (() => {
 const { PAYMENTS_PER_YEAR, isFiniteNumber } = __cobModules["dist/ca/types.js"];
@@ -1747,8 +1877,8 @@ __cobModules["dist/ca/cobCanada.js"] = (() => {
 const { daysBetween, effectiveFirstPaymentDate, periodDateFor, roundUpToWholeMonths, termBetween } = __cobModules["dist/ca/calendar.js"];
 const { totalCashFees, totalFinancedFees } = __cobModules["dist/ca/fees.js"];
 const { FLOWS, FLOW_IDS, computesTriggerRate } = __cobModules["dist/ca/flows.js"];
-const { PRINCIPAL_PAID, PRIOR_ACCRUED_IN_COB, PRIOR_ACCRUED_IN_P, LEAP_AWARE_PAYMENTS_PER_YEAR, P_BASIS, UNPAID_INTEREST_CAPITALISED } = __cobModules["dist/ca/policies.js"];
-const { applyPaymentWaterfall, calculatedRateFor, conversionPaymentsPerYear, cobAmount: cobAmountEquation, costOfBorrowingRatePercent, periodInterest, triggerRatePercent: triggerRatePercentEquation } = __cobModules["dist/ca/equations.js"];
+const { PRINCIPAL_PAID, PRIOR_ACCRUED_IN_COB, PRIOR_ACCRUED_IN_P, LEAP_AWARE_PAYMENTS_PER_YEAR, MONTHLY_RATE_CONVERSION, P_BASIS, UNPAID_INTEREST_CAPITALISED, YEARFRAC_ROUNDED_INTEREST } = __cobModules["dist/ca/policies.js"];
+const { applyPaymentWaterfall, calculatedRateFor, conversionPaymentsPerYear, convertsMonthlyRate, cobAmount: cobAmountEquation, costOfBorrowingRatePercent, periodInterest, roundToCentHalfAwayFromZero, roundsPeriodInterestToCent, triggerRatePercent: triggerRatePercentEquation } = __cobModules["dist/ca/equations.js"];
 const { PAYMENTS_PER_YEAR } = __cobModules["dist/ca/types.js"];
 const { validateCobCanadaInput } = __cobModules["dist/ca/validate.js"];
 /** A generous safety cap against a misconfigured schedule that never reaches
@@ -1787,9 +1917,12 @@ const MAX_SCHEDULE_ROWS_SAFETY_CAP = 20000;
  * carried outside the balance, earning nothing; while any is outstanding, an interest
  * shortfall is carried with it (OQ-W interim). Only one of the two is ever nonzero, so
  * the waterfall sees their sum.
+ *
+ * B38 (DEC-B38-YEARFRAC-ROUND, DEV-B38-ROUND): with `roundPeriodInterest` (roundsPeriodInterestToCent), each row's
+ * period interest is rounded to the cent before the waterfall, and the rounded figure drives everything downstream.
  */
 function buildSchedule(args) {
-    const { loanAmount, calculatedRateDecimal, paymentAmount, startDate, firstPaymentDate, endDate, frequency, initialPastAccruedInterest, initialFeesToRecover, unpaidInterestCapitalised, } = args;
+    const { loanAmount, calculatedRateDecimal, paymentAmount, startDate, firstPaymentDate, endDate, frequency, initialPastAccruedInterest, initialFeesToRecover, unpaidInterestCapitalised, roundPeriodInterest, } = args;
     const rows = [];
     let openingBalance = loanAmount;
     let feesToRecover = initialFeesToRecover;
@@ -1806,7 +1939,8 @@ function buildSchedule(args) {
             break;
         }
         const daysInPeriod = daysBetween(priorDate, rowDate);
-        const periodInterestAmount = periodInterest(openingBalance, calculatedRateDecimal, priorDate, rowDate);
+        const rawPeriodInterest = periodInterest(openingBalance, calculatedRateDecimal, priorDate, rowDate);
+        const periodInterestAmount = roundPeriodInterest ? roundToCentHalfAwayFromZero(rawPeriodInterest) : rawPeriodInterest;
         const carriedAccruedInterest = unpaidInterestCapitalised
             ? pastAccruedInterest + unpaidPeriodInterest
             : accruedBucket;
@@ -1883,7 +2017,7 @@ const SHIPPED_SWITCHES = Object.freeze({
 function calculateCobCanada(input) {
     return calculateCobCanadaWith(input, SHIPPED_SWITCHES);
 }
-function calculateCobCanadaWith(input, switches, leapAware = LEAP_AWARE_PAYMENTS_PER_YEAR) {
+function calculateCobCanadaWith(input, switches, leapAware = LEAP_AWARE_PAYMENTS_PER_YEAR, yearFracRounded = YEARFRAC_ROUNDED_INTEREST, monthlyConversion = MONTHLY_RATE_CONVERSION) {
     const { startDate } = validateCobCanadaInput(input);
     const paymentsPerYear = PAYMENTS_PER_YEAR[input.paymentFrequency];
     const financedFees = totalFinancedFees(input.fees);
@@ -1896,8 +2030,12 @@ function calculateCobCanadaWith(input, switches, leapAware = LEAP_AWARE_PAYMENTS
     // Equations 1/2 -- the Calculated Rate by rate basis (OQ-C): the contract rate
     // as entered (MONTHLY) or converted at m = 2 (SEMI-ANNUAL, fixed mortgage).
     // B37 (DEC-B37-LEAP-N): n for equation 1 (leap-aware for the 7/14-day frequencies of a fixed-rate mortgage).
-    const nForRate = conversionPaymentsPerYear(input.productType, input.rateType, input.paymentFrequency, startDate, input.endDate, leapAware);
-    const { percent: calculatedRatePercent, decimal: calculatedRateDecimal } = calculatedRateFor(input.productType, input.rateType, input.contractRatePercent, nForRate);
+    // B38 (DEC-B38-YEARFRAC-ROUND): Y in that n is Excel YEARFRAC when yearFracRounded.
+    // B39 (DEC-B39-VAR-PL-M12): with monthlyConversion the MONTHLY basis at 7/14 days takes the same n and m = 12.
+    const nForRate = conversionPaymentsPerYear(input.productType, input.rateType, input.paymentFrequency, startDate, input.endDate, leapAware, yearFracRounded, monthlyConversion);
+    const roundPeriodInterest = roundsPeriodInterestToCent(input.productType, input.rateType, input.paymentFrequency, startDate, input.endDate, leapAware, yearFracRounded);
+    const convertMonthly = convertsMonthlyRate(input.productType, input.rateType, input.paymentFrequency, startDate, input.endDate, leapAware, monthlyConversion);
+    const { percent: calculatedRatePercent, decimal: calculatedRateDecimal } = calculatedRateFor(input.productType, input.rateType, input.contractRatePercent, nForRate, convertMonthly);
     const flowSpec = FLOWS[input.flow];
     // Past accrued interest (IN-11) starts at the input accrued_interest for
     // renewal/paymentChange/variableRatePaymentChange flows, 0 for newMortgageOrLoan
@@ -1919,6 +2057,7 @@ function calculateCobCanadaWith(input, switches, leapAware = LEAP_AWARE_PAYMENTS
         initialPastAccruedInterest,
         initialFeesToRecover,
         unpaidInterestCapitalised: switches.unpaidInterestCapitalised,
+        roundPeriodInterest,
     });
     if (schedule.length === 0) {
         throw new RangeError('calculateCobCanada produced zero scheduled payments -- firstPaymentDate must fall before endDate');
@@ -2023,13 +2162,13 @@ function contractTermOptions(input, result) {
 }
 /**
  * B37 addendum (Q-B37-LABEL): the payments per year n that equation 1 uses for `input` at `paymentFrequency`, with the
- * shipped LEAP_AWARE_PAYMENTS_PER_YEAR. Reads only flow, productType, rateType, the flow's start date and endDate; the
+ * shipped LEAP_AWARE_PAYMENTS_PER_YEAR, YEARFRAC_ROUNDED_INTEREST and MONTHLY_RATE_CONVERSION. Reads only flow, productType, rateType, the flow's start date and endDate; the
  * rest of `input` may be invalid. Never throws for any form state (unknown flow or missing/invalid date -> 52/26/24/12);
  * RangeError only for a frequency outside PaymentFrequency.
  */
 function paymentsPerYearFor(input, paymentFrequency) {
     const start = FLOW_IDS.includes(input.flow) ? input[FLOWS[input.flow].startDateField] : undefined;
-    return conversionPaymentsPerYear(input.productType, input.rateType, paymentFrequency, start instanceof Date ? start : undefined, input.endDate, LEAP_AWARE_PAYMENTS_PER_YEAR);
+    return conversionPaymentsPerYear(input.productType, input.rateType, paymentFrequency, start instanceof Date ? start : undefined, input.endDate, LEAP_AWARE_PAYMENTS_PER_YEAR, YEARFRAC_ROUNDED_INTEREST, MONTHLY_RATE_CONVERSION);
 }
 return { SHIPPED_SWITCHES, calculateCobCanada, calculateCobCanadaWith, contractTerm, contractTermOptions, paymentsPerYearFor };
 })();

@@ -6,16 +6,21 @@ import {
   PRIOR_ACCRUED_IN_COB,
   PRIOR_ACCRUED_IN_P,
   LEAP_AWARE_PAYMENTS_PER_YEAR,
+  MONTHLY_RATE_CONVERSION,
   P_BASIS,
   UNPAID_INTEREST_CAPITALISED,
+  YEARFRAC_ROUNDED_INTEREST,
 } from './policies.js';
 import {
   applyPaymentWaterfall,
   calculatedRateFor,
   conversionPaymentsPerYear,
+  convertsMonthlyRate,
   cobAmount as cobAmountEquation,
   costOfBorrowingRatePercent,
   periodInterest,
+  roundToCentHalfAwayFromZero,
+  roundsPeriodInterestToCent,
   triggerRatePercent as triggerRatePercentEquation,
 } from './equations.js';
 import type { CobCanadaInput, CobCanadaResult, CobScheduleRow, ContractTerm, ContractTermOptions, PaymentFrequency } from './types.js';
@@ -39,6 +44,7 @@ interface BuildScheduleArgs {
   initialPastAccruedInterest: number;
   initialFeesToRecover: number;
   unpaidInterestCapitalised: boolean;
+  roundPeriodInterest: boolean;
 }
 
 /**
@@ -72,6 +78,9 @@ interface BuildScheduleArgs {
  * carried outside the balance, earning nothing; while any is outstanding, an interest
  * shortfall is carried with it (OQ-W interim). Only one of the two is ever nonzero, so
  * the waterfall sees their sum.
+ *
+ * B38 (DEC-B38-YEARFRAC-ROUND, DEV-B38-ROUND): with `roundPeriodInterest` (roundsPeriodInterestToCent), each row's
+ * period interest is rounded to the cent before the waterfall, and the rounded figure drives everything downstream.
  */
 function buildSchedule(args: BuildScheduleArgs): { schedule: CobScheduleRow[]; unpaidPeriodInterestAtEnd: number } {
   const {
@@ -85,6 +94,7 @@ function buildSchedule(args: BuildScheduleArgs): { schedule: CobScheduleRow[]; u
     initialPastAccruedInterest,
     initialFeesToRecover,
     unpaidInterestCapitalised,
+    roundPeriodInterest,
   } = args;
 
   const rows: CobScheduleRow[] = [];
@@ -105,7 +115,8 @@ function buildSchedule(args: BuildScheduleArgs): { schedule: CobScheduleRow[]; u
     }
 
     const daysInPeriod = daysBetween(priorDate, rowDate);
-    const periodInterestAmount = periodInterest(openingBalance, calculatedRateDecimal, priorDate, rowDate);
+    const rawPeriodInterest = periodInterest(openingBalance, calculatedRateDecimal, priorDate, rowDate);
+    const periodInterestAmount = roundPeriodInterest ? roundToCentHalfAwayFromZero(rawPeriodInterest) : rawPeriodInterest;
 
     const carriedAccruedInterest = unpaidInterestCapitalised
       ? pastAccruedInterest + unpaidPeriodInterest
@@ -210,6 +221,8 @@ export function calculateCobCanadaWith(
   input: CobCanadaInput,
   switches: EngineSwitches,
   leapAware: boolean = LEAP_AWARE_PAYMENTS_PER_YEAR,
+  yearFracRounded: boolean = YEARFRAC_ROUNDED_INTEREST,
+  monthlyConversion: boolean = MONTHLY_RATE_CONVERSION,
 ): CobCanadaResult {
   const { startDate } = validateCobCanadaInput(input);
 
@@ -227,6 +240,8 @@ export function calculateCobCanadaWith(
   // Equations 1/2 -- the Calculated Rate by rate basis (OQ-C): the contract rate
   // as entered (MONTHLY) or converted at m = 2 (SEMI-ANNUAL, fixed mortgage).
   // B37 (DEC-B37-LEAP-N): n for equation 1 (leap-aware for the 7/14-day frequencies of a fixed-rate mortgage).
+  // B38 (DEC-B38-YEARFRAC-ROUND): Y in that n is Excel YEARFRAC when yearFracRounded.
+  // B39 (DEC-B39-VAR-PL-M12): with monthlyConversion the MONTHLY basis at 7/14 days takes the same n and m = 12.
   const nForRate = conversionPaymentsPerYear(
     input.productType,
     input.rateType,
@@ -234,12 +249,33 @@ export function calculateCobCanadaWith(
     startDate,
     input.endDate,
     leapAware,
+    yearFracRounded,
+    monthlyConversion,
+  );
+  const roundPeriodInterest = roundsPeriodInterestToCent(
+    input.productType,
+    input.rateType,
+    input.paymentFrequency,
+    startDate,
+    input.endDate,
+    leapAware,
+    yearFracRounded,
+  );
+  const convertMonthly = convertsMonthlyRate(
+    input.productType,
+    input.rateType,
+    input.paymentFrequency,
+    startDate,
+    input.endDate,
+    leapAware,
+    monthlyConversion,
   );
   const { percent: calculatedRatePercent, decimal: calculatedRateDecimal } = calculatedRateFor(
     input.productType,
     input.rateType,
     input.contractRatePercent,
     nForRate,
+    convertMonthly,
   );
 
   const flowSpec = FLOWS[input.flow];
@@ -264,6 +300,7 @@ export function calculateCobCanadaWith(
     initialPastAccruedInterest,
     initialFeesToRecover,
     unpaidInterestCapitalised: switches.unpaidInterestCapitalised,
+    roundPeriodInterest,
   });
 
   if (schedule.length === 0) {
@@ -395,7 +432,7 @@ export function contractTermOptions(
 
 /**
  * B37 addendum (Q-B37-LABEL): the payments per year n that equation 1 uses for `input` at `paymentFrequency`, with the
- * shipped LEAP_AWARE_PAYMENTS_PER_YEAR. Reads only flow, productType, rateType, the flow's start date and endDate; the
+ * shipped LEAP_AWARE_PAYMENTS_PER_YEAR, YEARFRAC_ROUNDED_INTEREST and MONTHLY_RATE_CONVERSION. Reads only flow, productType, rateType, the flow's start date and endDate; the
  * rest of `input` may be invalid. Never throws for any form state (unknown flow or missing/invalid date -> 52/26/24/12);
  * RangeError only for a frequency outside PaymentFrequency.
  */
@@ -408,5 +445,7 @@ export function paymentsPerYearFor(input: CobCanadaInput, paymentFrequency: Paym
     start instanceof Date ? start : undefined,
     input.endDate,
     LEAP_AWARE_PAYMENTS_PER_YEAR,
+    YEARFRAC_ROUNDED_INTEREST,
+    MONTHLY_RATE_CONVERSION,
   );
 }

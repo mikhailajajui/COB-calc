@@ -20,11 +20,18 @@
  *
  * Red until sr-dev lands B37-R1..R5 and B37-L1..L3: functions that do not exist yet are read at call time, so each test
  * fails on its own.
+ *
+ * B38 (spec 013, user decision DEC-B38-YEARFRAC-ROUND, 2026-10-10; deviation DEV-B38-ROUND): the shipped engine now also has
+ * YEARFRAC_ROUNDED_INTEREST true. Every B37-state engine assertion above (T0, T1, T3 to T7) is pinned to
+ * (leapAware true, yearFracRounded false) through `on`, with its values unchanged (INV-B38-OFF evidence). The label
+ * function paymentsPerYearFor reads the shipped switches, so T9 compares it with the oracle at yearFrac = true.
+ * B38-T1 .. B38-T9 (appended) cover INV-B38-PIN, -ACCEPT (the user's case 1 and example 2, Excel to the cent), -PENDING,
+ * -YF, -N, -ORDER, -LE1Y, -ROUND, -ROW / -CONST, -SCOPE, -SCOPE-SAME, -OFF, -B19, -ACCEL, -INPUTS, -LABEL and -REF01.
  */
 import { createHash } from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as ca from '../../src/ca/index.js';
-import { PAYMENTS_PER_YEAR, calculateCobCanada, contractTerm } from '../../src/ca/index.js';
+import { FLOWS, PAYMENTS_PER_YEAR, calculateCobCanada, contractTerm, requiresSemiAnnualDate } from '../../src/ca/index.js';
 import type { CobCanadaInput, CobCanadaResult, CobFlow, PaymentFrequency, ProductType, RateType } from '../../src/ca/index.js';
 import * as calendar from '../../src/ca/calendar.js';
 import { addUtcDays, periodDateFor } from '../../src/ca/calendar.js';
@@ -32,7 +39,7 @@ import * as equations from '../../src/ca/equations.js';
 import { calculatedRateFor, periodInterest } from '../../src/ca/equations.js';
 import * as policies from '../../src/ca/policies.js';
 import { SRC_CA, read, stripComments } from '../architecture/support.js';
-import { asInput, isoDay, utcDate } from './support/builders.js';
+import { asInput, isoDay, oracleCaseInput, utcDate } from './support/builders.js';
 import { expectRangeErrorMatching, withinRel } from './support/compare.js';
 import { loadFixture } from './support/fixtures.js';
 import {
@@ -40,14 +47,22 @@ import {
   civilDays,
   civilIso,
   oracleConvertedDecimal,
+  oracleLeapN,
+  oracleMonthlyConvertedDecimal,
   oracleN,
+  oracleRoundCent,
   oracleSchedule,
+  oracleYearFracBasis1,
   oracleYears,
 } from './support/leapNOracle.js';
 import type { OracleCase } from './support/leapNOracle.js';
-import { preB37GoldenText } from './support/preB37Golden.js';
-import { BOTH_LEAP, LEAP_OFF, LEAP_ON, SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
+import { DAY_BASED, FLOW_IDS, SIX, buildSweep } from './support/leapSweep.js';
+import type { SweepCase } from './support/leapSweep.js';
+import { b37StateGoldenText, preB37GoldenText } from './support/preB37Golden.js';
+import { B38_OFF, B38_ON, B39_OFF, BOTH_LEAP, LEAP_OFF, LEAP_ON, SHIPPED, WORKBOOK, calculateWith } from './support/switches.js';
 import { join } from 'node:path';
+import type * as View from '../../ui/ca-view.js';
+import { ON as UI_ON } from './support/uiSwitches.js';
 
 // ------------------------------------------------------------------------------------------------ helpers
 type Fn = (...args: never[]) => unknown;
@@ -56,8 +71,10 @@ function fnOf<T extends Fn>(mod: object, name: string): T {
   if (typeof f !== 'function') throw new Error(`B37: ${name} is not exported yet`);
   return f as T;
 }
-const leapAwarePaymentsPerYear = (p: number, s: Date, e: Date): number =>
-  fnOf<(p: number, s: Date, e: Date) => number>(equations, 'leapAwarePaymentsPerYear')(p, s, e);
+const leapAwarePaymentsPerYear = (p: number, s: Date, e: Date, yearFrac?: boolean): number => {
+  const fn = fnOf<(p: number, s: Date, e: Date, y?: boolean) => number>(equations, 'leapAwarePaymentsPerYear');
+  return yearFrac === undefined ? fn(p, s, e) : fn(p, s, e, yearFrac);
+};
 const conversionPaymentsPerYear = (
   pt: ProductType,
   rt: RateType,
@@ -65,49 +82,33 @@ const conversionPaymentsPerYear = (
   s: Date | undefined,
   e: Date | undefined,
   leap: boolean,
-): number =>
-  fnOf<(pt: ProductType, rt: RateType, f: PaymentFrequency, s: Date | undefined, e: Date | undefined, l: boolean) => number>(
-    equations,
-    'conversionPaymentsPerYear',
-  )(pt, rt, f, s, e, leap);
+  yearFracRounded?: boolean,
+  monthlyConversion?: boolean,
+): number => {
+  const fn = fnOf<
+    (pt: ProductType, rt: RateType, f: PaymentFrequency, s: Date | undefined, e: Date | undefined, l: boolean, y?: boolean, m?: boolean) => number
+  >(equations, 'conversionPaymentsPerYear');
+  if (monthlyConversion !== undefined) return fn(pt, rt, f, s, e, leap, yearFracRounded, monthlyConversion);
+  return yearFracRounded === undefined ? fn(pt, rt, f, s, e, leap) : fn(pt, rt, f, s, e, leap, yearFracRounded);
+};
 const paymentPeriodDays = (f: string): number | null => fnOf<(f: string) => number | null>(calendar, 'paymentPeriodDays')(f);
 /** The public label function, read from the barrel (ADR-13(j)). */
 const paymentsPerYearFor = (x: CobCanadaInput, f: string): number =>
   fnOf<(x: CobCanadaInput, f: string) => number>(ca, 'paymentsPerYearFor')(x, f);
 const leapSwitch = (): unknown => (policies as Record<string, unknown>).LEAP_AWARE_PAYMENTS_PER_YEAR;
+const b38Switch = (): unknown => (policies as Record<string, unknown>).YEARFRAC_ROUNDED_INTEREST;
+const b39Switch = (): unknown => (policies as Record<string, unknown>).MONTHLY_RATE_CONVERSION;
 
-const on = (x: CobCanadaInput): CobCanadaResult => calculateWith(x, SHIPPED, LEAP_ON);
+/** The B37 state (YEARFRAC_ROUNDED_INTEREST false), pinned explicitly since B38 ships the switch true. B39 (spec 014): and
+ *  MONTHLY_RATE_CONVERSION false, since B39 ships it true (the B37 state of spec 014's switch table is (true, false, false)). */
+const on = (x: CobCanadaInput): CobCanadaResult => calculateWith(x, SHIPPED, LEAP_ON, B38_OFF, B39_OFF);
 const off = (x: CobCanadaInput): CobCanadaResult => calculateWith(x, SHIPPED, LEAP_OFF);
 const json = (r: unknown): string => JSON.stringify(r);
 const cents = (x: number): number => Math.round(x * 100) / 100;
 const sha256 = (s: string): string => createHash('sha256').update(s).digest('hex');
 
 /** Oracle case -> engine input (UTC midnight dates). */
-function toInput(c: OracleCase): CobCanadaInput {
-  const fees = {
-    fees: [
-      ...c.financedFees.map((amount, i) => ({ name: `F${i}`, amount, financed: true })),
-      ...c.cashFees.map((amount, i) => ({ name: `C${i}`, amount, financed: false })),
-    ],
-  };
-  const common = {
-    flow: c.flow,
-    productType: c.productType,
-    rateType: c.rateType,
-    contractRatePercent: c.contractRatePercent,
-    loanAmount: c.loanAmount,
-    paymentFrequency: c.frequency,
-    paymentAmount: c.paymentAmount,
-    firstPaymentDate: utcDate(c.first),
-    endDate: utcDate(c.end),
-    fees,
-  };
-  return asInput(
-    c.flow === 'newMortgageOrLoan'
-      ? { ...common, disbursalDate: utcDate(c.start) }
-      : { ...common, renewalDate: utcDate(c.start), accruedInterest: c.accruedInterest },
-  );
-}
+const toInput: (c: OracleCase) => CobCanadaInput = oracleCaseInput;
 
 // ------------------------------------------------------------------------------------------------ fixture
 interface Totals {
@@ -127,6 +128,12 @@ interface Vectors {
   cases: Record<string, { input: OracleCase; D: number; Y: number; on: Totals; off: Totals }>;
   nVectors: { periodDays: number; start: string; end: string; n: number }[];
   labelN: Record<string, { start: string; end: string; n: Record<string, number> }>;
+  b38: {
+    yearFracVectors: { start: string; end: string; y: number }[];
+    nVectors: { periodDays: number; start: string; end: string; n: number }[];
+    labelN: Record<string, { start: string; end: string; n: Record<string, number> }>;
+    cases: Record<string, { input: OracleCase; D: number; Y: number; on: Totals }>;
+  };
 }
 const V = loadFixture<Vectors>('b37_leap_n_vectors.json');
 const CASE_IDS = Object.keys(V.cases);
@@ -212,15 +219,15 @@ describe('B37-T0 oracle trust check (green before and after B37): QA\'s oracle r
 });
 
 // ================================================================================================ T1
-describe('B37-T1 INV-PIN: the switch is shipped on, and calculateCobCanada is the on state', () => {
+describe('B37-T1 INV-PIN: the switch is shipped on; the B37 state is (leap true, YEARFRAC_ROUNDED_INTEREST false)', () => {
   it('LEAP_AWARE_PAYMENTS_PER_YEAR === true (value pin, ADR-14)', () => {
     expect(leapSwitch()).toBe(true);
   });
 
-  it('calculateCobCanada(V-CASE1) JSON-equals calculateCobCanadaWith(V-CASE1, SHIPPED, true), and its rate is the leap-aware one', () => {
+  it('B37 state: calculateCobCanadaWith(V-CASE1, SHIPPED, true, false) has the leap-aware B37 rate (the shipped equality moved to B38-T1)', () => {
     const x = toInput(caseOf('V-CASE1').input);
-    expect(json(calculateCobCanada(x))).toBe(json(on(x)));
-    expect(calculateCobCanada(x).calculatedRatePercent).toBe(4.297115439387225);
+    expect(json(calculateWith(x, SHIPPED, true, false))).toBe(json(on(x)));
+    expect(on(x).calculatedRatePercent).toBe(4.297115439387225);
   });
 
   it('the two states differ on V-CASE1 (the third parameter is honoured both ways)', () => {
@@ -229,10 +236,10 @@ describe('B37-T1 INV-PIN: the switch is shipped on, and calculateCobCanada is th
     expect(off(x).calculatedRatePercent).toBe(caseOf('V-CASE1').off.calculatedRatePercent);
   });
 
-  it('source: calculateCobCanadaWith takes the switch as a defaulted third parameter; calculateCobCanada passes two arguments', () => {
+  it('source: calculateCobCanadaWith takes the switch as a defaulted third parameter (B38: then a defaulted fourth; B39: then a defaulted fifth); calculateCobCanada passes two arguments', () => {
     const code = stripComments(read(join(SRC_CA, 'cobCanada.ts')));
     expect(code).toMatch(
-      /export function calculateCobCanadaWith\(\s*input: CobCanadaInput,\s*switches: EngineSwitches,\s*leapAware: boolean = LEAP_AWARE_PAYMENTS_PER_YEAR,?\s*\): CobCanadaResult/,
+      /export function calculateCobCanadaWith\(\s*input: CobCanadaInput,\s*switches: EngineSwitches,\s*leapAware: boolean = LEAP_AWARE_PAYMENTS_PER_YEAR,\s*yearFracRounded: boolean = YEARFRAC_ROUNDED_INTEREST,\s*(?:monthlyConversion: boolean = MONTHLY_RATE_CONVERSION,?\s*)?\): CobCanadaResult/,
     );
     expect(code).toMatch(/return calculateCobCanadaWith\(input, SHIPPED_SWITCHES\);/);
   });
@@ -290,7 +297,7 @@ describe('B37-T2 INV-N and INV-GUARD: leapAwarePaymentsPerYear and paymentPeriod
 });
 
 // ================================================================================================ T3
-describe('B37-T3 vectors, both states (on: the leap-aware n; off: the workbook converter, today byte for byte)', () => {
+describe('B37-T3 vectors, both states (on: the leap-aware n, B37 state (YEARFRAC_ROUNDED_INTEREST false); off: the workbook converter, today byte for byte)', () => {
   const FIELDS = ['calculatedRatePercent', 'numberOfPayments', 'totalInterest', 'principalPayment', 'endingBalance', 'termDays', 'cobAmount', 'cobRatePercent'] as const;
   const rows = CASE_IDS.flatMap((id) => BOTH_LEAP.map(([label, leap]) => [id, label, leap] as const));
   it.each(rows)('%s [%s]: every headline output, row 1 and the last row date equal the oracle exactly', (id, _label, leap) => {
@@ -298,7 +305,7 @@ describe('B37-T3 vectors, both states (on: the leap-aware n; off: the workbook c
     // reproduces the saved workbook (total interest 22,514.11 -> 22,514.07); the off state is the workbook (ref01-workbook.test.ts).
     const v = caseOf(id);
     const t = leap ? v.on : v.off;
-    const r = calculateWith(toInput(v.input), SHIPPED, leap);
+    const r = leap ? on(toInput(v.input)) : off(toInput(v.input));
     for (const k of FIELDS) expect(r[k], `${id} ${k}`).toBe(t[k]);
     expect(r.amortizationSchedule[0]!.periodInterest).toBe(t.row1PeriodInterest);
     expect(isoDay(r.amortizationSchedule.at(-1)!.date)).toBe(t.lastRowDate);
@@ -319,8 +326,8 @@ describe('B37-T3 vectors, both states (on: the leap-aware n; off: the workbook c
     });
   });
 
-  it('known_divergence DEV-B37-LEAPN REF-01 (shipped): total interest 22,514.07 and Balance 177,731.96, not the workbook\'s 22,514.11 / 177,732.00', () => {
-    const r = calculateCobCanada(toInput(caseOf('V-REF01').input));
+  it('known_divergence DEV-B37-LEAPN REF-01, B37 state (YEARFRAC_ROUNDED_INTEREST false): total interest 22,514.07 and Balance 177,731.96, not the workbook\'s 22,514.11 / 177,732.00', () => {
+    const r = on(toInput(caseOf('V-REF01').input));
     expect(r.calculatedRatePercent).toBe(3.7067766504448727);
     expect(cents(r.totalInterest)).toBe(22514.07);
     expect(cents(r.endingBalance)).toBe(177731.96);
@@ -328,22 +335,22 @@ describe('B37-T3 vectors, both states (on: the leap-aware n; off: the workbook c
     expect(r.numberOfPayments).toBe(156);
   });
 
-  it('US-08 the user\'s case 1 (V-CASE1, shipped): D 1,081, Y = 85/365 + 1 + 1 + 265/365, n 26.0955688..., rate 4.297115439387225 %, Total interest 60,137.62, Total principal 43,861.66', () => {
+  it('US-08 the user\'s case 1 (V-CASE1), B37 state (YEARFRAC_ROUNDED_INTEREST false): D 1,081, Y = 85/365 + 1 + 1 + 265/365, n 26.0955688..., rate 4.297115439387225 %, Total interest 60,137.62 (Excel 60,137.63; superseded by B38), Total principal 43,861.66', () => {
     const v = caseOf('V-CASE1');
     expect(v.D).toBe(1081);
     expect(v.Y).toBe(85 / 365 + 1 + 1 + 265 / 365);
-    const r = calculateCobCanada(toInput(v.input));
+    const r = on(toInput(v.input));
     expect(r.calculatedRatePercent).toBe(4.297115439387225);
     expect(cents(r.totalInterest)).toBe(60137.62);
     expect(cents(r.principalPayment)).toBe(43861.66);
     expect(r.cobRatePercent).toBe(r.calculatedRatePercent); // no fees: OQ-Q short-circuit uses the new rate
   });
 
-  it('US-08 the user\'s example 2 (V-EX2, shipped): D 1,631, Y = 85/365 + 4 + 85/365, rate 4.257898074996161 %, Total interest 74,326.11, Total principal 48,523.89 (Excel to the cent)', () => {
+  it('US-08 the user\'s example 2 (V-EX2), B37 state (YEARFRAC_ROUNDED_INTEREST false): D 1,631, Y = 85/365 + 4 + 85/365, rate 4.257898074996161 %, Total interest 74,326.11, Total principal 48,523.89 (Excel to the cent)', () => {
     const v = caseOf('V-EX2');
     expect(v.D).toBe(1631);
     expect(withinRel(v.Y, 85 / 365 + 4 + 85 / 365, 1e-15)).toBe(true);
-    const r = calculateCobCanada(toInput(v.input));
+    const r = on(toInput(v.input));
     expect(r.calculatedRatePercent).toBe(4.257898074996161);
     expect(cents(r.totalInterest)).toBe(74326.11);
     expect(cents(r.principalPayment)).toBe(48523.89);
@@ -387,59 +394,6 @@ describe('B37-T4 INV-ORDER: n = (D / P) / Y, evaluated left to right', () => {
 });
 
 // ================================================================================================ sweep
-const FLOW_IDS: CobFlow[] = ['newMortgageOrLoan', 'renewal', 'paymentChange', 'variableRatePaymentChange'];
-const SIX: PaymentFrequency[] = ['weekly', 'acceleratedWeekly', 'biweekly', 'acceleratedBiweekly', 'semiMonthly', 'monthly'];
-const DAY_BASED = new Set<string>(['weekly', 'acceleratedWeekly', 'biweekly', 'acceleratedBiweekly']);
-interface SweepCase {
-  x: CobCanadaInput;
-  flow: CobFlow;
-  pt: ProductType;
-  rt: RateType;
-  f: PaymentFrequency;
-  start: string;
-  end: string;
-  oc: OracleCase | null;
-}
-/** Deterministic 4,800-input sweep: four flows, both products and rate types (as each flow allows), six frequencies,
- *  start dates 1999-01-01 .. 2101-06-30 (every 8th case inside 2000, every 8th inside 2100), spans 1 .. 3,021 days. */
-function buildSweep(): SweepCase[] {
-  let seed = 37;
-  const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648), seed / 2147483648);
-  const lo = civilDays('1999-01-01');
-  const hi = civilDays('2101-06-30');
-  const out: SweepCase[] = [];
-  for (let i = 0; i < 4800; i += 1) {
-    const flow = FLOW_IDS[i % 4]!;
-    const f = SIX[Math.floor(i / 4) % 6]!;
-    let pt: ProductType = rnd() < 0.6 ? 'mortgage' : 'personalLoan';
-    let rt: RateType = rnd() < 0.6 ? 'fixed' : 'variable';
-    if (flow === 'renewal') pt = 'mortgage';
-    if (flow === 'variableRatePaymentChange') [pt, rt] = ['mortgage', 'variable'];
-    const startDay =
-      i % 8 === 3 ? civilDays('2000-01-01') + Math.floor(rnd() * 366) : i % 8 === 5 ? civilDays('2100-01-01') + Math.floor(rnd() * 365) : lo + Math.floor(rnd() * (hi - lo));
-    const firstDay = startDay + Math.floor(rnd() * 21);
-    const endDay = firstDay + 1 + Math.floor(rnd() * 3000);
-    const loan = +(10000 + rnd() * 590000).toFixed(2);
-    const rate = +(0.5 + rnd() * 11.5).toFixed(3);
-    const ppy = PAYMENTS_PER_YEAR[f];
-    const pay = +((loan * rate) / 100 / ppy * (rnd() < 0.1 ? 0.6 : 1.1 + rnd() * 2)).toFixed(2);
-    const accrued = flow === 'newMortgageOrLoan' ? 0 : rnd() < 0.5 ? 0 : +(rnd() * 1200).toFixed(2);
-    const feeDraw = rnd();
-    const financedFees = feeDraw < 0.15 ? [+(rnd() * 3000).toFixed(2)] : [];
-    const cashFees = feeDraw > 0.85 ? [+(rnd() * 800).toFixed(2)] : [];
-    const start = civilIso(startDay);
-    const end = civilIso(endDay);
-    const first = civilIso(firstDay);
-    const oc: OracleCase | null = DAY_BASED.has(f)
-      ? { flow, productType: pt, rateType: rt, frequency: f as OracleCase['frequency'], loanAmount: loan, contractRatePercent: rate, paymentAmount: pay, accruedInterest: accrued, start, first, end, financedFees, cashFees }
-      : null;
-    const fees = { fees: [...financedFees.map((amount) => ({ name: 'F', amount, financed: true })), ...cashFees.map((amount) => ({ name: 'C', amount, financed: false }))] };
-    const common = { flow, productType: pt, rateType: rt, contractRatePercent: rate, loanAmount: loan, paymentFrequency: f, paymentAmount: pay, firstPaymentDate: utcDate(first), endDate: utcDate(end), fees };
-    const x = asInput(flow === 'newMortgageOrLoan' ? { ...common, disbursalDate: utcDate(start) } : { ...common, renewalDate: utcDate(start), accruedInterest: accrued });
-    out.push({ x, flow, pt, rt, f, start, end, oc });
-  }
-  return out;
-}
 const SWEEP = buildSweep();
 type Outcome = { ok: true; on: CobCanadaResult; off: CobCanadaResult } | { ok: false; onErr: string; offErr: string };
 let OUTCOMES: Outcome[] = [];
@@ -463,6 +417,10 @@ function outcomes(): Outcome[] {
   return OUTCOMES;
 }
 const isConverted = (c: SweepCase) => c.pt === 'mortgage' && c.rt === 'fixed' && DAY_BASED.has(c.f);
+/** B39 (spec 014, predicate M with the shipped switches): the MONTHLY basis at 7/14 days with start < End. Written from
+ *  the spec, not from src/. */
+const isB39Converted = (pt: string, rt: string, f: string, start: string, end: string): boolean =>
+  !(pt === 'mortgage' && rt === 'fixed') && DAY_BASED.has(f) && civilDays(end) > civilDays(start);
 
 // ================================================================================================ T5
 describe('B37-T5 sweep (4,800 inputs): INV-BOUNDS, INV-SCOPE, INV-SAMEDATES', () => {
@@ -596,11 +554,11 @@ describe('B37-T6 INV-RATE and INV-CONST (the on-state twin of the A5 equivalence
 // ================================================================================================ T7
 describe('B37-T7 INV-ACCEL, INV-B19, INV-LEAPRULE', () => {
   const twin = (x: CobCanadaInput, f: PaymentFrequency) => asInput({ ...x, paymentFrequency: f });
-  it.each(BOTH_LEAP)('INV-ACCEL [%s]: accelerated weekly / bi-weekly JSON-equal weekly / bi-weekly (V-NOLEAP-EXACT, V-WHOLE5Y)', (_l, leap) => {
+  it.each(BOTH_LEAP)('INV-ACCEL [%s, B37 state]: accelerated weekly / bi-weekly JSON-equal weekly / bi-weekly (V-NOLEAP-EXACT, V-WHOLE5Y)', (_l, leap) => {
     const a = toInput(caseOf('V-NOLEAP-EXACT').input);
-    expect(json(calculateWith(a, SHIPPED, leap))).toBe(json(calculateWith(twin(a, 'weekly'), SHIPPED, leap)));
+    expect(json(calculateWith(a, SHIPPED, leap, B38_OFF))).toBe(json(calculateWith(twin(a, 'weekly'), SHIPPED, leap, B38_OFF)));
     const b = toInput(caseOf('V-WHOLE5Y').input);
-    expect(json(calculateWith(b, SHIPPED, leap))).toBe(json(calculateWith(twin(b, 'biweekly'), SHIPPED, leap)));
+    expect(json(calculateWith(b, SHIPPED, leap, B38_OFF))).toBe(json(calculateWith(twin(b, 'biweekly'), SHIPPED, leap, B38_OFF)));
   });
 
   it('INV-ACCEL: the accelerated runs are the leap-aware ones in the on state', () => {
@@ -611,8 +569,8 @@ describe('B37-T7 INV-ACCEL, INV-B19, INV-LEAPRULE', () => {
   it('INV-B19: the leap switch is independent of unpaidInterestCapitalised (V-CASE1): the rate depends on the leap state only', () => {
     const x = toInput(caseOf('V-CASE1').input);
     const v = caseOf('V-CASE1');
-    expect(calculateWith(x, WORKBOOK, LEAP_ON).calculatedRatePercent).toBe(v.on.calculatedRatePercent);
-    expect(calculateWith(x, SHIPPED, LEAP_ON).calculatedRatePercent).toBe(v.on.calculatedRatePercent);
+    expect(calculateWith(x, WORKBOOK, LEAP_ON, B38_OFF).calculatedRatePercent).toBe(v.on.calculatedRatePercent);
+    expect(calculateWith(x, SHIPPED, LEAP_ON, B38_OFF).calculatedRatePercent).toBe(v.on.calculatedRatePercent);
     expect(calculateWith(x, WORKBOOK, LEAP_OFF).calculatedRatePercent).toBe(v.off.calculatedRatePercent);
     expect(calculateWith(x, SHIPPED, LEAP_OFF).calculatedRatePercent).toBe(v.off.calculatedRatePercent);
   });
@@ -645,16 +603,23 @@ describe('B37-T8 INV-OFF: with the switch off the engine replays both pre-B37 go
 });
 
 // ================================================================================================ T9
-describe('B37-T9 the label\'s engine function paymentsPerYearFor (addendum B37-L1..L3)', () => {
+describe('B37-T9 the label\'s engine function paymentsPerYearFor (addendum B37-L1..L3; shipped, so B38: Y = YEARFRAC)', () => {
   beforeAll(() => {
     outcomes();
   }, 120_000);
 
-  it('C3 vectors: n for all six frequencies on the brief\'s dates (fixed mortgage, Payment change), Object.is the oracle', () => {
+  it('C3 vectors: n for all six frequencies on the brief\'s dates (fixed mortgage, Payment change), Object.is the oracle (B38 for paymentsPerYearFor; the B37 fixture values through the six-argument conversionPaymentsPerYear)', () => {
     for (const [id, v] of Object.entries(V.labelN)) {
       const x = asInput({ ...toInput(caseOf('V-CASE1').input), renewalDate: utcDate(v.start), firstPaymentDate: utcDate(v.start), endDate: utcDate(v.end) });
-      for (const f of SIX) expect(Object.is(paymentsPerYearFor(x, f), v.n[f]), `${id} ${f}`).toBe(true);
+      for (const f of SIX) {
+        expect(Object.is(paymentsPerYearFor(x, f), oracleN('mortgage', 'fixed', f, v.start, v.end, true, true)), `${id} ${f}`).toBe(true);
+        expect(Object.is(paymentsPerYearFor(x, f), V.b38.labelN[id]!.n[f]), `${id} ${f} b38 fixture`).toBe(true);
+        expect(Object.is(conversionPaymentsPerYear('mortgage', 'fixed', f, utcDate(v.start), utcDate(v.end), true), v.n[f]), `${id} ${f} B37`).toBe(true);
+      }
     }
+    expect(V.b38.labelN['V-CASE1']!.n.biweekly).toBe(26.089285714285715);
+    expect(V.b38.labelN['V-EX2']!.n.biweekly).toBe(26.083333333333336);
+    expect(V.b38.labelN['REF-01']!.n.weekly).toBe(52.17857142857143);
     expect(V.labelN['V-CASE1']!.n.biweekly).toBe(26.095568783068778);
     expect(V.labelN['REF-01']!.n.weekly).toBe(52.1904761904762);
     expect(V.labelN['V-EX2']!.n.biweekly).toBe(26.087423312883434);
@@ -665,12 +630,14 @@ describe('B37-T9 the label\'s engine function paymentsPerYearFor (addendum B37-L
 
   it('it reads the flow\'s START date, not the first payment date (V-CASE1 as entered: Date of change 2026-10-08, first payment 2026-10-21)', () => {
     const x = toInput(caseOf('V-CASE1').input);
-    expect(paymentsPerYearFor(x, 'biweekly')).toBe(26.095568783068778);
-    expect(paymentsPerYearFor(x, 'weekly')).toBe(52.191137566137556);
+    expect(paymentsPerYearFor(x, 'biweekly')).toBe(26.089285714285715);
+    expect(paymentsPerYearFor(x, 'weekly')).toBe(52.17857142857143);
     const n = toInput(caseOf('V-REF01').input); // newMortgageOrLoan: the Disbursal date
-    expect(paymentsPerYearFor(n, 'weekly')).toBe(52.1904761904762);
+    expect(paymentsPerYearFor(n, 'weekly')).toBe(52.17857142857143);
   });
 
+  // B39 (spec 014, INV-B39-LABEL): the shipped label n includes MONTHLY_RATE_CONVERSION; the oracle runs with
+  // monthlyConversion true and equation 1 takes m = 12 for the MONTHLY basis in scope.
   it('INV-LABEL-N: for every successful sweep case, paymentsPerYearFor(x, its frequency) Object.is QA\'s n, and equation 1 at it is the shipped Calculated rate', () => {
     const res = outcomes();
     const bad: string[] = [];
@@ -678,22 +645,25 @@ describe('B37-T9 the label\'s engine function paymentsPerYearFor (addendum B37-L
       const o = res[i]!;
       if (!o.ok) return;
       const n = paymentsPerYearFor(c.x, c.f);
-      if (!Object.is(n, oracleN(c.pt, c.rt, c.f, c.start, c.end, true))) bad.push(`${i} n ${n}`);
-      if (!Object.is(calculatedRateFor(c.pt, c.rt, c.x.contractRatePercent, n).percent, calculateCobCanada(c.x).calculatedRatePercent)) bad.push(`${i} rate`);
+      if (!Object.is(n, oracleN(c.pt, c.rt, c.f, c.start, c.end, true, true, true))) bad.push(`${i} n ${n}`);
+      const m12 = isB39Converted(c.pt, c.rt, c.f, c.start, c.end);
+      if (!Object.is(calculatedRateFor(c.pt, c.rt, c.x.contractRatePercent, n, m12).percent, calculateCobCanada(c.x).calculatedRatePercent)) bad.push(`${i} rate`);
     });
     expect(bad.slice(0, 5), `${bad.length} failures`).toEqual([]);
   });
 
-  it('INV-LABEL-SHARED: paymentsPerYearFor(x, f) Object.is conversionPaymentsPerYear(p, r, f, start, end, LEAP_AWARE_PAYMENTS_PER_YEAR) and the oracle, every sweep case x every frequency; off: the base n', () => {
+  it('INV-LABEL-SHARED: paymentsPerYearFor(x, f) Object.is conversionPaymentsPerYear(p, r, f, start, end, LEAP_AWARE_PAYMENTS_PER_YEAR, YEARFRAC_ROUNDED_INTEREST, MONTHLY_RATE_CONVERSION) and the oracle, every sweep case x every frequency; off: the base n', () => {
     const bad: string[] = [];
     const sw = leapSwitch() as boolean;
+    const swB38 = b38Switch() as boolean;
+    const swB39 = b39Switch() as boolean;
     SWEEP.forEach((c, i) => {
       const start = utcDate(c.start);
       const end = c.x.endDate;
       for (const f of SIX) {
         const a = paymentsPerYearFor(c.x, f);
-        if (!Object.is(a, conversionPaymentsPerYear(c.pt, c.rt, f, start, end, sw))) bad.push(`${i} ${f} shared`);
-        if (!Object.is(a, oracleN(c.pt, c.rt, f, c.start, c.end, true))) bad.push(`${i} ${f} oracle`);
+        if (!Object.is(a, conversionPaymentsPerYear(c.pt, c.rt, f, start, end, sw, swB38, swB39))) bad.push(`${i} ${f} shared`);
+        if (!Object.is(a, oracleN(c.pt, c.rt, f, c.start, c.end, true, true, true))) bad.push(`${i} ${f} oracle`);
         if (conversionPaymentsPerYear(c.pt, c.rt, f, start, end, false) !== PAYMENTS_PER_YEAR[f]) bad.push(`${i} ${f} off`);
       }
     });
@@ -708,7 +678,7 @@ describe('B37-T9 the label\'s engine function paymentsPerYearFor (addendum B37-L
     const start = code.indexOf('export function paymentsPerYearFor(');
     expect(start).toBeGreaterThan(-1);
     const body = code.slice(start, code.indexOf('\n}', start));
-    expect(body).toMatch(/conversionPaymentsPerYear\([\s\S]*LEAP_AWARE_PAYMENTS_PER_YEAR,?\s*\)/);
+    expect(body).toMatch(/conversionPaymentsPerYear\([\s\S]*LEAP_AWARE_PAYMENTS_PER_YEAR,\s*YEARFRAC_ROUNDED_INTEREST,\s*MONTHLY_RATE_CONVERSION,?\s*\)/);
     expect(body).not.toMatch(/\btrue\b/);
     const eq = stripComments(read(join(SRC_CA, 'equations.ts')));
     expect(eq).toMatch(/export function conversionPaymentsPerYear\(/);
@@ -720,10 +690,18 @@ describe('B37-T9 the label\'s engine function paymentsPerYearFor (addendum B37-L
     const rec = (o: object) => asInput({ ...x, ...o });
     const base = (input: CobCanadaInput) => SIX.map((f) => paymentsPerYearFor(input, f));
     const BASE = SIX.map((f) => PAYMENTS_PER_YEAR[f]);
+    // B39 (spec 014, INV-B39-LABEL): the MONTHLY basis (VRPC, variable mortgage, personal loan) is no longer a fallback:
+    // with MONTHLY_RATE_CONVERSION shipped true it takes the leap-aware n (the oracle with monthlyConversion true).
+    const monthly: [string, CobCanadaInput, ProductType, RateType][] = [
+      ['VRPC (variable)', rec({ flow: 'variableRatePaymentChange', rateType: 'variable' }), 'mortgage', 'variable'],
+      ['variable mortgage', rec({ rateType: 'variable' }), 'mortgage', 'variable'],
+      ['personal loan, fixed', rec({ productType: 'personalLoan' }), 'personalLoan', 'fixed'],
+    ];
+    for (const [name, input, pt, rt] of monthly) {
+      expect(base(input), name).toEqual(SIX.map((f) => oracleN(pt, rt, f, '2026-10-08', '2029-09-23', true, true, true)));
+      expect(base(input), name).toEqual([52.17857142857143, 52.17857142857143, 26.089285714285715, 26.089285714285715, 24, 12]);
+    }
     const fallbacks: [string, CobCanadaInput][] = [
-      ['VRPC (variable)', rec({ flow: 'variableRatePaymentChange', rateType: 'variable' })],
-      ['variable mortgage', rec({ rateType: 'variable' })],
-      ['personal loan, fixed', rec({ productType: 'personalLoan' })],
       ['End date NaN', rec({ endDate: new Date(NaN) })],
       ['End date missing', rec({ endDate: undefined })],
       ['start missing', rec({ renewalDate: undefined })],
@@ -740,7 +718,7 @@ describe('B37-T9 the label\'s engine function paymentsPerYearFor (addendum B37-L
       expect(() => (got = base(input)), name).not.toThrow();
       expect(got, name).toEqual(BASE);
     }
-    expect(base(fallbacks.at(-1)![1])).toEqual([52.191137566137556, 52.191137566137556, 26.095568783068778, 26.095568783068778, 24, 12]);
+    expect(base(fallbacks.at(-1)![1])).toEqual([52.17857142857143, 52.17857142857143, 26.089285714285715, 26.089285714285715, 24, 12]);
   });
 
   it('INV-LABEL-TOTAL: RangeError only for a frequency outside PaymentFrequency (daily, toString)', () => {
@@ -767,10 +745,460 @@ describe('B37-T9 the label\'s engine function paymentsPerYearFor (addendum B37-L
     }
   });
 
-  it('none of the four new names is on either barrel except paymentsPerYearFor (ADR-13(j))', () => {
-    for (const n of ['conversionPaymentsPerYear', 'leapAwarePaymentsPerYear', 'paymentPeriodDays', 'LEAP_AWARE_PAYMENTS_PER_YEAR']) {
+  it('none of the four new names (B38: nor its four) is on either barrel except paymentsPerYearFor (ADR-13(j))', () => {
+    for (const n of ['conversionPaymentsPerYear', 'leapAwarePaymentsPerYear', 'paymentPeriodDays', 'LEAP_AWARE_PAYMENTS_PER_YEAR', 'excelYearFracBasis1', 'roundToCentHalfAwayFromZero', 'roundsPeriodInterestToCent', 'YEARFRAC_ROUNDED_INTEREST']) {
       expect(Object.keys(ca)).not.toContain(n);
     }
     expect(typeof (ca as Record<string, unknown>).paymentsPerYearFor).toBe('function');
+  });
+});
+
+// ================================================================================================ B38
+// Spec 013 (docs/new-req/013-b38-yearfrac-rounded-interest.md), user decision DEC-B38-YEARFRAC-ROUND (2026-10-10),
+// deviation DEV-B38-ROUND (signed off by the user, CHANGES.md §76). Shipped = (leapAware true, yearFracRounded true).
+const excelYearFracBasis1 = (s: Date, e: Date): number => fnOf<(s: Date, e: Date) => number>(calendar, 'excelYearFracBasis1')(s, e);
+const roundToCent = (x: number): number => fnOf<(x: number) => number>(equations, 'roundToCentHalfAwayFromZero')(x);
+const roundsPeriodInterestToCent = (pt: ProductType, rt: RateType, f: PaymentFrequency, s: Date | undefined, e: Date | undefined, l: boolean, y: boolean): boolean =>
+  fnOf<(pt: ProductType, rt: RateType, f: PaymentFrequency, s: Date | undefined, e: Date | undefined, l: boolean, y: boolean) => boolean>(
+    equations,
+    'roundsPeriodInterestToCent',
+  )(pt, rt, f, s, e, l, y);
+/** The B38 state, explicitly (shipped before B39). B39 (spec 014): with MONTHLY_RATE_CONVERSION false, the B38 state of spec
+ *  014's switch table, (true, true, false); the shipped B39 state is tested in b39-monthly-conversion.test.ts. */
+const b38 = (x: CobCanadaInput): CobCanadaResult => calculateWith(x, SHIPPED, LEAP_ON, B38_ON, B39_OFF);
+const B38V = V.b38;
+const B38_CASE_IDS = Object.keys(B38V.cases);
+const b38CaseOf = (id: string) => B38V.cases[id]!;
+const dp2 = (x: number): string => x.toFixed(2);
+const isWholeCents = (x: number): boolean => Math.abs(x * 100 - Math.round(x * 100)) <= 1e-6;
+
+describe('B38-T1 INV-B38-PIN: YEARFRAC_ROUNDED_INTEREST is shipped true and calculateCobCanada is the B38 state', () => {
+  it('YEARFRAC_ROUNDED_INTEREST === true (value pin, ADR-14)', () => {
+    expect(b38Switch()).toBe(true);
+  });
+
+  it('calculateCobCanada(V-CASE1) JSON-equals calculateCobCanadaWith(V-CASE1, SHIPPED, true, true); the B37 state differs', () => {
+    const x = toInput(caseOf('V-CASE1').input);
+    expect(json(calculateCobCanada(x))).toBe(json(b38(x)));
+    expect(json(calculateCobCanada(x))).not.toBe(json(on(x)));
+    expect(calculateCobCanada(x).calculatedRatePercent).toBe(4.297116290973523);
+  });
+
+  // B39 (spec 014): a defaulted fifth parameter (monthlyConversion) may follow, and the engine's conversionPaymentsPerYear(
+  // call passes it after yearFracRounded.
+  it('source: the fourth parameter is `yearFracRounded: boolean = YEARFRAC_ROUNDED_INTEREST`; calculateCobCanada passes two arguments; one conversionPaymentsPerYear( call takes it', () => {
+    const code = stripComments(read(join(SRC_CA, 'cobCanada.ts')));
+    expect(code).toMatch(/yearFracRounded: boolean = YEARFRAC_ROUNDED_INTEREST,\s*(?:monthlyConversion: boolean = MONTHLY_RATE_CONVERSION,?\s*)?\): CobCanadaResult/);
+    expect(code).toMatch(/return calculateCobCanadaWith\(input, SHIPPED_SWITCHES\);/);
+    expect(code).toMatch(/conversionPaymentsPerYear\([\s\S]*?leapAware,\s*yearFracRounded,\s*(?:monthlyConversion,?\s*)?\)/);
+    expect(code).toMatch(/roundsPeriodInterestToCent\([\s\S]*?leapAware,\s*yearFracRounded,?\s*\)/);
+    expect(code).not.toMatch(/\bexcelYearFracBasis1\(/);
+    const pol = stripComments(read(join(SRC_CA, 'policies.ts')));
+    expect(pol).toMatch(/export const YEARFRAC_ROUNDED_INTEREST = true;/);
+    expect(read(join(SRC_CA, 'policies.ts'))).toMatch(/@decision DEC-B38-YEARFRAC-ROUND/);
+  });
+});
+
+describe('B38-T2 INV-B38-ACCEPT and INV-B38-PENDING: the user\'s Excel examples through the public calculateCobCanada (shipped)', () => {
+  it('US-08 case 1 (V-CASE1; Payment change, fixed, Bi-weekly, 495,466.87 at 4.34 %, payment 1,350.64, accrued 58.33, 2026-10-08 / 2026-10-21 / 2029-09-23, no fees): Total interest 60,137.63, Total principal 43,861.65 (Excel, to the cent)', () => {
+    const r = calculateCobCanada(toInput(caseOf('V-CASE1').input));
+    expect(dp2(r.totalInterest)).toBe('60137.63');
+    expect(dp2(r.principalPayment)).toBe('43861.65');
+    expect(r.totalInterest).toBe(60137.63);
+    expect(r.principalPayment).toBe(43861.65);
+    expect(r.numberOfPayments).toBe(77);
+    expect(r.calculatedRatePercent).toBe(4.297116290973523);
+    expect(r.amortizationSchedule[0]!.periodInterest).toBe(758.3);
+    expect(r.cobRatePercent).toBe(r.calculatedRatePercent);
+    // B37 state, for contrast (CHANGES §75: one cent short of Excel).
+    expect(dp2(on(toInput(caseOf('V-CASE1').input)).totalInterest)).toBe('60137.62');
+  });
+
+  it('US-08 example 2 (V-EX2; Payment change, fixed, Bi-weekly, 413,337.42 at 4.30 %, payment 1,050, accrued 530.49, 2026-10-08 / 2026-10-08 / 2031-03-27, no fees): Total interest 74,326.11, Total principal 48,523.89 (Excel, to the cent)', () => {
+    const r = calculateCobCanada(toInput(caseOf('V-EX2').input));
+    expect(dp2(r.totalInterest)).toBe('74326.11');
+    expect(dp2(r.principalPayment)).toBe('48523.89');
+    expect(r.totalInterest).toBe(74326.10999999997);
+    expect(r.principalPayment).toBe(48523.89000000001);
+    expect(r.numberOfPayments).toBe(117);
+    expect(r.calculatedRatePercent).toBe(4.257898619563019);
+  });
+
+  it('the user\'s examples through the UI calculation path (ui/ca-view.js toInput -> calculateCobCanada -> figures): $60,137.63 / $43,861.65 and $74,326.11 / $48,523.89', async () => {
+    const v = (await import('../../ui/ca-view.js')) as typeof View;
+    const raw = (loan: string, rate: string, pay: string, accrued: string, start: string, first: string, end: string): View.RawForm =>
+      ({ flow: 'paymentChange', productType: 'mortgage', rateType: 'fixed', loanAmount: loan, contractRatePercent: rate, paymentAmount: pay, paymentFrequency: 'biweekly', firstPaymentDate: first, endDate: end, disbursalDate: '', renewalDate: start, accruedInterest: accrued, fees: [] }) as unknown as View.RawForm;
+    const ctx = { spec: FLOWS.paymentChange, semiAnnual: requiresSemiAnnualDate('mortgage', 'fixed'), switches: UI_ON } as View.ViewContext;
+    const figure = (r: CobCanadaResult, label: string) => v.mainFigures(r).find((f) => f[0] === label)?.[1];
+    const r1 = calculateCobCanada(v.toInput(raw('495,466.87', '4.34', '1,350.64', '58.33', '2026-10-08', '2026-10-21', '2029-09-23'), ctx));
+    expect(figure(r1, 'Total interest')).toBe('$60,137.63');
+    expect(figure(r1, 'Total principal paid')).toBe('$43,861.65');
+    const r2 = calculateCobCanada(v.toInput(raw('413,337.42', '4.30', '1,050.00', '530.49', '2026-10-08', '2026-10-08', '2031-03-27'), ctx));
+    expect(figure(r2, 'Total interest')).toBe('$74,326.11');
+    expect(figure(r2, 'Total principal paid')).toBe('$48,523.89');
+    // QA verify (B38): the printout's figures too. Example 2's raw total is 74326.10999999997; it must print as
+    // $74,326.11, never $74,326.10 (no truncation on the print path).
+    const printed = (r: CobCanadaResult, label: string) => v.printFigures(r, ctx).right.find((f) => f[0] === label)?.[1];
+    expect(printed(r1, 'Total interest')).toBe('$60,137.63');
+    expect(printed(r1, 'Total principal paid')).toBe('$43,861.65');
+    expect(printed(r2, 'Total interest')).toBe('$74,326.11');
+    expect(printed(r2, 'Total principal paid')).toBe('$48,523.89');
+    // The CSV carries the schedule unrounded; in the B38 cases every Period interest cell is whole cents.
+    const csv = v.scheduleCsv(r2.amortizationSchedule, 'all', ctx).trim().split('\r\n');
+    const col = csv[0]!.split(',').indexOf('Period interest');
+    expect(col).toBeGreaterThan(-1);
+    for (const line of csv.slice(1)) expect(line.split(',')[col]).toMatch(/^\d+(\.\d{1,2})?$/);
+  });
+
+  it('PENDING Q-B38-PEND (user prediction, unconfirmed in Excel): V-PEND (300,000 at 5 %, payment 900, accrued 0, 2026-11-02 / 2026-11-16 / 2030-06-28) pins the engine at 51,018.08 / 34,481.92; not a parity claim', () => {
+    const r = calculateCobCanada(toInput(b38CaseOf('V-PEND').input));
+    expect(dp2(r.totalInterest)).toBe('51018.08');
+    expect(dp2(r.principalPayment)).toBe('34481.92');
+    expect(r.numberOfPayments).toBe(95);
+    expect(r.calculatedRatePercent).toBe(4.943200251390675);
+    expect(r.amortizationSchedule[0]!.periodInterest).toBe(568.81);
+    const b37 = on(toInput(b38CaseOf('V-PEND').input));
+    expect([dp2(b37.totalInterest), dp2(b37.principalPayment)]).toEqual(['51018.03', '34481.97']);
+  });
+});
+
+describe('B38-T3 the B38 vectors: fixture = fresh oracle run; the engine equals the oracle on every row (Object.is)', () => {
+  it('the b38 fixture key equals a fresh oracle run, and the brief\'s literals', () => {
+    for (const id of B38_CASE_IDS) {
+      const v = b38CaseOf(id);
+      const o = oracleSchedule(v.input, true, true);
+      for (const k of ['n', 'calculatedRatePercent', 'numberOfPayments', 'totalInterest', 'principalPayment', 'endingBalance', 'termDays', 'cobAmount', 'cobRatePercent'] as const) {
+        expect(o[k], `${id} ${k}`).toBe(v.on[k]);
+      }
+      expect(o.rows[0]!.periodInterest, id).toBe(v.on.row1PeriodInterest);
+      expect(v.Y, id).toBe(oracleYearFracBasis1(v.input.start, v.input.end));
+    }
+    expect(b38CaseOf('V-CASE1').on.n).toBe(26.089285714285715);
+    expect(b38CaseOf('V-EX2').on.n).toBe(26.083333333333336);
+    expect(b38CaseOf('V-PEND').on.n).toBe(26.085714285714285);
+    expect(b38CaseOf('V-REF01').on.calculatedRatePercent).toBe(3.706776950704952);
+    for (const v of B38V.nVectors) expect(oracleLeapN(v.periodDays, v.start, v.end, true)).toBe(v.n);
+    for (const v of B38V.yearFracVectors) expect(oracleYearFracBasis1(v.start, v.end)).toBe(v.y);
+  });
+
+  it.each(B38_CASE_IDS)('%s [B38]: every row and headline output equals the oracle (Object.is); calculateCobCanada is that state', (id) => {
+    const c = b38CaseOf(id).input;
+    const o = oracleSchedule(c, true, true);
+    const r = calculateCobCanada(toInput(c));
+    expect(r.amortizationSchedule.length).toBe(o.rows.length);
+    r.amortizationSchedule.forEach((row, i) => {
+      const q = o.rows[i]!;
+      expect(isoDay(row.date)).toBe(q.date);
+      expect(row.openingBalance, `row ${i + 1}`).toBe(q.openingBalance);
+      expect(row.periodInterest, `row ${i + 1}`).toBe(q.periodInterest);
+      expect(row.interestPaid, `row ${i + 1}`).toBe(q.interestPaid);
+      expect(row.principalPortion, `row ${i + 1}`).toBe(q.principalPortion);
+      expect(row.closingBalance, `row ${i + 1}`).toBe(q.closingBalance);
+    });
+    for (const k of ['calculatedRatePercent', 'totalInterest', 'principalPayment', 'endingBalance', 'termDays', 'cobAmount', 'cobRatePercent', 'numberOfPayments'] as const) {
+      expect(r[k], k).toBe(o[k]);
+    }
+  });
+
+  it('INV-B38-LE1Y: the within-a-year YEARFRAC branch through the engine (n B38 / B37, raw total interest)', () => {
+    const T: [string, number, number, number][] = [
+      ['V-LE1Y-FEB29', 26.142857142857146, 26.089744459121867, 10993.45],
+      ['V-LE1Y-NOFEB', 52.14285714285714, 52.26508143212298, 13313.24],
+      ['V-LE1Y-END-FEB29', 52.285714285714285, 52.16615159621361, 13859.259999999995],
+      ['V-EXACT1Y', 26.142857142857142, 26.13953075598049, 14497.879999999997],
+      ['V-CROSS1Y-1D', 52.21428571428571, 52.26224146224146, 14090],
+    ];
+    for (const [id, nB38, nB37, ti] of T) {
+      const c = b38CaseOf(id).input;
+      const s = utcDate(c.start);
+      const e = utcDate(c.end);
+      expect(conversionPaymentsPerYear('mortgage', 'fixed', c.frequency, s, e, true, true), id).toBe(nB38);
+      expect(conversionPaymentsPerYear('mortgage', 'fixed', c.frequency, s, e, true, false), id).toBe(nB37);
+      expect(calculateCobCanada(toInput(c)).totalInterest, id).toBe(ti);
+    }
+    // V-2028: one calendar year, so YEARFRAC = dayCountFraction and n is unchanged; only the rounding moves it.
+    const c = caseOf('V-2028').input;
+    expect(b38CaseOf('V-2028').on.n).toBe(26.142857142857142);
+    expect(calculateCobCanada(toInput(c)).totalInterest).toBe(13067.529999999999);
+    expect(on(toInput(c)).totalInterest).toBe(13067.52165346835);
+  });
+});
+
+describe('B38-T4 INV-B38-N and INV-B38-ORDER: n = D / P / YEARFRAC, left to right', () => {
+  it('conversionPaymentsPerYear(..., true, true) Object.is the oracle: V-CASE1 26.089285714285715, V-EX2 26.083333333333336, V-PEND 26.085714285714285', () => {
+    for (const [id, n] of [['V-CASE1', 26.089285714285715], ['V-EX2', 26.083333333333336]] as const) {
+      const c = caseOf(id).input;
+      expect(conversionPaymentsPerYear('mortgage', 'fixed', 'biweekly', utcDate(c.start), utcDate(c.end), true, true)).toBe(n);
+    }
+    const p = b38CaseOf('V-PEND').input;
+    expect(conversionPaymentsPerYear('mortgage', 'fixed', 'biweekly', utcDate(p.start), utcDate(p.end), true, true)).toBe(26.085714285714285);
+    for (const v of B38V.nVectors) {
+      expect(Object.is(leapAwarePaymentsPerYear(v.periodDays, utcDate(v.start), utcDate(v.end), true), v.n), `${v.periodDays} ${v.start} ${v.end}`).toBe(true);
+    }
+  });
+
+  it('the seventh parameter defaults to false: six arguments are the B37 n, byte for byte', () => {
+    for (const v of V.nVectors) {
+      const f: PaymentFrequency = v.periodDays === 7 ? 'weekly' : 'biweekly';
+      const s = utcDate(v.start);
+      const e = utcDate(v.end);
+      expect(Object.is(conversionPaymentsPerYear('mortgage', 'fixed', f, s, e, true), conversionPaymentsPerYear('mortgage', 'fixed', f, s, e, true, false))).toBe(true);
+      expect(Object.is(leapAwarePaymentsPerYear(v.periodDays, s, e), v.n)).toBe(true);
+    }
+  });
+
+  it('INV-B38-ORDER: D / P / Y, not L / P: 2025-01-01 -> 2025-02-27 at P = 7 is 52.14285714285714, not 365 / 7', () => {
+    const n = conversionPaymentsPerYear('mortgage', 'fixed', 'weekly', utcDate('2025-01-01'), utcDate('2025-02-27'), true, true);
+    expect(n).toBe(52.14285714285714);
+    expect(n).not.toBe(365 / 7);
+    expect(n).toBe(57 / 7 / (57 / 365));
+    for (const id of ['V-CASE1', 'V-WEEKLY', 'V-WHOLE5Y']) {
+      const c = caseOf(id).input;
+      const p = paymentPeriodDays(c.frequency)!;
+      const d = civilDays(c.end) - civilDays(c.start);
+      const leftToRight = d / p / oracleYearFracBasis1(c.start, c.end);
+      expect(conversionPaymentsPerYear('mortgage', 'fixed', c.frequency, utcDate(c.start), utcDate(c.end), true, true), id).toBe(leftToRight);
+    }
+  });
+});
+
+// The B38 sweep pass: shipped, and leap off with yearFracRounded true. B39 (spec 014): `shipped` is the B38 state (the
+// shipped state before B39, MONTHLY_RATE_CONVERSION false); the B39 sweep is in b39-monthly-conversion.test.ts.
+type B38Outcome = { ok: true; shipped: CobCanadaResult; leapOffB38: CobCanadaResult } | { ok: false };
+let B38_OUTCOMES: B38Outcome[] = [];
+function b38Outcomes(): B38Outcome[] {
+  if (B38_OUTCOMES.length === 0) {
+    B38_OUTCOMES = SWEEP.map((c) => {
+      const a = tryRun(() => b38(c.x));
+      const b = tryRun(() => calculateWith(c.x, SHIPPED, LEAP_OFF, B38_ON));
+      return typeof a === 'string' || typeof b === 'string' ? { ok: false } : { ok: true, shipped: a, leapOffB38: b };
+    });
+  }
+  return B38_OUTCOMES;
+}
+
+describe('B38-T5 sweep (4,800 inputs): INV-B38-N bounds, INV-B38-ROW, INV-B38-CONST, INV-B38-SCOPE, INV-B38-SCOPE-SAME, the oracle on every 7/14-day case', () => {
+  beforeAll(() => {
+    outcomes();
+    b38Outcomes();
+  }, 180_000);
+
+  it('errors are the same as in the B37 state; the B38 state calculates the same cases', () => {
+    const a = outcomes();
+    const b = b38Outcomes();
+    a.forEach((o, i) => expect(b[i]!.ok, `${i}`).toBe(o.ok));
+  });
+
+  it('INV-B38-N: fixed mortgage at 7/14 days: 365/P (1 - 1e-12) <= n <= 366/P (1 + 1e-12), n = the oracle, the shipped rate is equation 1 at it and strictly below the workbook rate', () => {
+    const b = b38Outcomes();
+    const a = outcomes();
+    const bad: string[] = [];
+    let checked = 0;
+    SWEEP.forEach((c, i) => {
+      const o = b[i]!;
+      if (!isConverted(c) || !o.ok || !a[i]!.ok) return;
+      const p = paymentPeriodDays(c.f)!;
+      const n = conversionPaymentsPerYear(c.pt, c.rt, c.f, utcDate(c.start), utcDate(c.end), true, true);
+      if (!Object.is(n, oracleLeapN(p, c.start, c.end, true))) bad.push(`${i} n oracle`);
+      if (!(n >= (365 / p) * (1 - 1e-12) && n <= (366 / p) * (1 + 1e-12))) bad.push(`${i} n ${n}`);
+      if (!Object.is(o.shipped.calculatedRatePercent, calculatedRateFor('mortgage', 'fixed', c.x.contractRatePercent, n).percent)) bad.push(`${i} rate`);
+      const workbook = (a[i] as { off: CobCanadaResult }).off.calculatedRatePercent;
+      if (!(o.shipped.calculatedRatePercent < workbook)) bad.push(`${i} not below workbook`);
+      checked += 1;
+    });
+    expect(bad.slice(0, 5), `${bad.length} failures`).toEqual([]);
+    expect(checked).toBeGreaterThan(800);
+  });
+
+  it('INV-B38-ORDER on the sweep: some spans have D / P / Y !== L / P, and the engine follows D / P / Y on all of them', () => {
+    let differing = 0;
+    SWEEP.forEach((c) => {
+      if (!isConverted(c)) return;
+      const p = paymentPeriodDays(c.f)!;
+      const d = civilDays(c.end) - civilDays(c.start);
+      const y = oracleYearFracBasis1(c.start, c.end);
+      const l = d / y;
+      const n = conversionPaymentsPerYear(c.pt, c.rt, c.f, utcDate(c.start), utcDate(c.end), true, true);
+      expect(n).toBe(d / p / y);
+      if (!Object.is(d / p / y, l / p)) differing += 1;
+    });
+    expect(differing).toBeGreaterThan(0);
+  });
+
+  it('INV-B38-ROW and INV-B38-CONST: in scope every row\'s periodInterest === roundToCent(periodInterest(opening, decimal, prior, date)) and is whole cents; out of scope it is the unrounded periodInterest', () => {
+    const b = b38Outcomes();
+    let inRows = 0;
+    let outRows = 0;
+    const bad: string[] = [];
+    SWEEP.forEach((c, i) => {
+      const o = b[i]!;
+      if (!o.ok) return;
+      const n = oracleN(c.pt, c.rt, c.f, c.start, c.end, true, true);
+      const dec = calculatedRateFor(c.pt, c.rt, c.x.contractRatePercent, n).decimal;
+      const inScope = isConverted(c);
+      let prior = utcDate(c.start);
+      for (const row of o.shipped.amortizationSchedule) {
+        const raw = periodInterest(row.openingBalance, dec, prior, row.date);
+        if (inScope) {
+          inRows += 1;
+          if (!Object.is(row.periodInterest, roundToCent(raw))) bad.push(`${i} row ${row.period} not rounded`);
+          if (!Object.is(roundToCent(raw), oracleRoundCent(raw))) bad.push(`${i} row ${row.period} oracle round`);
+          if (!isWholeCents(row.periodInterest)) bad.push(`${i} row ${row.period} not whole cents`);
+        } else {
+          outRows += 1;
+          if (!Object.is(row.periodInterest, raw)) bad.push(`${i} row ${row.period} rounded out of scope`);
+        }
+        prior = row.date;
+      }
+    });
+    expect(bad.slice(0, 5), `${bad.length} failures`).toEqual([]);
+    expect(inRows).toBeGreaterThan(30000);
+    expect(outRows).toBeGreaterThan(50000);
+  });
+
+  it('INV-B38-SCOPE: every out-of-scope case JSON-equals between yearFracRounded true and false; with leapAware false every case does', () => {
+    const a = outcomes();
+    const b = b38Outcomes();
+    const bad: string[] = [];
+    let outChecked = 0;
+    SWEEP.forEach((c, i) => {
+      const o = b[i]!;
+      const p = a[i]!;
+      if (!o.ok || !p.ok) return;
+      if (json(o.leapOffB38) !== json(p.off)) bad.push(`${i} leap off`);
+      if (isConverted(c)) return;
+      outChecked += 1;
+      if (json(o.shipped) !== json(p.on)) bad.push(`${i} out of scope`);
+    });
+    expect(bad.slice(0, 5), `${bad.length} failures`).toEqual([]);
+    expect(outChecked).toBeGreaterThan(3000);
+  });
+
+  it('INV-B38-SCOPE-SAME: roundsPeriodInterestToCent(p, r, f, s, e, L, Y) === L && Y && conversionPaymentsPerYear(p, r, f, s, e, true, true) !== PAYMENTS_PER_YEAR[f], every sweep case x every frequency x both switches', () => {
+    const bad: string[] = [];
+    SWEEP.forEach((c, i) => {
+      const s = utcDate(c.start);
+      const e = c.x.endDate;
+      for (const f of SIX) {
+        const leapPath = conversionPaymentsPerYear(c.pt, c.rt, f, s, e, true, true) !== PAYMENTS_PER_YEAR[f];
+        for (const l of [true, false]) {
+          for (const y of [true, false]) {
+            if (roundsPeriodInterestToCent(c.pt, c.rt, f, s, e, l, y) !== (l && y && leapPath)) bad.push(`${i} ${f} ${l} ${y}`);
+          }
+        }
+      }
+    });
+    expect(bad.slice(0, 5), `${bad.length} failures`).toEqual([]);
+    expect(roundsPeriodInterestToCent('mortgage', 'fixed', 'biweekly', undefined, utcDate('2029-09-23'), true, true)).toBe(false);
+    expect(roundsPeriodInterestToCent('mortgage', 'fixed', 'biweekly', utcDate('2026-10-08'), utcDate('2026-10-08'), true, true)).toBe(false);
+    expect(roundsPeriodInterestToCent('mortgage', 'fixed', 'biweekly', utcDate('2026-10-08'), new Date(NaN), true, true)).toBe(false);
+  });
+
+  it('QA schedule oracle, B38 state: every 7/14-day case (any product) matches the oracle\'s totals exactly', () => {
+    const b = b38Outcomes();
+    const bad: string[] = [];
+    let checked = 0;
+    SWEEP.forEach((c, i) => {
+      const o = b[i]!;
+      if (c.oc === null || !o.ok) return;
+      const q = oracleSchedule(c.oc, true, true);
+      for (const k of ['calculatedRatePercent', 'numberOfPayments', 'totalInterest', 'principalPayment', 'endingBalance', 'cobAmount', 'cobRatePercent', 'termDays'] as const) {
+        if (!Object.is(o.shipped[k], q[k])) bad.push(`${i} ${k}: ${o.shipped[k]} vs ${q[k]}`);
+      }
+      checked += 1;
+    });
+    expect(bad.slice(0, 5), `${bad.length} failures`).toEqual([]);
+    expect(checked).toBeGreaterThan(2500);
+  });
+});
+
+describe('B38-T6 INV-B38-OFF: with YEARFRAC_ROUNDED_INTEREST false the engine replays the B37 goldens byte for byte', () => {
+  it('golden v1: serialise(computeGolden(leap on, B38 off)) has the B37 sha b90ea69c...d220', () => {
+    expect(sha256(b37StateGoldenText('v1'))).toBe('b90ea69ce09cea5ceaea400cb4a192fcef0d8aca1117905e38c7b01ed876d220');
+  }, 120_000);
+  it('golden PC: serialise(computeGolden(leap on, B38 off)) has the B37 sha 9da9599f...5db8', () => {
+    expect(sha256(b37StateGoldenText('pc'))).toBe('9da9599f75bec61090a9f07d2ee16f4bd8a3c51e3601675d2170ce2afc905db8');
+  }, 120_000);
+});
+
+describe('B38-T7 INV-B38-B19, INV-B38-ACCEL, INV-B38-INPUTS', () => {
+  it('INV-B38-B19: V-CASE1 in both unpaidInterestCapitalised states, shipped: every periodInterest is whole cents; the rate depends only on the switch pair', () => {
+    const x = toInput(caseOf('V-CASE1').input);
+    for (const sw of [SHIPPED, WORKBOOK]) {
+      const r = calculateWith(x, sw, LEAP_ON, B38_ON);
+      for (const row of r.amortizationSchedule) expect(isWholeCents(row.periodInterest), `row ${row.period}`).toBe(true);
+      expect(r.calculatedRatePercent).toBe(4.297116290973523);
+      expect(calculateWith(x, sw, LEAP_ON, B38_OFF).calculatedRatePercent).toBe(4.297115439387225);
+    }
+  });
+
+  it('INV-B38-ACCEL: accelerated weekly / bi-weekly JSON-equal weekly / bi-weekly in the shipped state (V-NOLEAP-EXACT, V-WHOLE5Y)', () => {
+    const twin = (x: CobCanadaInput, f: PaymentFrequency) => asInput({ ...x, paymentFrequency: f });
+    const a = toInput(caseOf('V-NOLEAP-EXACT').input);
+    expect(json(calculateCobCanada(a))).toBe(json(calculateCobCanada(twin(a, 'weekly'))));
+    const b = toInput(caseOf('V-WHOLE5Y').input);
+    expect(json(calculateCobCanada(b))).toBe(json(calculateCobCanada(twin(b, 'biweekly'))));
+    expect(calculateCobCanada(b).calculatedRatePercent).toBe(b38CaseOf('V-WHOLE5Y').on.calculatedRatePercent);
+  });
+
+  it('INV-B38-INPUTS: the engine never rounds inputs: accrued 58.335 reaches row 1 as entered; the payment is paid as entered', () => {
+    const x = toInput({ ...caseOf('V-CASE1').input, flow: 'renewal', accruedInterest: 58.335 });
+    const r = calculateCobCanada(x);
+    expect(r.amortizationSchedule[0]!.carriedAccruedInterestOpening).toBe(58.335);
+    expect(r.amortizationSchedule[0]!.paymentAmount).toBe(1350.64);
+    const f = toInput({ ...caseOf('V-FINFEE').input, financedFees: [2000.005] });
+    expect(calculateCobCanada(f).amortizationSchedule[0]!.feesOpening).toBe(2000.005);
+  });
+});
+
+describe('B38-T8 INV-B38-REF01 (known_divergence DEV-B37-LEAPN + DEV-B38-ROUND, shipped)', () => {
+  it('REF-01: total interest 22,514.06, principal 50,097.70, balance 177,731.95, COB amount 22,514.06; rate 3.706776950704952 % (3.70678 on screen); workbook 22,514.11', () => {
+    const r = calculateCobCanada(toInput(caseOf('V-REF01').input));
+    expect(r.calculatedRatePercent).toBe(3.706776950704952);
+    expect(dp2(r.totalInterest)).toBe('22514.06');
+    expect(dp2(r.principalPayment)).toBe('50097.70');
+    expect(dp2(r.endingBalance)).toBe('177731.95');
+    expect(dp2(r.cobAmount)).toBe('22514.06');
+    expect(r.calculatedRatePercent.toFixed(5)).toBe('3.70678');
+    expect(r.numberOfPayments).toBe(156);
+    const w = off(toInput(caseOf('V-REF01').input));
+    expect(dp2(w.totalInterest)).toBe('22514.11');
+  });
+
+  it('S1_fees (REF-01 with 2,500 of cash fees): COB amount 25,014.06, APR 4.114401983975993 % (4.11440 on screen)', () => {
+    const r = calculateCobCanada(toInput({ ...caseOf('V-REF01').input, cashFees: [2500] }));
+    expect(dp2(r.cobAmount)).toBe('25014.06');
+    expect(r.cobRatePercent).toBe(4.114401983975993);
+    expect(r.cobRatePercent.toFixed(5)).toBe('4.11440');
+  });
+});
+
+describe('B38-T9 INV-B38-LABEL: the label reads the same n as the calculation', () => {
+  // B39 (spec 014, INV-B39-LABEL): MONTHLY_RATE_CONVERSION follows as the eighth argument.
+  it('source: paymentsPerYearFor passes LEAP_AWARE_PAYMENTS_PER_YEAR, YEARFRAC_ROUNDED_INTEREST (B39: then MONTHLY_RATE_CONVERSION) (no literal); equations.ts does not import policies', () => {
+    const code = stripComments(read(join(SRC_CA, 'cobCanada.ts')));
+    const start = code.indexOf('export function paymentsPerYearFor(');
+    const body = code.slice(start, code.indexOf('\n}', start));
+    expect(body).toMatch(/LEAP_AWARE_PAYMENTS_PER_YEAR,\s*YEARFRAC_ROUNDED_INTEREST,\s*MONTHLY_RATE_CONVERSION,?\s*\)/);
+    expect(body).not.toMatch(/\b(true|false)\b/);
+    expect(stripComments(read(join(SRC_CA, 'equations.ts')))).not.toMatch(/policies/);
+  });
+
+  // B39 (spec 014, INV-B39-LABEL): the shipped label n is the oracle's with monthlyConversion true, and the shipped
+  // Calculated rate is equation 1 at it (m = 12 for the MONTHLY basis in scope).
+  it('every sweep case and frequency: paymentsPerYearFor(x, f) is the oracle B38 n (B39: with monthlyConversion), and equation 1 at the case\'s own n is the shipped Calculated rate', () => {
+    const b = b38Outcomes();
+    const bad: string[] = [];
+    SWEEP.forEach((c, i) => {
+      for (const f of SIX) {
+        if (!Object.is(paymentsPerYearFor(c.x, f), oracleN(c.pt, c.rt, f, c.start, c.end, true, true, true))) bad.push(`${i} ${f}`);
+      }
+      const o = b[i]!;
+      if (!o.ok) return;
+      const m12 = isB39Converted(c.pt, c.rt, c.f, c.start, c.end);
+      const pct = calculatedRateFor(c.pt, c.rt, c.x.contractRatePercent, paymentsPerYearFor(c.x, c.f), m12).percent;
+      if (!Object.is(pct, calculateCobCanada(c.x).calculatedRatePercent)) bad.push(`${i} rate`);
+    });
+    expect(bad.slice(0, 5), `${bad.length} failures`).toEqual([]);
   });
 });

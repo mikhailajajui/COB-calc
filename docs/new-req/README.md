@@ -1,46 +1,23 @@
 # New Requirements (cross-platform specs)
 
-Platform-agnostic specs for features identified in a banking-domain QA pass over
-the COB engine (both `COB-ts` and `COB-py`). Each spec is written so any
-implementation (TypeScript, Python, or otherwise) can build the same behavior
-from it, independent of language.
+Platform-agnostic specs for the Canadian Cost of Borrowing (COB) calculator
+(Alterna Savings, BRD v2.3: `docs/COB-business-requirement.md`), implemented across `COB-py`,
+`COB-ts`, and `COB-xlsx`, and deployed as the `app/` web app (spec 010). Each spec is written so any implementation can build
+the same behavior from it, independent of language. Architecture, domain model,
+workflow, and use cases: [`../architecture.md`](../architecture.md).
 
-Reference implementation status is tracked per spec. As of this writing, the
-reference implementation lives in `COB-py` (`cob_calculator/`); `COB-ts` parity
-is not yet ported.
+**Delivery plan for the app (010):** [`../app/delivery-plan.md`](../app/delivery-plan.md):
+the doc consistency check, the merged question list (DQ-01…DQ-34), the phased build plan
+with owners and exit gates, and the prerequisites.
 
 | # | Spec | Status |
 |---|------|--------|
-| 001 | [Yearly summary & N-year report window](001-yearly-summary-report-window.md) | Implemented in COB-py |
-| 002 | [Fees & APR](002-fees-and-apr.md) | Implemented in COB-py |
-| 003 | [DTI & affordability](003-dti-and-affordability.md) | Implemented in COB-py |
-| 004 | [Rounding-drift accuracy disclosure](004-rounding-drift-accuracy-disclosure.md) | Documented; in-app warnings added |
-| 005 | [Excel workbook (full segmented engine)](005-excel-workbook.md) | Implemented in COB-xlsx |
-| 006 | [Cost of Borrowing (COB) disclosure: mortgage & loan workflows](006-cost-of-borrowing-disclosure.md) | Implemented in COB-xlsx (`COB_Calculator_CA.xlsx`, sibling workbook), COB-py (`cob_calculator/cob_canada.py`), and COB-ts (`src/ca/`) — full parity across all three engines |
-
-## Background: gaps identified
-
-A banking-domain QA pass (see conversation history / commit messages around
-these specs) found these gaps against the existing engine, roughly in priority
-order:
-
-1. **Fees are invisible — no APR, no cash-to-close.** `compareLoanTerms` ranks
-   offers by note rate only, which can pick the wrong "cheapest" loan when fees
-   differ. → spec 002.
-2. **No DTI or affordability calculator.** `dscr.ts` covers investment-property
-   income coverage only; personal-mortgage underwriting runs on DTI (front-end
-   ≤28%, back-end ≤36–43%), which didn't exist anywhere. → spec 003.
-3. **No yearly summary / bounded-window reporting.** Getting "just the first 5
-   years" required hand-building a bounded segment and reading
-   `segment_summaries`; there was no annual rollup table (the natural container
-   for year-by-year interest/principal/balance) anywhere. → spec 001.
-4. FHA MIP vs. conventional PMI aren't distinguished (MIP doesn't auto-drop).
-5. Recast vs. re-term after a lump sum isn't an explicit, labeled option.
-6. Lump sums only land on segment boundaries, not mid-segment.
-7. No "financed fee added to principal" primitive (VA funding fee, upfront MIP).
-8. HELOC draws (balance increasing mid-schedule) aren't modeled.
-9. No day-count / odd-days interest at origination (short first period).
-10. No arbitrary-date payoff quote (per-diem interest to a requested date).
-
-Items 4–10 are not yet speced or implemented; they're lower priority than 1–3
-and are documented here so they aren't lost.
+| 006 | [Cost of Borrowing (COB) disclosure: mortgage & loan workflows](006-cost-of-borrowing-disclosure.md) | Rewritten per 007. Re-implemented in all three engines in the **uncommitted** working tree (commit `2314d14` is pre-reconciliation). TS and py tests pass. TS `tests/ca` (106 tests, rerun 2026-09-23) includes `fixtureParity.test.ts`, which matches the fee-free 007 live vector and oracle scenarios S0/S3/S7/S8 on every row at 1e-9, and Appendix A at 1e-12; S1, S2, S4, S5, S6, S9 are expected failures (008 §B, C1, E1, E3). py has no fixture test and is checked at the cent against the 007 vector only. **Not at parity:** fees > 0 and unpaid interest (008 §B), date rules (008 C1), and 2 of 6 IN-09 frequencies not yet in code. |
+| 007 | [COB Canada: reconciliation against the real Alterna Savings BRD](007-cob-canada-brd-reconciliation.md) | Complete, with a VBA-macro addendum. Its follow-ups 1–2 are done (uncommitted). Some findings are superseded by 008 §B/§C. |
+| 008 | [Open items from validating docs against the BRD](008-brd-validation-open-items.md) | Open. A1–A3 resolved 2026-09-23. §B (macro contradicts 006 when fees > 0), §C, §D and §E (engine defects from the 2026-09-23 qa audit) are still open. §F (F1–F11, use-case gaps from 009, for the BRD author) added 2026-09-23, all open. §G (G1–G16, app-level questions from 010: access, monitoring, hosting, go-live gate; G1 superseded 2026-09-23 when D2 was revised to a private API; traced in [`../app/requirements-traceability.md`](../app/requirements-traceability.md)) added 2026-09-23; G1 superseded, G9 closed by the 010 design, the rest open. E6 (engines round fee totals to the cent; the macro doesn't) added 2026-09-23. **2026-09-24, user decisions of 2026-09-23:** for `app/` the BRD governs (macro rule kept for COB-ts/py/xlsx); resolved for `app/`: B1/D4 (IN-07), C4, G2 (provisional), G3, G4, G15; G6, G11 deferred; D1/D2 still open (DQ-05, [`../app/dq-05-note.md`](../app/dq-05-note.md)). New: D8 (IN-07 vs Appendix B.1, BRD author), D9 (which BRD text governs `app/` where Appendix B is known wrong, user), G4 note (compounding date for non-fixed products). **2026-10-13:** F-ii #4 (G-06) / DQ-30 answered for COB-ts only at the four 7- and 14-day frequencies (DEC-B39-VAR-PL-M12, option (b) with the leap-aware n); `app/`, COB-py and COB-xlsx still open. §I added: B39 open items Q-B39-VAR1-CENT, -VAR2-FREQ, -PL-EXAMPLE, -UNIFIED, -ENGINES, -SWITCH, -TRIGGER. |
+| 009 | [Use-case gap analysis against the BRD](009-use-case-gap-analysis.md) | Draft for user review (2026-09-23). 24 candidates: 2 Met, 8 Gap, 3 Conflict, 8 Open, 3 out of scope. Proposed actor, alternate and exception flows, and a conditional UC-10 are **not yet applied** to `architecture.md` (they wait for user confirmation). BRD questions are in 008 §F. Internal decisions I1–I5 are listed in 009. |
+| 010 | [Full-stack app: Fastify API + React UI over the Canadian engine](010-fullstack-app.md) | Design complete, building on the delivery-plan defaults and the user answers of 2026-09-23 ([delivery plan](../app/delivery-plan.md) §2.0). User decisions D1–D7 are folded in: Azure Container Apps with internal ingress, Application Insights with no client IPs, Azure Pipelines (not connected). Supporting docs: `docs/app/architecture.md`, `docs/app/adr/001–011`, `docs/app/requirements-traceability.md`, `docs/app/test-strategy.md`, `docs/visual_design/app-ui.md`. **Layout (ADR-011, supersedes ADR-005; docs swept 2026-09-24):** the app is in `app/` (workspaces `engine`, `api`, `web`; build context `app/`) with its own engine fork, `app/engine` (`@cob/engine`), which follows the BRD, not the macro. COB-ts is frozen as the comparison baseline; `npm run compare:cob-ts` is a report that never fails the build (no sync gate). `docs/app/test-strategy.md` may still describe the old layout (QA). **Implemented:** only `app/engine`: 106 tests, 100 pass and 6 are known gaps marked as expected failures. `app/api/src` and `app/web/src` are empty. **Not verified:** nothing app-level has run. **Go-live is blocked on team UAT sign-off (DQ-26, 008 G15)**; there is no macro-parity gate. |
+| 012 | [COB-ts Canadian engine: macro-parity defect register](012-cob-ts-macro-parity-defects.md) | Open (2026-09-25). User decision: COB-ts is the macro-parity reference, so every divergence from the macro is a defect, including the 011 deviations applied by `68c46b4`. Covers 14 defects: 2 Critical, 4 High, 3 Medium, 5 Low. Workflow is TDD: qa writes failing tests, sr-dev fixes, qa re-validates. COB-py/COB-xlsx not yet audited. |
+| 011 | [`app/engine` changes required by the BRD (user answers 2026-09-23)](011-app-engine-brd-changes.md) | Draft (2026-09-24), `app/engine` only; COB-ts/COB-py/COB-xlsx untouched. DQ-27 (non-financed fees paid separately, IN-07: not in the waterfall, only in C) is the one engine change, **buildable now**, with invariants I-011-1…4 proven in a scratchpad against the current engine plus an independent Python re-implementation. DQ-02 (itemised fees, `includedInCob` value ignored) and DQ-03 (term, compounding date, End Date required) need no engine change; invariants lock current behaviour. DQ-04 and DQ-05 are **provisional** (OQ-011-2/3, user). OQ-011-1 (BRD B.1 lists IN-07 in `feesToRecover`, contradicting IN-07) goes to the BRD author. **Not implemented yet.** |
+| 013 | [B38: Excel YEARFRAC and per-row interest rounding for 7- and 14-day fixed-rate cases](013-b38-yearfrac-rounded-interest.md) | **Implemented in COB-ts, not yet committed** (`COB-ts/CHANGES.md` §76, QA PASS WITH NOTES, 2026-10-10; user decision DEC-B38-YEARFRAC-ROUND, 2026-10-10, recorded in `../../COB-user-stories.md` §7.5). ~~Decided, planned B38, not built.~~ The spec file's own Status line still reads "Draft brief, ready to build" (architect to update). COB-ts only by default (open, Q-B38-ENGINES). For a fixed-rate mortgage at Weekly / Accelerated weekly / Bi-weekly / Accelerated bi-weekly: Y in B37's n = (D ÷ P) ÷ Y becomes Excel YEARFRAC basis 1, and each row's period interest is rounded to the cent. Switch `YEARFRAC_ROUNDED_INTEREST` (ADR-14), shipped on, effective only with `LEAP_AWARE_PAYMENTS_PER_YEAR` on; off reproduces B37 exactly. Acceptance: case 1 → 60,137.63 / 43,861.65, example 2 → 74,326.11 / 48,523.89. Both reproduced to the cent by the engine and by QA's independent oracle ("tests pass" and the user's Excel figures; not the reference workbook). Discriminating check case (predicted 51,018.08 / 34,481.92) still awaits the user's Excel run (Q-B38-CHECK / Q-B38-PEND). Deviation DEV-B38-ROUND, signed off by the user 2026-10-10 (CHANGES §76): intermediate rounding against the macro and the "no intermediate rounding" convention. Built as the 013 spec specified for Q-B38-SHORT, -HALF, -FLOW, -WHICH-ROWS, -ENGINES and -DEV, but no user answer to them is recorded in §7.5 (BA to confirm with the user); open: -CHECK, -WEEKLY, Q-B38-YF, -ROUND, -PEND (spec 013); Q-B37-WHICH-EXCEL still open. Docs still to do: user manual / Help, `docs/architecture.md` row. |
+| 014 | B39: monthly-compounded conversion for variable-rate mortgages and personal loans at 7- and 14-day frequencies (spec by the architect: `014-b39-monthly-conversion-variable-personal-loan.md`, being written) | **Decided, planned B39, not built** (user decision DEC-B39-VAR-PL-M12, 2026-10-13, recorded in `../../COB-user-stories.md` §7.5 and US-08). COB-ts only (other engines open, Q-B39-ENGINES). For a variable-rate mortgage and a personal loan (either rate type) at Weekly / Accelerated weekly / Bi-weekly / Accelerated bi-weekly: Calculated rate = n × [(1 + i/12)^(12/n) − 1] with B37's n = (D ÷ P) ÷ Y and B38's YEARFRAC Y; period interest stays at full precision. Fixed mortgages, Semi-monthly and Monthly unchanged. New ADR-14 switch, shipped on. Acceptance (user's Excel, registry `COB-py/tests/fixtures/ca_user_excel_examples.json`): VAR-2 → 57,808.56 / 53,537.79; VAR-1 → Excel 12,463.91 / 10,035.89, rule gives 12,463.92 (1-cent gap, open). Fixed case 1 and example 2 unchanged. Answers 008 F-ii #4 / DQ-30 as (b) for COB-ts at these frequencies. Deviation DEV-B39-M12 (suggested ID): BRD §4.2 variable "no conversion", BR-02 / B.1 / OUT-01 and the workbook's `D10`. Open (008 §I): Q-B39-VAR1-CENT, -VAR2-FREQ, -PL-EXAMPLE, -UNIFIED, -ENGINES, -SWITCH, -TRIGGER. |

@@ -1,4 +1,4 @@
-import { dayCountFraction, daysBetween, paymentPeriodDays } from './calendar.js';
+import { dayCountFraction, daysBetween, excelYearFracBasis1, paymentPeriodDays } from './calendar.js';
 import type { PaymentFrequency, ProductType, RateType } from './types.js';
 import { isFiniteNumber, PAYMENTS_PER_YEAR } from './types.js';
 
@@ -21,6 +21,8 @@ import { isFiniteNumber, PAYMENTS_PER_YEAR } from './types.js';
  * would diverge from that vector by more than floating-point noise, so this module
  * matches the workbook's actual (unrounded) behavior instead. This is a deliberate,
  * documented deviation from the repo-wide rounding convention, scoped to this engine.
+ * One exception (B38, DEC-B38-YEARFRAC-ROUND, DEV-B38-ROUND): roundToCentHalfAwayFromZero, which the
+ * schedule applies to period interest only where roundsPeriodInterestToCent is true.
  */
 
 /**
@@ -33,6 +35,8 @@ import { isFiniteNumber, PAYMENTS_PER_YEAR } from './types.js';
  * SEMI-ANNUAL rate basis (fixed-rate mortgage, m = 2) is converted; the MONTHLY basis
  * uses the contract rate as entered (selectRateBasis below). When m==n this reduces
  * algebraically to contractRate/100, but not exactly in floating point.
+ * B39 (DEC-B39-VAR-PL-M12): the MONTHLY basis is also converted, at m = 12, at the 7/14-day frequencies when
+ * convertsMonthlyRate is true (calculatedRateFor).
  */
 export function calculatedRate(
   contractRatePercent: number,
@@ -65,6 +69,8 @@ export function calculatedRate(
  *     contract rate itself, unconverted, at every payment frequency.
  *   A personal loan accepts every payment frequency (B33, DEC-B33-FREQ; B27's Monthly-only
  *   rule removed), so this applies at every n for it, as for a variable mortgage.
+ *   B39 (DEC-B39-VAR-PL-M12): with MONTHLY_RATE_CONVERSION on, the MONTHLY basis at the 7/14-day frequencies is
+ *   converted by equation 1 at m = 12 instead (convertsMonthlyRate); Monthly and Semi-monthly keep the contract rate.
  */
 export type RateBasis = 'MONTHLY' | 'SEMI-ANNUAL';
 
@@ -80,6 +86,7 @@ export function selectRateBasis(productType: ProductType, rateType: RateType): R
  *     m = n (paymentsPerYear), i.e. no conversion. The engine does not evaluate
  *     equation 1 for this basis; it uses the contract rate directly so the result is
  *     exact (see calculatedRateFor).
+ *     B39 (DEC-B39-VAR-PL-M12): where convertsMonthlyRate is true, calculatedRateFor uses m = 12 instead (not this function).
  */
 export function selectCompoundingPeriodsPerYear(
   productType: ProductType,
@@ -92,11 +99,15 @@ export function selectCompoundingPeriodsPerYear(
   return selectRateBasis(productType, rateType) === 'SEMI-ANNUAL' ? 2 : paymentsPerYear;
 }
 
+/** BRD §4.2 m = 12: the monthly compounding of the MONTHLY basis when it is converted (B39, DEC-B39-VAR-PL-M12). */
+const MONTHLY_COMPOUNDING_PERIODS_PER_YEAR = 12;
+
 /**
  * The Calculated Rate (workbook D10, app OUT-01) for a product/rate type and payment
  * frequency, as a percent and as the decimal fed to period interest (the macro's
  * getRate reads aRate = D10 / 100). MONTHLY basis: percent === contractRatePercent
- * exactly. SEMI-ANNUAL basis: equation 1 at m = 2.
+ * exactly, or with `convertMonthly` (B39, DEC-B39-VAR-PL-M12; the caller passes convertsMonthlyRate) equation 1 at
+ * BRD §4.2 m = 12. SEMI-ANNUAL basis: equation 1 at m = 2 (`convertMonthly` is ignored).
  * `paymentsPerYear` is n for equation 1: `PAYMENTS_PER_YEAR`, or for the 7/14-day frequencies with the B37 switch on,
  * `leapAwarePaymentsPerYear` (non-integer).
  */
@@ -105,6 +116,7 @@ export function calculatedRateFor(
   rateType: RateType,
   contractRatePercent: number,
   paymentsPerYear: number,
+  convertMonthly: boolean = false,
 ): { percent: number; decimal: number } {
   if (!(contractRatePercent >= 0)) {
     throw new RangeError(`contractRatePercent must be >= 0, got ${contractRatePercent}`);
@@ -113,7 +125,9 @@ export function calculatedRateFor(
     throw new RangeError(`paymentsPerYear must be > 0, got ${paymentsPerYear}`);
   }
   if (selectRateBasis(productType, rateType) === 'MONTHLY') {
-    return { percent: contractRatePercent, decimal: contractRatePercent / 100 };
+    if (!convertMonthly) return { percent: contractRatePercent, decimal: contractRatePercent / 100 };
+    const decimal = calculatedRate(contractRatePercent, MONTHLY_COMPOUNDING_PERIODS_PER_YEAR, paymentsPerYear);
+    return { percent: decimal * 100, decimal };
   }
   const m = selectCompoundingPeriodsPerYear(productType, rateType, paymentsPerYear);
   const decimal = calculatedRate(contractRatePercent, m, paymentsPerYear);
@@ -124,10 +138,10 @@ export function calculatedRateFor(
  * B37 (DEC-B37-LEAP-N): leap-aware payments per year for a day-based payment period, used as n in equation 1:
  *   n = (D / P) / Y
  * D = daysBetween(start, end) (actual days), P = periodDays (7 or 14), Y = dayCountFraction(start, end) (the same span in
- * years, days in a leap year counted /366, others /365). Evaluated in exactly this order. RangeError unless start < end
- * and periodDays > 0.
+ * years, days in a leap year counted /366, others /365), or with `yearFrac` (B38, DEC-B38-YEARFRAC-ROUND)
+ * Y = excelYearFracBasis1(start, end). Evaluated in exactly this order. RangeError unless start < end and periodDays > 0.
  */
-export function leapAwarePaymentsPerYear(periodDays: number, start: Date, end: Date): number {
+export function leapAwarePaymentsPerYear(periodDays: number, start: Date, end: Date, yearFrac: boolean = false): number {
   if (!(periodDays > 0)) {
     throw new RangeError(`periodDays must be > 0, got ${periodDays}`);
   }
@@ -135,7 +149,7 @@ export function leapAwarePaymentsPerYear(periodDays: number, start: Date, end: D
   if (!(days > 0)) {
     throw new RangeError('start must be before end');
   }
-  return days / periodDays / dayCountFraction(start, end);
+  return days / periodDays / (yearFrac ? excelYearFracBasis1(start, end) : dayCountFraction(start, end));
 }
 
 /**
@@ -145,9 +159,10 @@ export function leapAwarePaymentsPerYear(periodDays: number, start: Date, end: D
  *   1. base = PAYMENTS_PER_YEAR[paymentFrequency] (own key only; RangeError otherwise)
  *   2. leapAware false -> base
  *   3. paymentPeriodDays(paymentFrequency) null (Monthly, Semi-monthly) -> base
- *   4. selectRateBasis(productType, rateType) !== 'SEMI-ANNUAL' -> base
+ *   4. selectRateBasis(productType, rateType) !== 'SEMI-ANNUAL' and not monthlyConversion -> base (B39,
+ *      DEC-B39-VAR-PL-M12: with monthlyConversion the MONTHLY basis takes the leap path too)
  *   5. start or end not a valid Date, or daysBetween(start, end) <= 0 -> base
- *   6. leapAwarePaymentsPerYear(periodDays, start, end)
+ *   6. leapAwarePaymentsPerYear(periodDays, start, end, yearFracRounded) (B38: Y is YEARFRAC when yearFracRounded)
  */
 export function conversionPaymentsPerYear(
   productType: ProductType,
@@ -156,16 +171,95 @@ export function conversionPaymentsPerYear(
   start: Date | undefined,
   end: Date | undefined,
   leapAware: boolean,
+  yearFracRounded: boolean = false,
+  monthlyConversion: boolean = false,
 ): number {
   const base = Object.hasOwn(PAYMENTS_PER_YEAR, paymentFrequency) ? PAYMENTS_PER_YEAR[paymentFrequency] : undefined;
   if (base === undefined) {
     throw new RangeError(`paymentFrequency must be one of ${Object.keys(PAYMENTS_PER_YEAR).join('/')}, got ${String(paymentFrequency)}`);
   }
-  if (!leapAware) return base;
-  const periodDays = paymentPeriodDays(paymentFrequency);
-  if (periodDays === null || selectRateBasis(productType, rateType) !== 'SEMI-ANNUAL') return base;
-  if (!isValidDate(start) || !isValidDate(end) || !(daysBetween(start, end) > 0)) return base;
-  return leapAwarePaymentsPerYear(periodDays, start, end);
+  if (!leapPathApplies(productType, rateType, paymentFrequency, start, end, leapAware, monthlyConversion)) return base;
+  return leapAwarePaymentsPerYear(paymentPeriodDays(paymentFrequency)!, start!, end!, yearFracRounded);
+}
+
+/** Steps 2 to 5 of conversionPaymentsPerYear: true when n takes the leap path (step 6). Shared with
+ *  roundsPeriodInterestToCent (six arguments: SEMI-ANNUAL basis only) and convertsMonthlyRate (B39: monthlyConversion
+ *  also admits the MONTHLY basis) so the rounding and conversion scopes cannot drift from the n scope. */
+function leapPathApplies(
+  productType: ProductType,
+  rateType: RateType,
+  paymentFrequency: PaymentFrequency,
+  start: Date | undefined,
+  end: Date | undefined,
+  leapAware: boolean,
+  monthlyConversion: boolean = false,
+): boolean {
+  if (!leapAware) return false;
+  if (paymentPeriodDays(paymentFrequency) == null) return false;
+  if (selectRateBasis(productType, rateType) !== 'SEMI-ANNUAL' && !monthlyConversion) return false;
+  return isValidDate(start) && isValidDate(end) && daysBetween(start, end) > 0;
+}
+
+/**
+ * B39 (DEC-B39-VAR-PL-M12) predicate M: the MONTHLY rate basis (variable-rate mortgage, personal loan of either rate
+ * type) is converted by equation 1 at m = 12 exactly when monthlyConversion is true and n takes the leap path of
+ * conversionPaymentsPerYear (7- or 14-day frequency, start < end, leapAware). Never throws. Disjoint from
+ * roundsPeriodInterestToCent (SEMI-ANNUAL basis only).
+ */
+export function convertsMonthlyRate(
+  productType: ProductType,
+  rateType: RateType,
+  paymentFrequency: PaymentFrequency,
+  start: Date | undefined,
+  end: Date | undefined,
+  leapAware: boolean,
+  monthlyConversion: boolean,
+): boolean {
+  return (
+    monthlyConversion &&
+    selectRateBasis(productType, rateType) === 'MONTHLY' &&
+    leapPathApplies(productType, rateType, paymentFrequency, start, end, leapAware, true)
+  );
+}
+
+/**
+ * B38 (DEC-B38-YEARFRAC-ROUND) predicate S: each schedule row's period interest is rounded to the cent
+ * (roundToCentHalfAwayFromZero) exactly when n takes the leap path of conversionPaymentsPerYear (fixed-rate mortgage,
+ * 7- or 14-day frequency, start < end, leapAware) and yearFracRounded is true. Never for the MONTHLY basis (B39 keeps
+ * full precision, DEV-B39-M12).
+ */
+export function roundsPeriodInterestToCent(
+  productType: ProductType,
+  rateType: RateType,
+  paymentFrequency: PaymentFrequency,
+  start: Date | undefined,
+  end: Date | undefined,
+  leapAware: boolean,
+  yearFracRounded: boolean,
+): boolean {
+  return yearFracRounded && leapPathApplies(productType, rateType, paymentFrequency, start, end, leapAware);
+}
+
+/**
+ * B38 (DEC-B38-YEARFRAC-ROUND, deviation DEV-B38-ROUND): Excel `ROUND(x, 2)`. The 15-significant-digit decimal nearest
+ * |x| (toExponential(14)) is rounded to whole cents half away from zero in exact decimal arithmetic, then the sign is
+ * restored. Exact for |x| < 1e12. Never returns -0. RangeError for a non-finite x.
+ */
+export function roundToCentHalfAwayFromZero(x: number): number {
+  if (!Number.isFinite(x)) {
+    throw new RangeError(`x must be a finite number, got ${x}`);
+  }
+  if (x === 0) return 0;
+  const sign = x < 0 ? -1 : 1;
+  const [mantissa, exponentText] = Math.abs(x).toExponential(14).split('e') as [string, string]; // fitness:cent-round
+  const digits = mantissa.replace('.', ''); // 15 significant digits
+  const shift = Number(exponentText) - 12; // cents = digits x 10^shift
+  if (shift >= 0) return (sign * Number(digits + '0'.repeat(shift))) / 100;
+  const keep = 15 + shift; // leading digits that are whole cents
+  if (keep < 0) return 0;
+  const wholeCents = keep === 0 ? 0 : Number(digits.slice(0, keep));
+  const cents = wholeCents + (Number(digits.charAt(keep)) >= 5 ? 1 : 0);
+  return cents === 0 ? 0 : (sign * cents) / 100;
 }
 
 function isValidDate(x: unknown): x is Date {

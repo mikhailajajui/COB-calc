@@ -70,3 +70,26 @@ export const SEMI_ANNUAL_DATE_REQUIRED = false;
  * `false`: n = PAYMENTS_PER_YEAR (52 or 26), the workbook's converter.
  */
 export const LEAP_AWARE_PAYMENTS_PER_YEAR = true;
+
+/**
+ * @decision DEC-B38-YEARFRAC-ROUND — Excel YEARFRAC (basis 1) for Y in the leap-aware n, and period interest rounded
+ * to the cent before the payment waterfall, for the B37 cases only (fixed-rate mortgage, SEMI-ANNUAL basis, 7- and
+ * 14-day frequencies, all flows). Effective only while LEAP_AWARE_PAYMENTS_PER_YEAR is true.
+ * Switch (ADR-14): shipped `true`; the other branch `false` is built and tested.
+ * `true`: Y = YEARFRAC(start, end, 1) (excelYearFracBasis1); every schedule row's period interest is
+ * roundToCentHalfAwayFromZero(periodInterest(...)) (DEV-B38-ROUND).
+ * `false`: today's B37 rule (Y = dayCountFraction, period interest unrounded), byte for byte.
+ */
+export const YEARFRAC_ROUNDED_INTEREST = true;
+
+/**
+ * @decision DEC-B39-VAR-PL-M12 — the MONTHLY rate basis (variable-rate mortgage, personal loan of either rate type) at
+ * the 7- and 14-day frequencies (Weekly, Accelerated weekly, Bi-weekly, Accelerated bi-weekly), all flows: the
+ * contract rate is treated as compounded monthly and converted with equation 1 at m = 12 and the leap-aware n of
+ * DEC-B37-LEAP-N (Y as chosen by YEARFRAC_ROUNDED_INTEREST). Period interest is not rounded (DEV-B39-M12).
+ * Effective only while LEAP_AWARE_PAYMENTS_PER_YEAR is true.
+ * Switch (ADR-14): shipped `true`; the other branch `false` is built and tested.
+ * `true`: Calculated rate = n x [(1 + i/12)^(12/n) - 1].
+ * `false`: the contract rate as entered at every frequency (OQ-C, workbook Calculator!D10), byte for byte.
+ */
+export const MONTHLY_RATE_CONVERSION = true;

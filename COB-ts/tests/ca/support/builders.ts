@@ -4,6 +4,7 @@
  * Per-file base inputs are deliberately NOT consolidated (they carry each file's test data).
  */
 import type { CobCanadaInput } from '../../../src/ca/index.js';
+import type { OracleCase } from './leapNOracle.js';
 
 /** UTC midnight of a `YYYY-MM-DD` calendar date. */
 export function utcDate(ymd: string): Date {
@@ -38,4 +39,35 @@ export function wireToInput(request: object): CobCanadaInput {
     if (typeof v === 'string') out[k] = utcDate(v);
   }
   return asInput(out);
+}
+
+/**
+ * B37 / B39 (spec 014, registry consumption rule 2): an oracle case (or a registry `input`, same keys) as an engine input.
+ * Dates are UTC midnights; fees become named financed / cash fee lists; newMortgageOrLoan takes the start as the Disbursal
+ * date, every other flow as the renewal date with accruedInterest. Moved here from b37-leap-aware-n.test.ts.
+ */
+export function oracleCaseInput(c: OracleCase): CobCanadaInput {
+  const fees = {
+    fees: [
+      ...c.financedFees.map((amount, i) => ({ name: `F${i}`, amount, financed: true })),
+      ...c.cashFees.map((amount, i) => ({ name: `C${i}`, amount, financed: false })),
+    ],
+  };
+  const common = {
+    flow: c.flow,
+    productType: c.productType,
+    rateType: c.rateType,
+    contractRatePercent: c.contractRatePercent,
+    loanAmount: c.loanAmount,
+    paymentFrequency: c.frequency,
+    paymentAmount: c.paymentAmount,
+    firstPaymentDate: utcDate(c.first),
+    endDate: utcDate(c.end),
+    fees,
+  };
+  return asInput(
+    c.flow === 'newMortgageOrLoan'
+      ? { ...common, disbursalDate: utcDate(c.start) }
+      : { ...common, renewalDate: utcDate(c.start), accruedInterest: c.accruedInterest },
+  );
 }

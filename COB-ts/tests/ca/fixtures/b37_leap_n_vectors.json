@@ -653,5 +653,1227 @@
     "monthly": 12
    }
   }
+ },
+ "b38": {
+  "note": "B38 QA vectors (spec 013, DEC-B38-YEARFRAC-ROUND): same oracle, YEARFRAC_ROUNDED_INTEREST true (Y = Excel YEARFRAC basis 1; period interest rounded to the cent in the B37 cases). \"on\" = both switches true (shipped). V-PEND is a user prediction, unconfirmed in Excel (Q-B38-PEND). Do not hand-edit.",
+  "yearFracVectors": [
+   {
+    "start": "2026-10-08",
+    "end": "2029-09-23",
+    "y": 2.9596167008898013
+   },
+   {
+    "start": "2026-10-08",
+    "end": "2031-03-27",
+    "y": 4.466453674121405
+   },
+   {
+    "start": "2000-01-01",
+    "end": "2004-01-31",
+    "y": 4.080459770114943
+   },
+   {
+    "start": "2000-01-01",
+    "end": "2000-01-02",
+    "y": 0.00273224043715847
+   },
+   {
+    "start": "2028-01-10",
+    "end": "2028-12-18",
+    "y": 0.9371584699453552
+   },
+   {
+    "start": "2100-01-04",
+    "end": "2100-12-27",
+    "y": 0.9780821917808219
+   },
+   {
+    "start": "2027-06-01",
+    "end": "2028-03-15",
+    "y": 0.7868852459016393
+   },
+   {
+    "start": "2027-06-01",
+    "end": "2028-02-28",
+    "y": 0.7452054794520548
+   },
+   {
+    "start": "2027-06-01",
+    "end": "2028-02-29",
+    "y": 0.7459016393442623
+   },
+   {
+    "start": "2028-03-01",
+    "end": "2029-02-28",
+    "y": 0.9972602739726028
+   },
+   {
+    "start": "2028-02-29",
+    "end": "2029-02-28",
+    "y": 0.9972677595628415
+   },
+   {
+    "start": "2027-12-31",
+    "end": "2028-01-01",
+    "y": 0.0027397260273972603
+   },
+   {
+    "start": "2028-12-31",
+    "end": "2029-01-01",
+    "y": 0.0027397260273972603
+   },
+   {
+    "start": "2000-01-01",
+    "end": "2001-01-01",
+    "y": 1
+   },
+   {
+    "start": "2027-12-15",
+    "end": "2028-12-15",
+    "y": 1
+   },
+   {
+    "start": "2028-02-29",
+    "end": "2029-03-01",
+    "y": 1.0013679890560876
+   }
+  ],
+  "nVectors": [
+   {
+    "periodDays": 14,
+    "start": "2026-10-08",
+    "end": "2029-09-23",
+    "n": 26.089285714285715
+   },
+   {
+    "periodDays": 7,
+    "start": "2026-10-08",
+    "end": "2029-09-23",
+    "n": 52.17857142857143
+   },
+   {
+    "periodDays": 14,
+    "start": "2025-01-01",
+    "end": "2030-01-01",
+    "n": 26.083333333333332
+   },
+   {
+    "periodDays": 14,
+    "start": "2000-02-01",
+    "end": "2000-11-30",
+    "n": 26.142857142857142
+   },
+   {
+    "periodDays": 7,
+    "start": "2100-01-04",
+    "end": "2100-12-27",
+    "n": 52.142857142857146
+   },
+   {
+    "periodDays": 14,
+    "start": "2025-03-01",
+    "end": "2025-12-01",
+    "n": 26.07142857142857
+   },
+   {
+    "periodDays": 7,
+    "start": "2026-10-08",
+    "end": "2026-10-09",
+    "n": 52.14285714285714
+   },
+   {
+    "periodDays": 14,
+    "start": "2027-12-31",
+    "end": "2028-01-01",
+    "n": 26.07142857142857
+   },
+   {
+    "periodDays": 14,
+    "start": "2028-12-31",
+    "end": "2029-01-01",
+    "n": 26.07142857142857
+   },
+   {
+    "periodDays": 7,
+    "start": "2099-06-01",
+    "end": "2101-06-01",
+    "n": 52.142857142857146
+   },
+   {
+    "periodDays": 7,
+    "start": "2025-01-06",
+    "end": "2027-01-04",
+    "n": 52.14285714285714
+   },
+   {
+    "periodDays": 14,
+    "start": "2028-01-10",
+    "end": "2028-12-18",
+    "n": 26.142857142857142
+   },
+   {
+    "periodDays": 7,
+    "start": "2026-03-17",
+    "end": "2029-03-17",
+    "n": 52.17857142857143
+   },
+   {
+    "periodDays": 14,
+    "start": "2026-03-17",
+    "end": "2029-03-17",
+    "n": 26.089285714285715
+   },
+   {
+    "periodDays": 14,
+    "start": "2026-10-08",
+    "end": "2031-03-27",
+    "n": 26.083333333333336
+   },
+   {
+    "periodDays": 7,
+    "start": "2026-10-08",
+    "end": "2031-03-27",
+    "n": 52.16666666666667
+   },
+   {
+    "periodDays": 7,
+    "start": "2026-04-01",
+    "end": "2028-10-01",
+    "n": 52.1904761904762
+   },
+   {
+    "periodDays": 14,
+    "start": "2026-04-01",
+    "end": "2028-10-01",
+    "n": 26.0952380952381
+   },
+   {
+    "periodDays": 7,
+    "start": "2028-01-10",
+    "end": "2028-12-18",
+    "n": 52.285714285714285
+   },
+   {
+    "periodDays": 14,
+    "start": "2099-06-01",
+    "end": "2101-06-01",
+    "n": 26.071428571428573
+   }
+  ],
+  "labelN": {
+   "V-CASE1": {
+    "start": "2026-10-08",
+    "end": "2029-09-23",
+    "n": {
+     "weekly": 52.17857142857143,
+     "acceleratedWeekly": 52.17857142857143,
+     "biweekly": 26.089285714285715,
+     "acceleratedBiweekly": 26.089285714285715,
+     "semiMonthly": 24,
+     "monthly": 12
+    }
+   },
+   "V-EX2": {
+    "start": "2026-10-08",
+    "end": "2031-03-27",
+    "n": {
+     "weekly": 52.16666666666667,
+     "acceleratedWeekly": 52.16666666666667,
+     "biweekly": 26.083333333333336,
+     "acceleratedBiweekly": 26.083333333333336,
+     "semiMonthly": 24,
+     "monthly": 12
+    }
+   },
+   "REF-01": {
+    "start": "2026-03-17",
+    "end": "2029-03-17",
+    "n": {
+     "weekly": 52.17857142857143,
+     "acceleratedWeekly": 52.17857142857143,
+     "biweekly": 26.089285714285715,
+     "acceleratedBiweekly": 26.089285714285715,
+     "semiMonthly": 24,
+     "monthly": 12
+    }
+   },
+   "RENEWAL": {
+    "start": "2026-04-01",
+    "end": "2028-10-01",
+    "n": {
+     "weekly": 52.1904761904762,
+     "acceleratedWeekly": 52.1904761904762,
+     "biweekly": 26.0952380952381,
+     "acceleratedBiweekly": 26.0952380952381,
+     "semiMonthly": 24,
+     "monthly": 12
+    }
+   },
+   "V-2028": {
+    "start": "2028-01-10",
+    "end": "2028-12-18",
+    "n": {
+     "weekly": 52.285714285714285,
+     "acceleratedWeekly": 52.285714285714285,
+     "biweekly": 26.142857142857142,
+     "acceleratedBiweekly": 26.142857142857142,
+     "semiMonthly": 24,
+     "monthly": 12
+    }
+   },
+   "V-NOLEAP": {
+    "start": "2099-06-01",
+    "end": "2101-06-01",
+    "n": {
+     "weekly": 52.142857142857146,
+     "acceleratedWeekly": 52.142857142857146,
+     "biweekly": 26.071428571428573,
+     "acceleratedBiweekly": 26.071428571428573,
+     "semiMonthly": 24,
+     "monthly": 12
+    }
+   }
+  },
+  "cases": {
+   "V-CASE1": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "paymentChange",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "biweekly",
+     "loanAmount": 495466.87,
+     "contractRatePercent": 4.34,
+     "paymentAmount": 1350.64,
+     "accruedInterest": 58.33,
+     "start": "2026-10-08",
+     "first": "2026-10-21",
+     "end": "2029-09-23"
+    },
+    "D": 1081,
+    "Y": 2.9596167008898013,
+    "on": {
+     "n": 26.089285714285715,
+     "calculatedRatePercent": 4.297116290973523,
+     "numberOfPayments": 77,
+     "totalInterest": 60137.63,
+     "principalPayment": 43861.65,
+     "endingBalance": 451605.2199999999,
+     "termDays": 1077,
+     "cobAmount": 60137.63,
+     "cobRatePercent": 4.297116290973523,
+     "row1PeriodInterest": 758.3,
+     "lastRowDate": "2029-09-19"
+    }
+   },
+   "V-EX2": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "paymentChange",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "biweekly",
+     "loanAmount": 413337.42,
+     "contractRatePercent": 4.3,
+     "paymentAmount": 1050,
+     "accruedInterest": 530.49,
+     "start": "2026-10-08",
+     "first": "2026-10-08",
+     "end": "2031-03-27"
+    },
+    "D": 1631,
+    "Y": 4.466453674121405,
+    "on": {
+     "n": 26.083333333333336,
+     "calculatedRatePercent": 4.257898619563019,
+     "numberOfPayments": 117,
+     "totalInterest": 74326.10999999997,
+     "principalPayment": 48523.89000000001,
+     "endingBalance": 364813.53000000026,
+     "termDays": 1624,
+     "cobAmount": 74326.10999999997,
+     "cobRatePercent": 4.257898619563019,
+     "row1PeriodInterest": 0,
+     "lastRowDate": "2031-03-20"
+    }
+   },
+   "V-WEEKLY": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "paymentChange",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "weekly",
+     "loanAmount": 495466.87,
+     "contractRatePercent": 4.34,
+     "paymentAmount": 675.32,
+     "accruedInterest": 58.33,
+     "start": "2026-10-08",
+     "first": "2026-10-14",
+     "end": "2029-09-23"
+    },
+    "D": 1081,
+    "Y": 2.9596167008898013,
+    "on": {
+     "n": 52.17857142857143,
+     "calculatedRatePercent": 4.295348322178825,
+     "numberOfPayments": 154,
+     "totalInterest": 60092.10000000001,
+     "principalPayment": 43907.17999999999,
+     "endingBalance": 451559.69,
+     "termDays": 1077,
+     "cobAmount": 60092.10000000001,
+     "cobRatePercent": 4.295348322178825,
+     "row1PeriodInterest": 349.84,
+     "lastRowDate": "2029-09-19"
+    }
+   },
+   "V-NOLEAP-EXACT": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "renewal",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "acceleratedWeekly",
+     "loanAmount": 250000,
+     "contractRatePercent": 6,
+     "paymentAmount": 600,
+     "accruedInterest": 0,
+     "start": "2099-06-01",
+     "first": "2099-06-08",
+     "end": "2101-06-01"
+    },
+    "D": 730,
+    "Y": 2,
+    "on": {
+     "n": 52.142857142857146,
+     "calculatedRatePercent": 5.915112980676596,
+     "numberOfPayments": 104,
+     "totalInterest": 27495.820000000007,
+     "principalPayment": 34904.17999999999,
+     "endingBalance": 215095.81999999992,
+     "termDays": 728,
+     "cobAmount": 27495.820000000007,
+     "cobRatePercent": 5.915112980676596,
+     "row1PeriodInterest": 283.6,
+     "lastRowDate": "2101-05-30"
+    }
+   },
+   "V-NOLEAP-ULP": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "newMortgageOrLoan",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "weekly",
+     "loanAmount": 300000,
+     "contractRatePercent": 5,
+     "paymentAmount": 800,
+     "accruedInterest": 0,
+     "start": "2025-01-06",
+     "first": "2025-01-13",
+     "end": "2027-01-04"
+    },
+    "D": 728,
+    "Y": 1.9945205479452055,
+    "on": {
+     "n": 52.14285714285714,
+     "calculatedRatePercent": 4.940861928258346,
+     "numberOfPayments": 104,
+     "totalInterest": 26860.13999999999,
+     "principalPayment": 56339.86,
+     "endingBalance": 243660.13999999996,
+     "termDays": 728,
+     "cobAmount": 26860.13999999999,
+     "cobRatePercent": 4.940861928258346,
+     "row1PeriodInterest": 284.27,
+     "lastRowDate": "2027-01-04"
+    }
+   },
+   "V-2028": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "newMortgageOrLoan",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "biweekly",
+     "loanAmount": 300000,
+     "contractRatePercent": 5,
+     "paymentAmount": 1600,
+     "accruedInterest": 0,
+     "start": "2028-01-10",
+     "first": "2028-01-24",
+     "end": "2028-12-18"
+    },
+    "D": 343,
+    "Y": 0.9371584699453552,
+    "on": {
+     "n": 26.142857142857142,
+     "calculatedRatePercent": 4.943190020396645,
+     "numberOfPayments": 24,
+     "totalInterest": 13067.529999999999,
+     "principalPayment": 25332.47,
+     "endingBalance": 274667.5300000001,
+     "termDays": 336,
+     "cobAmount": 13067.529999999999,
+     "cobRatePercent": 4.943190020396645,
+     "row1PeriodInterest": 567.25,
+     "lastRowDate": "2028-12-11"
+    }
+   },
+   "V-WHOLE5Y": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "renewal",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "acceleratedBiweekly",
+     "loanAmount": 250000,
+     "contractRatePercent": 6,
+     "paymentAmount": 1000,
+     "accruedInterest": 100,
+     "start": "2025-01-01",
+     "first": "2025-01-15",
+     "end": "2030-01-01"
+    },
+    "D": 1826,
+    "Y": 5.0004564125969875,
+    "on": {
+     "n": 26.083333333333332,
+     "calculatedRatePercent": 5.918464984477623,
+     "numberOfPayments": 130,
+     "totalInterest": 64785.270000000004,
+     "principalPayment": 65214.729999999996,
+     "endingBalance": 184785.2699999999,
+     "termDays": 1820,
+     "cobAmount": 64785.270000000004,
+     "cobRatePercent": 5.918464984477623,
+     "row1PeriodInterest": 567.52,
+     "lastRowDate": "2029-12-26"
+    }
+   },
+   "V-FEES": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [
+      500
+     ],
+     "flow": "paymentChange",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "biweekly",
+     "loanAmount": 495466.87,
+     "contractRatePercent": 4.34,
+     "paymentAmount": 1350.64,
+     "accruedInterest": 58.33,
+     "start": "2026-10-08",
+     "first": "2026-10-21",
+     "end": "2029-09-23"
+    },
+    "D": 1081,
+    "Y": 2.9596167008898013,
+    "on": {
+     "n": 26.089285714285715,
+     "calculatedRatePercent": 4.297116290973523,
+     "numberOfPayments": 77,
+     "totalInterest": 60137.63,
+     "principalPayment": 43861.65,
+     "endingBalance": 451605.2199999999,
+     "termDays": 1077,
+     "cobAmount": 60637.63,
+     "cobRatePercent": 4.332874681260694,
+     "row1PeriodInterest": 758.3,
+     "lastRowDate": "2029-09-19"
+    }
+   },
+   "V-REF01": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "newMortgageOrLoan",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "weekly",
+     "loanAmount": 227829.65,
+     "contractRatePercent": 3.74,
+     "paymentAmount": 465.46,
+     "accruedInterest": 0,
+     "start": "2026-03-17",
+     "first": "2026-03-23",
+     "end": "2029-03-17"
+    },
+    "D": 1096,
+    "Y": 3.0006844626967832,
+    "on": {
+     "n": 52.17857142857143,
+     "calculatedRatePercent": 3.706776950704952,
+     "numberOfPayments": 156,
+     "totalInterest": 22514.059999999998,
+     "principalPayment": 50097.700000000004,
+     "endingBalance": 177731.95000000007,
+     "termDays": 1091,
+     "cobAmount": 22514.059999999998,
+     "cobRatePercent": 3.706776950704952,
+     "row1PeriodInterest": 138.82,
+     "lastRowDate": "2029-03-12"
+    }
+   },
+   "V-FINFEE": {
+    "input": {
+     "financedFees": [
+      2000
+     ],
+     "cashFees": [
+      400
+     ],
+     "flow": "renewal",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "weekly",
+     "loanAmount": 250000,
+     "contractRatePercent": 5.5,
+     "paymentAmount": 700,
+     "accruedInterest": 850,
+     "start": "2027-02-10",
+     "first": "2027-02-17",
+     "end": "2032-02-10"
+    },
+    "D": 1826,
+    "Y": 4.998175182481752,
+    "on": {
+     "n": 52.19047619047618,
+     "calculatedRatePercent": 5.428554757512891,
+     "numberOfPayments": 260,
+     "totalInterest": 51850.74999999998,
+     "principalPayment": 128149.24999999994,
+     "endingBalance": 119850.74999999988,
+     "termDays": 1820,
+     "cobAmount": 54250.74999999998,
+     "cobRatePercent": 5.770628453098971,
+     "row1PeriodInterest": 260.27,
+     "lastRowDate": "2032-02-04"
+    }
+   },
+   "V-PEND": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "paymentChange",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "biweekly",
+     "loanAmount": 300000,
+     "contractRatePercent": 5,
+     "paymentAmount": 900,
+     "accruedInterest": 0,
+     "start": "2026-11-02",
+     "first": "2026-11-16",
+     "end": "2030-06-28"
+    },
+    "D": 1334,
+    "Y": 3.652792990142388,
+    "on": {
+     "n": 26.085714285714285,
+     "calculatedRatePercent": 4.943200251390675,
+     "numberOfPayments": 95,
+     "totalInterest": 51018.07999999999,
+     "principalPayment": 34481.91999999999,
+     "endingBalance": 265518.07999999996,
+     "termDays": 1330,
+     "cobAmount": 51018.07999999999,
+     "cobRatePercent": 4.943200251390675,
+     "row1PeriodInterest": 568.81,
+     "lastRowDate": "2030-06-24"
+    }
+   },
+   "V-LE1Y-FEB29": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "newMortgageOrLoan",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "biweekly",
+     "loanAmount": 300000,
+     "contractRatePercent": 5,
+     "paymentAmount": 1600,
+     "accruedInterest": 0,
+     "start": "2027-06-01",
+     "first": "2027-06-15",
+     "end": "2028-03-15"
+    },
+    "D": 288,
+    "Y": 0.7868852459016393,
+    "on": {
+     "n": 26.142857142857146,
+     "calculatedRatePercent": 4.943190020396646,
+     "numberOfPayments": 20,
+     "totalInterest": 10993.45,
+     "principalPayment": 21006.55,
+     "endingBalance": 278993.45000000007,
+     "termDays": 280,
+     "cobAmount": 10993.45,
+     "cobRatePercent": 4.943190020396646,
+     "row1PeriodInterest": 568.81,
+     "lastRowDate": "2028-03-07"
+    }
+   },
+   "V-LE1Y-NOFEB": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "newMortgageOrLoan",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "weekly",
+     "loanAmount": 300000,
+     "contractRatePercent": 5,
+     "paymentAmount": 800,
+     "accruedInterest": 0,
+     "start": "2028-03-10",
+     "first": "2028-03-17",
+     "end": "2029-02-20"
+    },
+    "D": 347,
+    "Y": 0.9506849315068493,
+    "on": {
+     "n": 52.14285714285714,
+     "calculatedRatePercent": 4.940861928258346,
+     "numberOfPayments": 49,
+     "totalInterest": 13313.24,
+     "principalPayment": 25886.760000000013,
+     "endingBalance": 274113.2400000003,
+     "termDays": 343,
+     "cobAmount": 13313.24,
+     "cobRatePercent": 4.940861928258346,
+     "row1PeriodInterest": 283.49,
+     "lastRowDate": "2029-02-16"
+    }
+   },
+   "V-LE1Y-END-FEB29": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "newMortgageOrLoan",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "weekly",
+     "loanAmount": 300000,
+     "contractRatePercent": 5,
+     "paymentAmount": 800,
+     "accruedInterest": 0,
+     "start": "2027-03-05",
+     "first": "2027-03-12",
+     "end": "2028-02-29"
+    },
+    "D": 361,
+    "Y": 0.9863387978142076,
+    "on": {
+     "n": 52.285714285714285,
+     "calculatedRatePercent": 4.940855534414215,
+     "numberOfPayments": 51,
+     "totalInterest": 13859.259999999995,
+     "principalPayment": 26940.740000000005,
+     "endingBalance": 273059.2599999999,
+     "termDays": 357,
+     "cobAmount": 13859.259999999995,
+     "cobRatePercent": 4.940855534414215,
+     "row1PeriodInterest": 284.27,
+     "lastRowDate": "2028-02-25"
+    }
+   },
+   "V-EXACT1Y": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "renewal",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "acceleratedBiweekly",
+     "loanAmount": 250000,
+     "contractRatePercent": 6,
+     "paymentAmount": 1000,
+     "accruedInterest": 100,
+     "start": "2027-12-15",
+     "first": "2027-12-29",
+     "end": "2028-12-15"
+    },
+    "D": 366,
+    "Y": 1,
+    "on": {
+     "n": 26.142857142857142,
+     "calculatedRatePercent": 5.918449707629536,
+     "numberOfPayments": 26,
+     "totalInterest": 14497.879999999997,
+     "principalPayment": 11502.120000000003,
+     "endingBalance": 238497.87999999998,
+     "termDays": 364,
+     "cobAmount": 14497.879999999997,
+     "cobRatePercent": 5.918449707629536,
+     "row1PeriodInterest": 567.52,
+     "lastRowDate": "2028-12-13"
+    }
+   },
+   "V-CROSS1Y-1D": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "newMortgageOrLoan",
+     "productType": "mortgage",
+     "rateType": "fixed",
+     "frequency": "weekly",
+     "loanAmount": 300000,
+     "contractRatePercent": 5,
+     "paymentAmount": 800,
+     "accruedInterest": 0,
+     "start": "2028-03-01",
+     "first": "2028-03-08",
+     "end": "2029-03-02"
+    },
+    "D": 366,
+    "Y": 1.0013679890560876,
+    "on": {
+     "n": 52.21428571428571,
+     "calculatedRatePercent": 4.940858726961767,
+     "numberOfPayments": 52,
+     "totalInterest": 14090,
+     "principalPayment": 27510.00000000001,
+     "endingBalance": 272490.0000000003,
+     "termDays": 364,
+     "cobAmount": 14090,
+     "cobRatePercent": 4.940858726961767,
+     "row1PeriodInterest": 283.49,
+     "lastRowDate": "2029-02-28"
+    }
+   }
+  }
+ },
+ "b39": {
+  "note": "B39 QA vectors (spec 014, DEC-B39-VAR-PL-M12): same oracle. MONTHLY basis (variable-rate mortgage, personal loan) at 7/14 days: n = D / P / Y as in B37/B38 and equation 1 at m = 12, period interest never rounded. \"on\" = all three switches true (shipped); \"b37Y\" = (true, false, true), B39 with B37's Y (no Excel evidence); \"b38\" = (true, true, false), the B38 state (the contract rate as entered). VAR-1 / VAR-2 are the user's Excel examples (registry UX-003 known gap +1 cent, UX-004); T1 and T3 are predictions (Q-B39-PL-EXAMPLE). Do not hand-edit.",
+  "nVectors": [
+   {
+    "id": "VAR-1",
+    "productType": "mortgage",
+    "rateType": "variable",
+    "frequency": "weekly",
+    "start": "2026-10-08",
+    "end": "2029-09-27",
+    "n": 52.17857142857142,
+    "nB37Y": 52.1909594095941,
+    "nOff": 52
+   },
+   {
+    "id": "VAR-2",
+    "productType": "mortgage",
+    "rateType": "variable",
+    "frequency": "biweekly",
+    "start": "2026-10-13",
+    "end": "2031-09-15",
+    "n": 26.083333333333332,
+    "nB37Y": 26.085936878925192,
+    "nOff": 26
+   },
+   {
+    "id": "T1",
+    "productType": "mortgage",
+    "rateType": "variable",
+    "frequency": "acceleratedWeekly",
+    "start": "2026-10-08",
+    "end": "2029-09-27",
+    "n": 52.17857142857142,
+    "nB37Y": 52.1909594095941,
+    "nOff": 52
+   },
+   {
+    "id": "T3",
+    "productType": "personalLoan",
+    "rateType": "fixed",
+    "frequency": "weekly",
+    "start": "2026-11-01",
+    "end": "2031-11-01",
+    "n": 52.166666666666664,
+    "nB37Y": 52.171428571428564,
+    "nOff": 52
+   },
+   {
+    "id": "T3-variable",
+    "productType": "personalLoan",
+    "rateType": "variable",
+    "frequency": "weekly",
+    "start": "2026-11-01",
+    "end": "2031-11-01",
+    "n": 52.166666666666664,
+    "nB37Y": 52.171428571428564,
+    "nOff": 52
+   },
+   {
+    "id": "VAR-2-VRPC",
+    "productType": "mortgage",
+    "rateType": "variable",
+    "frequency": "biweekly",
+    "start": "2026-10-13",
+    "end": "2031-09-15",
+    "n": 26.083333333333332,
+    "nB37Y": 26.085936878925192,
+    "nOff": 26
+   }
+  ],
+  "cases": {
+   "VAR-1": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "paymentChange",
+     "productType": "mortgage",
+     "rateType": "variable",
+     "frequency": "weekly",
+     "loanAmount": 109939.12,
+     "contractRatePercent": 4,
+     "paymentAmount": 145.16,
+     "accruedInterest": 0,
+     "start": "2026-10-08",
+     "first": "2026-10-15",
+     "end": "2029-09-27"
+    },
+    "D": 1085,
+    "Y": 2.97056810403833,
+    "on": {
+     "n": 52.17857142857142,
+     "calculatedRatePercent": 3.994876602469461,
+     "numberOfPayments": 155,
+     "totalInterest": 12463.91672273959,
+     "principalPayment": 10035.883277260407,
+     "endingBalance": 99903.23672273953,
+     "termDays": 1085,
+     "cobAmount": 12463.91672273959,
+     "cobRatePercent": 3.994876602469461,
+     "row1PeriodInterest": 84.22883636407059,
+     "lastRowDate": "2029-09-27"
+    },
+    "b37Y": {
+     "n": 52.1909594095941,
+     "calculatedRatePercent": 3.9948762395765574,
+     "numberOfPayments": 155,
+     "totalInterest": 12463.915519974867,
+     "principalPayment": 10035.884480025134,
+     "endingBalance": 99903.23551997496,
+     "termDays": 1085,
+     "cobAmount": 12463.915519974867,
+     "cobRatePercent": 3.9948762395765574,
+     "row1PeriodInterest": 84.22882871275866,
+     "lastRowDate": "2029-09-27"
+    },
+    "b38": {
+     "n": 52,
+     "calculatedRatePercent": 4,
+     "numberOfPayments": 155,
+     "totalInterest": 12480.898934294939,
+     "principalPayment": 10018.90106570506,
+     "endingBalance": 99920.2189342949,
+     "termDays": 1085,
+     "cobAmount": 12480.898934294939,
+     "cobRatePercent": 4,
+     "row1PeriodInterest": 84.3368591780822,
+     "lastRowDate": "2029-09-27"
+    }
+   },
+   "VAR-2": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "paymentChange",
+     "productType": "mortgage",
+     "rateType": "variable",
+     "frequency": "biweekly",
+     "loanAmount": 333623.25,
+     "contractRatePercent": 3.8,
+     "paymentAmount": 863.15,
+     "accruedInterest": 277.63,
+     "start": "2026-10-13",
+     "first": "2026-10-19",
+     "end": "2031-09-15"
+    },
+    "D": 1798,
+    "Y": 4.923779096303058,
+    "on": {
+     "n": 26.083333333333332,
+     "calculatedRatePercent": 3.796756654443251,
+     "numberOfPayments": 129,
+     "totalInterest": 57808.56142971458,
+     "principalPayment": 53537.788570285404,
+     "endingBalance": 280085.4614297146,
+     "termDays": 1798,
+     "cobAmount": 57808.56142971458,
+     "cobRatePercent": 3.796756654443251,
+     "row1PeriodInterest": 208.22240457772344,
+     "lastRowDate": "2031-09-15"
+    },
+    "b37Y": {
+     "n": 26.085936878925192,
+     "calculatedRatePercent": 3.796756378779001,
+     "numberOfPayments": 129,
+     "totalInterest": 57808.55682806941,
+     "principalPayment": 53537.79317193062,
+     "endingBalance": 280085.45682806935,
+     "termDays": 1798,
+     "cobAmount": 57808.55682806941,
+     "cobRatePercent": 3.796756378779001,
+     "row1PeriodInterest": 208.22238945969556,
+     "lastRowDate": "2031-09-15"
+    },
+    "b38": {
+     "n": 26,
+     "calculatedRatePercent": 3.8,
+     "numberOfPayments": 129,
+     "totalInterest": 57862.70692515041,
+     "principalPayment": 53483.643074849584,
+     "endingBalance": 280139.6069251505,
+     "termDays": 1798,
+     "cobAmount": 57862.70692515041,
+     "cobRatePercent": 3.8,
+     "row1PeriodInterest": 208.40027671232875,
+     "lastRowDate": "2031-09-15"
+    }
+   },
+   "T1": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "paymentChange",
+     "productType": "mortgage",
+     "rateType": "variable",
+     "frequency": "acceleratedWeekly",
+     "loanAmount": 109939.12,
+     "contractRatePercent": 4,
+     "paymentAmount": 145.16,
+     "accruedInterest": 0,
+     "start": "2026-10-08",
+     "first": "2026-10-15",
+     "end": "2029-09-27"
+    },
+    "D": 1085,
+    "Y": 2.97056810403833,
+    "on": {
+     "n": 52.17857142857142,
+     "calculatedRatePercent": 3.994876602469461,
+     "numberOfPayments": 155,
+     "totalInterest": 12463.91672273959,
+     "principalPayment": 10035.883277260407,
+     "endingBalance": 99903.23672273953,
+     "termDays": 1085,
+     "cobAmount": 12463.91672273959,
+     "cobRatePercent": 3.994876602469461,
+     "row1PeriodInterest": 84.22883636407059,
+     "lastRowDate": "2029-09-27"
+    },
+    "b37Y": {
+     "n": 52.1909594095941,
+     "calculatedRatePercent": 3.9948762395765574,
+     "numberOfPayments": 155,
+     "totalInterest": 12463.915519974867,
+     "principalPayment": 10035.884480025134,
+     "endingBalance": 99903.23551997496,
+     "termDays": 1085,
+     "cobAmount": 12463.915519974867,
+     "cobRatePercent": 3.9948762395765574,
+     "row1PeriodInterest": 84.22882871275866,
+     "lastRowDate": "2029-09-27"
+    },
+    "b38": {
+     "n": 52,
+     "calculatedRatePercent": 4,
+     "numberOfPayments": 155,
+     "totalInterest": 12480.898934294939,
+     "principalPayment": 10018.90106570506,
+     "endingBalance": 99920.2189342949,
+     "termDays": 1085,
+     "cobAmount": 12480.898934294939,
+     "cobRatePercent": 4,
+     "row1PeriodInterest": 84.3368591780822,
+     "lastRowDate": "2029-09-27"
+    }
+   },
+   "T3": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "newMortgageOrLoan",
+     "productType": "personalLoan",
+     "rateType": "fixed",
+     "frequency": "weekly",
+     "loanAmount": 30000,
+     "contractRatePercent": 8,
+     "paymentAmount": 140,
+     "accruedInterest": 0,
+     "start": "2026-11-01",
+     "first": "2026-11-08",
+     "end": "2031-11-01"
+    },
+    "D": 1826,
+    "Y": 5.0004564125969875,
+    "on": {
+     "n": 52.166666666666664,
+     "calculatedRatePercent": 7.979547907300506,
+     "numberOfPayments": 260,
+     "totalInterest": 6376.325798799797,
+     "principalPayment": 30000.00000000002,
+     "endingBalance": 0,
+     "termDays": 1820,
+     "cobAmount": 6376.325798799797,
+     "cobRatePercent": 7.979547907300506,
+     "row1PeriodInterest": 45.909727685838526,
+     "lastRowDate": "2031-10-26"
+    },
+    "b37Y": {
+     "n": 52.171428571428564,
+     "calculatedRatePercent": 7.979547350550844,
+     "numberOfPayments": 260,
+     "totalInterest": 6376.32521940656,
+     "principalPayment": 30000.000000000025,
+     "endingBalance": 0,
+     "termDays": 1820,
+     "cobAmount": 6376.32521940656,
+     "cobRatePercent": 7.979547350550844,
+     "row1PeriodInterest": 45.909724482621286,
+     "lastRowDate": "2031-10-26"
+    },
+    "b38": {
+     "n": 52,
+     "calculatedRatePercent": 8,
+     "numberOfPayments": 260,
+     "totalInterest": 6397.62434132225,
+     "principalPayment": 30000.000000000015,
+     "endingBalance": 0,
+     "termDays": 1820,
+     "cobAmount": 6397.62434132225,
+     "cobRatePercent": 8,
+     "row1PeriodInterest": 46.02739726027397,
+     "lastRowDate": "2031-10-26"
+    }
+   },
+   "T3-variable": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "newMortgageOrLoan",
+     "productType": "personalLoan",
+     "rateType": "variable",
+     "frequency": "weekly",
+     "loanAmount": 30000,
+     "contractRatePercent": 8,
+     "paymentAmount": 140,
+     "accruedInterest": 0,
+     "start": "2026-11-01",
+     "first": "2026-11-08",
+     "end": "2031-11-01"
+    },
+    "D": 1826,
+    "Y": 5.0004564125969875,
+    "on": {
+     "n": 52.166666666666664,
+     "calculatedRatePercent": 7.979547907300506,
+     "numberOfPayments": 260,
+     "totalInterest": 6376.325798799797,
+     "principalPayment": 30000.00000000002,
+     "endingBalance": 0,
+     "termDays": 1820,
+     "cobAmount": 6376.325798799797,
+     "cobRatePercent": 7.979547907300506,
+     "row1PeriodInterest": 45.909727685838526,
+     "lastRowDate": "2031-10-26"
+    },
+    "b37Y": {
+     "n": 52.171428571428564,
+     "calculatedRatePercent": 7.979547350550844,
+     "numberOfPayments": 260,
+     "totalInterest": 6376.32521940656,
+     "principalPayment": 30000.000000000025,
+     "endingBalance": 0,
+     "termDays": 1820,
+     "cobAmount": 6376.32521940656,
+     "cobRatePercent": 7.979547350550844,
+     "row1PeriodInterest": 45.909724482621286,
+     "lastRowDate": "2031-10-26"
+    },
+    "b38": {
+     "n": 52,
+     "calculatedRatePercent": 8,
+     "numberOfPayments": 260,
+     "totalInterest": 6397.62434132225,
+     "principalPayment": 30000.000000000015,
+     "endingBalance": 0,
+     "termDays": 1820,
+     "cobAmount": 6397.62434132225,
+     "cobRatePercent": 8,
+     "row1PeriodInterest": 46.02739726027397,
+     "lastRowDate": "2031-10-26"
+    }
+   },
+   "VAR-2-VRPC": {
+    "input": {
+     "financedFees": [],
+     "cashFees": [],
+     "flow": "variableRatePaymentChange",
+     "productType": "mortgage",
+     "rateType": "variable",
+     "frequency": "biweekly",
+     "loanAmount": 333623.25,
+     "contractRatePercent": 3.8,
+     "paymentAmount": 863.15,
+     "accruedInterest": 277.63,
+     "start": "2026-10-13",
+     "first": "2026-10-19",
+     "end": "2031-09-15"
+    },
+    "D": 1798,
+    "Y": 4.923779096303058,
+    "on": {
+     "n": 26.083333333333332,
+     "calculatedRatePercent": 3.796756654443251,
+     "numberOfPayments": 129,
+     "totalInterest": 57808.56142971458,
+     "principalPayment": 53537.788570285404,
+     "endingBalance": 280085.4614297146,
+     "termDays": 1798,
+     "cobAmount": 57808.56142971458,
+     "cobRatePercent": 3.796756654443251,
+     "row1PeriodInterest": 208.22240457772344,
+     "lastRowDate": "2031-09-15"
+    },
+    "b37Y": {
+     "n": 26.085936878925192,
+     "calculatedRatePercent": 3.796756378779001,
+     "numberOfPayments": 129,
+     "totalInterest": 57808.55682806941,
+     "principalPayment": 53537.79317193062,
+     "endingBalance": 280085.45682806935,
+     "termDays": 1798,
+     "cobAmount": 57808.55682806941,
+     "cobRatePercent": 3.796756378779001,
+     "row1PeriodInterest": 208.22238945969556,
+     "lastRowDate": "2031-09-15"
+    },
+    "b38": {
+     "n": 26,
+     "calculatedRatePercent": 3.8,
+     "numberOfPayments": 129,
+     "totalInterest": 57862.70692515041,
+     "principalPayment": 53483.643074849584,
+     "endingBalance": 280139.6069251505,
+     "termDays": 1798,
+     "cobAmount": 57862.70692515041,
+     "cobRatePercent": 3.8,
+     "row1PeriodInterest": 208.40027671232875,
+     "lastRowDate": "2031-09-15"
+    }
+   }
+  }
  }
 }

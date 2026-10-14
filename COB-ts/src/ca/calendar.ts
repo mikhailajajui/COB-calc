@@ -58,6 +58,49 @@ export function dayCountFraction(start: Date, end: Date): number {
   return fraction;
 }
 
+/**
+ * B38 (DEC-B38-YEARFRAC-ROUND): Excel `YEARFRAC(start, end, 1)` (actual/actual), the Y of the leap-aware n.
+ * days / L, with days = daysBetween(start, end) and L the year length:
+ *   - start and end within a year (same year, or the next year on or before the same month and day): the same year's
+ *     length; across a year end, 366 if a Feb 29 lies in [start, end], else 365;
+ *   - otherwise the average length of the calendar years from start's to end's (integer sum, one division).
+ * Excel's 1900 leap-year bug is not reproduced. RangeError for an invalid date or start after end; 0 when start = end.
+ */
+export function excelYearFracBasis1(start: Date, end: Date): number {
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    throw new RangeError('start/end must be valid Dates');
+  }
+  if (utcDateOnly(start) > utcDateOnly(end)) {
+    throw new RangeError('start must be on or before end');
+  }
+  const days = daysBetween(start, end);
+  if (days === 0) return 0;
+  const y1 = start.getUTCFullYear();
+  const m1 = start.getUTCMonth();
+  const d1 = start.getUTCDate();
+  const y2 = end.getUTCFullYear();
+  const m2 = end.getUTCMonth();
+  const d2 = end.getUTCDate();
+  const daysInYear = (year: number): number => (isLeapYear(year) ? 366 : 365);
+  const withinAYear = y1 === y2 || (y2 === y1 + 1 && (m1 > m2 || (m1 === m2 && d1 >= d2)));
+  let yearLength: number;
+  if (withinAYear) {
+    if (y1 === y2) {
+      yearLength = daysInYear(y1);
+    } else {
+      const feb29Inside =
+        (isLeapYear(y1) && utcDateOnly(start) < Date.UTC(y1, 2, 1)) ||
+        (isLeapYear(y2) && utcDateOnly(end) >= Date.UTC(y2, 1, 29));
+      yearLength = feb29Inside ? 366 : 365;
+    }
+  } else {
+    let total = 0;
+    for (let year = y1; year <= y2; year += 1) total += daysInYear(year);
+    yearLength = total / (y2 - y1 + 1);
+  }
+  return days / yearLength;
+}
+
 /** UTC-safe day/month stepping -- see utcDateOnly's doc comment above for why
  *  this module avoids local-timezone Date getters/setters entirely. */
 export function addUtcDays(date: Date, days: number): Date {

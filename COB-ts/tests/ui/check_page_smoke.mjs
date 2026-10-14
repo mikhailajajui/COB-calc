@@ -429,14 +429,34 @@ try {
       await b37Step('(e) Rate type Variable', { value: 'biweekly' });
       await p5.selectOption('#productType', 'personalLoan');
       await b37Step('(e) Personal loan', { value: 'biweekly' });
-      // (h) V-CASE1 (the user's case 1): Payment change, fixed mortgage, Bi-weekly -> Total interest $60,137.62 (leap-aware n).
+      // (h) V-CASE1 (the user's case 1): Payment change, fixed mortgage, Bi-weekly -> Total interest $60,137.63 and Total
+      // principal paid $43,861.65 (B38, DEC-B38-YEARFRAC-ROUND: Excel to the cent; B37 showed $60,137.62).
       await p5.selectOption('#productType', 'mortgage');
       await p5.selectOption('#rateType', 'fixed');
       await p5.selectOption('#flow', 'paymentChange');
       for (const [k, v] of Object.entries({ loanAmount: '495466.87', contractRatePercent: '4.34', paymentAmount: '1350.64', accruedInterest: '58.33', renewalDate: '2026-10-08', firstPaymentDate: '2026-10-21', endDate: '2029-09-23' })) await p5.fill('#' + k, v);
       await b37Step('(h) V-CASE1', { value: 'biweekly', error: false });
-      const ti = await p5.evaluate(() => [...document.querySelectorAll('#mainFigures .figure')].filter((f) => f.querySelector('dt').firstChild.textContent === 'Total interest').map((f) => f.querySelector('dd').textContent));
-      if (JSON.stringify(ti) !== JSON.stringify(['$60,137.62'])) fail(`B37 (h) V-CASE1 Total interest ${JSON.stringify(ti)} want ["$60,137.62"] (DEC-B37-LEAP-N)`);
+      const figure = (label) => p5.evaluate((l) => [...document.querySelectorAll('#mainFigures .figure')].filter((f) => f.querySelector('dt').firstChild.textContent === l).map((f) => f.querySelector('dd').textContent), label);
+      const ti = await figure('Total interest');
+      if (JSON.stringify(ti) !== JSON.stringify(['$60,137.63'])) fail(`B38 (h) V-CASE1 Total interest ${JSON.stringify(ti)} want ["$60,137.63"] (DEC-B38-YEARFRAC-ROUND)`);
+      const pp = await figure('Total principal paid');
+      if (JSON.stringify(pp) !== JSON.stringify(['$43,861.65'])) fail(`B38 (h) V-CASE1 Total principal paid ${JSON.stringify(pp)} want ["$43,861.65"] (DEC-B38-YEARFRAC-ROUND)`);
+      // (i) V-EX2 (the user's example 2): same flow and product -> $74,326.11 / $48,523.89 (Excel to the cent).
+      for (const [k, v] of Object.entries({ loanAmount: '413337.42', contractRatePercent: '4.30', paymentAmount: '1050', accruedInterest: '530.49', renewalDate: '2026-10-08', firstPaymentDate: '2026-10-08', endDate: '2031-03-27' })) await p5.fill('#' + k, v);
+      await b37Step('(i) V-EX2', { value: 'biweekly', error: false });
+      const ti2 = await figure('Total interest');
+      if (JSON.stringify(ti2) !== JSON.stringify(['$74,326.11'])) fail(`B38 (i) V-EX2 Total interest ${JSON.stringify(ti2)} want ["$74,326.11"] (DEC-B38-YEARFRAC-ROUND)`);
+      const pp2 = await figure('Total principal paid');
+      if (JSON.stringify(pp2) !== JSON.stringify(['$48,523.89'])) fail(`B38 (i) V-EX2 Total principal paid ${JSON.stringify(pp2)} want ["$48,523.89"] (DEC-B38-YEARFRAC-ROUND)`);
+      // (j) VAR-2 (the user's variable-rate example, registry UX-004): Payment change, variable mortgage, Bi-weekly ->
+      // $57,808.56 / $53,537.79 (B39, DEC-B39-VAR-PL-M12, spec 014 acceptance 4: Excel to the cent; B38 showed $57,862.71).
+      await p5.selectOption('#rateType', 'variable');
+      for (const [k, v] of Object.entries({ loanAmount: '333623.25', contractRatePercent: '3.8', paymentAmount: '863.15', accruedInterest: '277.63', renewalDate: '2026-10-13', firstPaymentDate: '2026-10-19', endDate: '2031-09-15' })) await p5.fill('#' + k, v);
+      await b37Step('(j) VAR-2', { value: 'biweekly', error: false });
+      const ti3 = await figure('Total interest');
+      if (JSON.stringify(ti3) !== JSON.stringify(['$57,808.56'])) fail(`B39 (j) VAR-2 Total interest ${JSON.stringify(ti3)} want ["$57,808.56"] (DEC-B39-VAR-PL-M12)`);
+      const pp3 = await figure('Total principal paid');
+      if (JSON.stringify(pp3) !== JSON.stringify(['$53,537.79'])) fail(`B39 (j) VAR-2 Total principal paid ${JSON.stringify(pp3)} want ["$53,537.79"] (DEC-B39-VAR-PL-M12)`);
       // (g) the printout carries no option text
       await p5.emulateMedia({ media: 'print' });
       const printed = await p5.evaluate(() => document.body.innerText);
@@ -448,4 +468,4 @@ try {
   for (const o of b34Observed) console.log('B34 observed: ' + o);
 } finally { await browser.close(); child?.kill(); }
 if (problems.length) { console.log('SMOKE FAIL\n' + problems.join('\n')); process.exit(1); }
-console.log('SMOKE PASS: no pageerror/console error; B33 no frequency lock (enabled, value kept, no hint), 4 options, REF-01, Contract term (filled, cleared, printed, tile), B31 screen lists and hint counts, personal loan calc, CSV, print, renewal, B32 term label/hint per flow and RENEWAL term, B34 term choice (INV-PAGE 1-15, BA sequence B, CSV under both picks, zero term), B37 frequency labels (whole numbers, every refresh, accessible name, no /yr in print) and V-CASE1 total interest');
+console.log('SMOKE PASS: no pageerror/console error; B33 no frequency lock (enabled, value kept, no hint), 4 options, REF-01, Contract term (filled, cleared, printed, tile), B31 screen lists and hint counts, personal loan calc, CSV, print, renewal, B32 term label/hint per flow and RENEWAL term, B34 term choice (INV-PAGE 1-15, BA sequence B, CSV under both picks, zero term), B37 frequency labels (whole numbers, every refresh, accessible name, no /yr in print), B38 V-CASE1 and V-EX2 totals ($60,137.63 / $43,861.65, $74,326.11 / $48,523.89), B39 VAR-2 totals ($57,808.56 / $53,537.79)');
