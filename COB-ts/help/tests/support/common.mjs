@@ -20,8 +20,8 @@ export const TOKENS_CSS = resolve(COB, '..', 'visual_design', 'app-ui.tokens.css
 export const INSTALLED =
   existsSync(join(HELP, 'node_modules', 'markdown-it', 'package.json')) &&
   existsSync(join(HELP, 'node_modules', 'mermaid', 'package.json'));
-/** The three real documents are present (B29-X7 iii). Tests that read docs/ are skipIf(!DOCS_PRESENT). */
-export const DOCS_PRESENT = ['COB-user-manual.md', 'COB-coverage.md', 'COB-domain-overview.md'].every((f) =>
+/** The four real documents are present (B29-X7 iii). Tests that read docs/ are skipIf(!DOCS_PRESENT). */
+export const DOCS_PRESENT = ['COB-user-manual.md', 'COB-coverage.md', 'COB-domain-overview.md', 'v3_PRRD_COB.md'].every((f) =>
   existsSync(join(DOCS, f)),
 );
 export const BUILDER_PRESENT = existsSync(BUILDER);
@@ -31,6 +31,7 @@ export const DOC_FILES = {
   manual: 'COB-user-manual.md',
   coverage: 'COB-coverage.md',
   domain: 'COB-domain-overview.md',
+  prrd: 'v3_PRRD_COB.md',
 };
 
 export const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
@@ -124,12 +125,13 @@ export const STUB_EMPTY = join(FIXTURES, 'stub-renderer-empty.mjs');
 export const STUB_SHORT = join(FIXTURES, 'stub-renderer-short.mjs'); // one entry missing (R8a)
 export const STUB_SYNC = join(FIXTURES, 'stub-renderer-sync.mjs'); // returns an array, not a Promise (R8a)
 
-/** Minimal valid documents (the registry needs all three files). `over` replaces a document's text. */
+/** Minimal valid documents (the registry needs all four files). `over` replaces a document's text. */
 export function defaultDocs() {
   return {
     manual: '# Test manual\n\n## 1. Introduction\n\nSome text.\n',
     coverage: '# Test coverage\n\n## 1. Rows\n\n| ID | Status |\n|---|---|\n| US-01 | Covered |\n',
     domain: '# Test domain\n\n## 1. Overview\n\nSome text.\n',
+    prrd: '# Test requirements\n\n## 1. Changes\n\nSome text.\n',
   };
 }
 

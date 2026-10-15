@@ -2,7 +2,7 @@
   'use strict';
   var doc = document;
   var root = doc.documentElement;
-  var KEYS = ['manual', 'coverage', 'domain'];
+  var KEYS = ['manual', 'coverage', 'domain', 'prrd'];
   var live = doc.getElementById('live');
   var notice = doc.getElementById('notice');
   var box = doc.getElementById('goto');
@@ -39,7 +39,7 @@
     var id = hash.replace(/^#/, '');
     try { id = decodeURIComponent(id); } catch (e) { /* keep the raw text */ }
     if (!id) return { key: 'manual' };
-    var m = /^(?:doc-)?(manual|coverage|domain)$/.exec(id);
+    var m = /^(?:doc-)?(manual|coverage|domain|prrd)$/.exec(id);
     if (m) return { key: m[1], top: true };
     var el = doc.getElementById(id) || doc.getElementById(id.toUpperCase());
     if (!el) return { key: 'manual', missing: id };

@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2aSoKTOA5l8CLr/Y/6j+kPSduh2pazAXPumBwoVjDsc=' 'sha256-qOlgWlZOfB7647cWv0SJEt3B9Vb9rVn32NVDmD5YAW8='; style-src 'unsafe-inline'; img-src https://www.alterna.ca data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2aSoKTOA5l8CLr/Y/6j+kPSduh2pazAXPumBwoVjDsc=' 'sha256-t86/YnEojytnucTls+GPThtNwZOJPZGm7exkfeZDyhk='; style-src 'unsafe-inline'; img-src https://www.alterna.ca data:; base-uri 'none'; form-action 'none'">
 <title>Help - Alterna Cost of Borrowing calculator</title>
 <style>
 /*
@@ -221,10 +221,11 @@ main { display: block; min-width: 0; }
 article.doc { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-width: 0; }
 article.doc > *, .doc-body > * { min-width: 0; }
 .doc-body { min-width: 0; }
-.js:not(.ready) #doc-manual, .js:not(.ready) #doc-coverage, .js:not(.ready) #doc-domain { display: none; }
+.js:not(.ready) #doc-manual, .js:not(.ready) #doc-coverage, .js:not(.ready) #doc-domain, .js:not(.ready) #doc-prrd { display: none; }
 .js[data-doc="manual"]:not(.ready) #doc-manual,
 .js[data-doc="coverage"]:not(.ready) #doc-coverage,
-.js[data-doc="domain"]:not(.ready) #doc-domain { display: grid; }
+.js[data-doc="domain"]:not(.ready) #doc-domain,
+.js[data-doc="prrd"]:not(.ready) #doc-prrd { display: grid; }
 .notice { margin: 0 0 var(--space-4); padding: var(--space-3) var(--space-4); background: var(--paper-raised); border-left: 4px solid var(--accent); border-radius: var(--radius-control); }
 .notice:empty { display: none; }
 
@@ -307,7 +308,7 @@ span.id { color: inherit; }
               linear-gradient(to left, rgba(0, 0, 0, 0.18), transparent) right center / 10px 100% no-repeat scroll;
 }
 .table-hint { margin: 0 0 var(--space-4); font-size: var(--text-sm); color: var(--ink-muted); }
-.doc table { border-collapse: separate; border-spacing: 0; min-width: 640px; width: 100%; table-layout: auto; }
+.doc table { border-collapse: separate; border-spacing: 0; table-layout: auto; }
 .doc table.wide { min-width: 880px; }
 .doc th, .doc td {
   padding: 8px 12px; vertical-align: top; text-align: left; font-size: var(--text-sm); line-height: 1.45;
@@ -388,15 +389,15 @@ span.id { color: inherit; }
 @page { size: letter portrait; margin: 14mm; }
 @page coverage { size: letter landscape; margin: 12mm; }
 @media print {
-  #doc-coverage { page: coverage; }
+  #doc-coverage, #doc-prrd { page: coverage; }
   html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #ffffff; color: #000000; }
   body { font-size: 10.5pt; line-height: 1.4; }
   .help-header, .doc-bar, .doc-nav, nav[aria-label="Documents"], .toc, .toc-box, nav[aria-label^="Contents of"], .anchor, .skip, .goto, .toast, .notice, button, noscript, .table-hint, .sprite { display: none !important; }
   article.doc[hidden] { display: none !important; }
   .help-shell { max-width: none; padding: 0; }
   article.doc, .js[data-doc] article.doc { display: block; }
-  .js:not(.ready) #doc-manual, .js:not(.ready) #doc-coverage, .js:not(.ready) #doc-domain { display: none; }
-  .js[data-doc="manual"]:not(.ready) #doc-manual, .js[data-doc="coverage"]:not(.ready) #doc-coverage, .js[data-doc="domain"]:not(.ready) #doc-domain { display: block; }
+  .js:not(.ready) #doc-manual, .js:not(.ready) #doc-coverage, .js:not(.ready) #doc-domain, .js:not(.ready) #doc-prrd { display: none; }
+  .js[data-doc="manual"]:not(.ready) #doc-manual, .js[data-doc="coverage"]:not(.ready) #doc-coverage, .js[data-doc="domain"]:not(.ready) #doc-domain, .js[data-doc="prrd"]:not(.ready) #doc-prrd { display: block; }
   .doc h1 { font-size: 18pt; }
   .doc h2 { font-size: 13pt; break-after: avoid; }
   .doc h3 { font-size: 11pt; break-after: avoid; }
@@ -437,9 +438,10 @@ span.id { color: inherit; }
     <a href="#doc-manual" aria-current="page">User manual <span class="sub">For branch staff</span></a>
     <a href="#doc-coverage">Coverage report <span class="sub">For business owners and auditors</span></a>
     <a href="#doc-domain">Domain overview <span class="sub">For domain experts: diagrams</span></a>
+    <a href="#doc-prrd">Requirements v3 draft <span class="sub">BRD v2.3 compared with the calculator</span></a>
   </nav>
   <div class="goto js-only"><label for="goto">Go to ID</label><input id="goto" type="search" list="id-index" placeholder="e.g. US-04, OQ-P, B24" autocomplete="off"><p class="goto-msg" id="goto-msg" role="status"></p>
-<datalist id="id-index"><option value="A11"></option><option value="A14"></option><option value="A9"></option><option value="B13"></option><option value="B18"></option><option value="B19"></option><option value="B22"></option><option value="B23"></option><option value="B24"></option><option value="B25"></option><option value="B26"></option><option value="B27"></option><option value="B28"></option><option value="B29"></option><option value="B30"></option><option value="B31"></option><option value="B32"></option><option value="B33"></option><option value="B34"></option><option value="B35"></option><option value="B36"></option><option value="B37"></option><option value="B38"></option><option value="B39"></option><option value="BR-01"></option><option value="BR-02"></option><option value="BR-03"></option><option value="BR-04"></option><option value="BR-05"></option><option value="BR-06"></option><option value="BR-07"></option><option value="BR-08"></option><option value="BR-09"></option><option value="BR-10"></option><option value="BR-11"></option><option value="BR-12"></option><option value="BR-13"></option><option value="DEV-B37-LEAPN"></option><option value="DEV-B38-ROUND"></option><option value="DEV-B39-M12"></option><option value="DEV-FB24"></option><option value="DEV-OQAA"></option><option value="DEV-OQL"></option><option value="DEV-OQP"></option><option value="DEV-OQQ"></option><option value="DEV-OQR"></option><option value="DEV-OQS"></option><option value="DEV-OQX"></option><option value="DEV-OQY"></option><option value="DEV-OQZ"></option><option value="DEV-W"></option><option value="F10"></option><option value="F11"></option><option value="F12"></option><option value="F13"></option><option value="F15"></option><option value="F17"></option><option value="F18"></option><option value="F2"></option><option value="F25"></option><option value="F35"></option><option value="F38"></option><option value="F39"></option><option value="F43"></option><option value="F44"></option><option value="F5"></option><option value="F51"></option><option value="F52"></option><option value="F55"></option><option value="F58"></option><option value="F60"></option><option value="F63"></option><option value="F65"></option><option value="F66"></option><option value="F67"></option><option value="F68"></option><option value="F69"></option><option value="F70"></option><option value="F71"></option><option value="F9"></option><option value="FB-11"></option><option value="FB-15"></option><option value="FB-16"></option><option value="FB-18"></option><option value="FB-24"></option><option value="FB-25"></option><option value="FB-28"></option><option value="FB-7"></option><option value="IN-01"></option><option value="IN-02"></option><option value="IN-03"></option><option value="IN-04"></option><option value="IN-05"></option><option value="IN-06"></option><option value="IN-07"></option><option value="IN-08"></option><option value="IN-09"></option><option value="IN-10"></option><option value="IN-11"></option><option value="IN-12"></option><option value="IN-13"></option><option value="OQ-A"></option><option value="OQ-AA"></option><option value="OQ-C"></option><option value="OQ-E"></option><option value="OQ-G"></option><option value="OQ-H"></option><option value="OQ-I"></option><option value="OQ-J"></option><option value="OQ-K"></option><option value="OQ-M"></option><option value="OQ-N"></option><option value="OQ-P"></option><option value="OQ-Q"></option><option value="OQ-R"></option><option value="OQ-S"></option><option value="OQ-T"></option><option value="OQ-U"></option><option value="OQ-V"></option><option value="OQ-W"></option><option value="OQ-W2"></option><option value="OQ-W3"></option><option value="OQ-W5"></option><option value="OQ-X"></option><option value="OQ-Y"></option><option value="OQ-Z"></option><option value="Q-A10-1"></option><option value="Q-A11-FIX"></option><option value="Q-A11-SCOPE"></option><option value="Q-A14-GUARD"></option><option value="Q-B19-ENDACC"></option><option value="Q-B23-FIX"></option><option value="Q-B31-DUP-HINT"></option><option value="Q-B31-NARROW"></option><option value="Q-B31-ON-ORDER"></option><option value="Q-B32-HEADING"></option><option value="Q-B32-SAME-DAY"></option><option value="Q-B33-B27FILE"></option><option value="Q-B33-LEGACY"></option><option value="Q-B34-CSV"></option><option value="Q-B34-FIX"></option><option value="Q-B34-KEEP"></option><option value="Q-B34-ORDER"></option><option value="Q-B34-TEXT"></option><option value="Q-B34-ZERO"></option><option value="Q-B37-APPA"></option><option value="Q-B37-HINT"></option><option value="Q-B37-LABEL"></option><option value="Q-B37-LAW"></option><option value="Q-B37-REF01"></option><option value="Q-B37-WHICH-EXCEL"></option><option value="Q-B39-ENGINES"></option><option value="Q-B39-PL-EXAMPLE"></option><option value="Q-B39-UNIFIED"></option><option value="Q-B39-VAR1-CENT"></option><option value="Q-B39-VAR2-FREQ"></option><option value="Q-CAP"></option><option value="Q-CT-B25"></option><option value="Q-MONEY-FMT"></option><option value="Q-MSG"></option><option value="Q-PRINT-HEAD"></option><option value="Q-SEMI-SHOW"></option><option value="UC-01"></option><option value="UC-02"></option><option value="UC-03"></option><option value="UC-04"></option><option value="UC-05"></option><option value="UC-06"></option><option value="UC-07"></option><option value="UC-08"></option><option value="UC-09"></option><option value="US-01"></option><option value="US-02"></option><option value="US-03"></option><option value="US-04"></option><option value="US-05"></option><option value="US-06"></option><option value="US-07"></option><option value="US-08"></option><option value="US-09"></option><option value="US-10"></option><option value="US-11"></option><option value="US-12"></option><option value="US-13"></option><option value="US-14"></option><option value="US-15"></option><option value="US-16"></option><option value="US-17"></option><option value="US-18"></option><option value="US-19"></option></datalist></div>
+<datalist id="id-index"><option value="A11"></option><option value="A14"></option><option value="A9"></option><option value="B13"></option><option value="B18"></option><option value="B19"></option><option value="B22"></option><option value="B23"></option><option value="B24"></option><option value="B25"></option><option value="B26"></option><option value="B27"></option><option value="B28"></option><option value="B29"></option><option value="B30"></option><option value="B31"></option><option value="B32"></option><option value="B33"></option><option value="B34"></option><option value="B35"></option><option value="B36"></option><option value="B37"></option><option value="B38"></option><option value="B39"></option><option value="BR-01"></option><option value="BR-02"></option><option value="BR-03"></option><option value="BR-04"></option><option value="BR-05"></option><option value="BR-06"></option><option value="BR-07"></option><option value="BR-08"></option><option value="BR-09"></option><option value="BR-10"></option><option value="BR-11"></option><option value="BR-12"></option><option value="BR-13"></option><option value="DEV-B37-LEAPN"></option><option value="DEV-B38-ROUND"></option><option value="DEV-B39-M12"></option><option value="DEV-FB24"></option><option value="DEV-OQAA"></option><option value="DEV-OQL"></option><option value="DEV-OQP"></option><option value="DEV-OQQ"></option><option value="DEV-OQR"></option><option value="DEV-OQS"></option><option value="DEV-OQX"></option><option value="DEV-OQY"></option><option value="DEV-OQZ"></option><option value="DEV-W"></option><option value="F10"></option><option value="F11"></option><option value="F12"></option><option value="F13"></option><option value="F15"></option><option value="F17"></option><option value="F18"></option><option value="F2"></option><option value="F25"></option><option value="F35"></option><option value="F38"></option><option value="F39"></option><option value="F43"></option><option value="F44"></option><option value="F5"></option><option value="F51"></option><option value="F52"></option><option value="F55"></option><option value="F58"></option><option value="F60"></option><option value="F63"></option><option value="F65"></option><option value="F66"></option><option value="F67"></option><option value="F68"></option><option value="F69"></option><option value="F70"></option><option value="F71"></option><option value="F9"></option><option value="FB-11"></option><option value="FB-15"></option><option value="FB-16"></option><option value="FB-18"></option><option value="FB-24"></option><option value="FB-25"></option><option value="FB-28"></option><option value="FB-7"></option><option value="IN-01"></option><option value="IN-02"></option><option value="IN-03"></option><option value="IN-04"></option><option value="IN-05"></option><option value="IN-06"></option><option value="IN-07"></option><option value="IN-08"></option><option value="IN-09"></option><option value="IN-10"></option><option value="IN-11"></option><option value="IN-12"></option><option value="IN-13"></option><option value="OQ-01"></option><option value="OQ-06"></option><option value="OQ-A"></option><option value="OQ-AA"></option><option value="OQ-C"></option><option value="OQ-E"></option><option value="OQ-G"></option><option value="OQ-H"></option><option value="OQ-I"></option><option value="OQ-J"></option><option value="OQ-K"></option><option value="OQ-M"></option><option value="OQ-N"></option><option value="OQ-P"></option><option value="OQ-Q"></option><option value="OQ-R"></option><option value="OQ-S"></option><option value="OQ-T"></option><option value="OQ-U"></option><option value="OQ-V"></option><option value="OQ-W"></option><option value="OQ-W2"></option><option value="OQ-W3"></option><option value="OQ-W5"></option><option value="OQ-X"></option><option value="OQ-Y"></option><option value="OQ-Z"></option><option value="Q-A10-1"></option><option value="Q-A11-FIX"></option><option value="Q-A11-SCOPE"></option><option value="Q-A14-GUARD"></option><option value="Q-B19-ENDACC"></option><option value="Q-B23-FIX"></option><option value="Q-B31-DUP-HINT"></option><option value="Q-B31-NARROW"></option><option value="Q-B31-ON-ORDER"></option><option value="Q-B32-HEADING"></option><option value="Q-B32-SAME-DAY"></option><option value="Q-B33-B27FILE"></option><option value="Q-B33-LEGACY"></option><option value="Q-B34-CSV"></option><option value="Q-B34-FIX"></option><option value="Q-B34-KEEP"></option><option value="Q-B34-ORDER"></option><option value="Q-B34-TEXT"></option><option value="Q-B34-ZERO"></option><option value="Q-B37-APPA"></option><option value="Q-B37-HINT"></option><option value="Q-B37-LABEL"></option><option value="Q-B37-LAW"></option><option value="Q-B37-REF01"></option><option value="Q-B37-WHICH-EXCEL"></option><option value="Q-B39"></option><option value="Q-B39-ENGINES"></option><option value="Q-B39-PL-EXAMPLE"></option><option value="Q-B39-UNIFIED"></option><option value="Q-B39-VAR1-CENT"></option><option value="Q-B39-VAR2-FREQ"></option><option value="Q-CAP"></option><option value="Q-CT-B25"></option><option value="Q-FEE-CSV"></option><option value="Q-MONEY-FMT"></option><option value="Q-MSG"></option><option value="Q-PRINT-HEAD"></option><option value="Q-SEMI-SHOW"></option><option value="UC-01"></option><option value="UC-02"></option><option value="UC-03"></option><option value="UC-04"></option><option value="UC-05"></option><option value="UC-06"></option><option value="UC-07"></option><option value="UC-08"></option><option value="UC-09"></option><option value="US-01"></option><option value="US-02"></option><option value="US-03"></option><option value="US-04"></option><option value="US-05"></option><option value="US-06"></option><option value="US-07"></option><option value="US-08"></option><option value="US-09"></option><option value="US-10"></option><option value="US-11"></option><option value="US-12"></option><option value="US-13"></option><option value="US-14"></option><option value="US-15"></option><option value="US-16"></option><option value="US-17"></option><option value="US-18"></option><option value="US-19"></option></datalist></div>
 </div>
 <div class="help-shell">
 <p class="notice" id="notice" role="status"></p>
@@ -504,7 +506,7 @@ The page has four areas.</p>
 Errors appear in a red box under the input form.</p>
 <h3 id="manual-getting-help" tabindex="-1">Getting help <a class="anchor" href="#manual-getting-help" aria-label="Link to section: Getting help">#</a></h3>
 <p>
-The page header has a <strong>Help</strong> link. Select it to open the Help page in a new tab. The Help page holds this manual, the coverage report and the domain overview. It is a plain saved page, so it opens by itself and does not need the calculator to run. Your calculator tab stays as it is, with nothing lost.</p>
+The page header has a <strong>Help</strong> link. Select it to open the Help page in a new tab. The Help page holds this manual, the coverage report, the domain overview and the requirements v3 draft (BRD v2.3 compared with the calculator). It is a plain saved page, so it opens by itself and does not need the calculator to run. Your calculator tab stays as it is, with nothing lost.</p>
 <hr>
 <span id="manual-3"></span><h2 id="manual-before-you-start-clear-the-sample-values" tabindex="-1">3. Before you start: clear the sample values <a class="anchor" href="#manual-before-you-start-clear-the-sample-values" aria-label="Link to section: 3. Before you start: clear the sample values">#</a></h2>
 <p>
@@ -2007,20 +2009,397 @@ The <span class="id" data-id="FB-16">FB-16</span> example is QA's measured figur
 </ul>
 </div>
 </article>
+<article class="doc" id="doc-prrd" aria-labelledby="prrd-title">
+<details class="toc-box" open><summary>Contents</summary>
+<nav aria-label="Contents of the COB Calculator: Requirements v3 Draft (PRRD)"><ul><li><a href="#prrd-summary-of-changes">1. Summary of changes</a></li><li><a href="#prrd-section-by-section">2. Section by section</a><ul><li><a href="#prrd-document-control-and-version-history">Document control and version history</a></li><li><a href="#prrd-1-purpose-and-scope">§1 Purpose and scope</a></li><li><a href="#prrd-2-guiding-principles">§2 Guiding principles</a></li><li><a href="#prrd-3-1-input-fields">§3.1 Input fields</a></li><li><a href="#prrd-3-2-calculated-outputs">§3.2 Calculated outputs</a></li><li><a href="#prrd-3-3-amortization-schedule">§3.3 Amortization schedule</a></li><li><a href="#prrd-4-1-cost-of-borrowing-rate-apr">§4.1 Cost of borrowing rate (APR)</a></li><li><a href="#prrd-4-2-semi-annual-rate-conversion">§4.2 Semi-annual rate conversion</a></li><li><a href="#prrd-4-3-trigger-rate">§4.3 Trigger rate</a></li><li><a href="#prrd-4-4-interest-accrual-and-day-count">§4.4 Interest accrual and day count</a></li><li><a href="#prrd-4-5-accrued-interest-treatment">§4.5 Accrued interest treatment</a></li><li><a href="#prrd-5-business-rules">§5 Business rules</a></li><li><a href="#prrd-6-validation-and-error-handling">§6 Validation and error handling</a></li><li><a href="#prrd-7-non-functional-requirements">§7 Non-functional requirements</a></li><li><a href="#prrd-8-assumptions-and-resolved-questions">§8 Assumptions and resolved questions</a></li><li><a href="#prrd-appendix-a-validation-set">Appendix A: Validation set</a></li><li><a href="#prrd-appendix-b-amortization-schedule-logic">Appendix B: Amortization schedule logic</a></li></ul></li><li><a href="#prrd-unchanged-from-v2-3">3. Unchanged from v2.3</a></li><li><a href="#prrd-list-of-changes-for-v3">4. List of changes for v3</a></li><li><a href="#prrd-questions-for-the-stakeholders-before-v3-is">5. Questions for the stakeholders before v3 is issued</a></li></ul></nav>
+</details>
+<div class="doc-body">
+<h1 id="prrd-title">COB Calculator: Requirements v3 Draft (PRRD)</h1>
+<p>
+Proposed revision of the requirements, for business owners, compliance and reviewers. Draft of 2026-10-14. It compares <strong>BRD v2.3</strong> (<code>docs/COB Requirements v2.3.docx</code>) with what the <strong>COB-ts calculator does today</strong> (branch <code>b37-b39-rate-rules</code>, engine <code>COB-ts/src/ca/</code>, page <code>COB-ts/ui/</code>), one section at a time, and gives the wording proposed for v3 for each section.</p>
+<p>
+This is not an issued BRD. The stakeholders own the BRD; nothing here changes it until they accept it. Every difference listed was decided by the user and is recorded in the coverage report (sections 4 and 5) and in <code>COB-ts/CHANGES.md</code>.</p>
+<p>
+<strong>How to read the tables.</strong> Each row gives what v2.3 says, what the calculator does, a status and the proposed v3 text. Status words:</p>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-title">
+<table>
+<caption class="visually-hidden">COB Calculator: Requirements v3 Draft (PRRD)</caption>
+<thead><tr><th scope="col">Status</th><th scope="col">Meaning</th></tr></thead>
+<tbody>
+<tr><th scope="row"><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></th><td>The calculator does what v2.3 says. v3 keeps the text, sometimes with a clarification.</td></tr>
+<tr><th scope="row"><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></th><td>The calculator does something different from v2.3, decided by the user. v3 changes the text.</td></tr>
+<tr><th scope="row"><span class="status" data-state="out"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-out"/></svg></span>Not covered</span> – out of scope</th><td>v2.3 describes it, and the calculator does not build it, by decision. v3 removes or marks it.</td></tr>
+<tr><th scope="row"><span class="status" data-state="open"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-open"/></svg></span>Open decision</span></th><td>Still waiting for a stakeholder answer. v3 keeps the v2.3 text and records the question.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<p>
+<strong>Source check.</strong> The docx and its extraction <code>docs/COB-business-requirement.md</code> were compared paragraph by paragraph on 2026-10-14. They match. The only differences are the docx table-of-contents page numbers and one escaped ampersand.</p>
+<hr>
+<span id="prrd-1"></span><h2 id="prrd-summary-of-changes" tabindex="-1">1. Summary of changes <a class="anchor" href="#prrd-summary-of-changes" aria-label="Link to section: 1. Summary of changes">#</a></h2>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-summary-of-changes">
+<table>
+<caption class="visually-hidden">1. Summary of changes</caption>
+<thead><tr><th scope="col">Area</th><th scope="col">Number of v3 changes</th><th scope="col">Headline</th></tr></thead>
+<tbody>
+<tr><td>Purpose, scope, principles (§1, §2)</td><td>2</td><td>Parity means &quot;same as the workbook except the listed, decided differences&quot;</td></tr>
+<tr><td>Inputs (§3.1)</td><td>7</td><td>Itemized fees with a Financed flag; &quot;Date of change&quot; replaces Last Payment Date and Payment Change Date; Renewal and Payment change take personal loans; Variable rate payment change and the accelerated frequencies are hidden on the page</td></tr>
+<tr><td>Outputs (§3.2, §3.3)</td><td>6</td><td>OUT-01 renamed &quot;Calculated rate&quot;; new figures (Term in days, Balance at end date, Unpaid interest at end date, Contract term); schedule columns redrawn</td></tr>
+<tr><td>Rate conversion (§4.2)</td><td>3</td><td>Leap-aware n and Excel YEARFRAC at the 7- and 14-day frequencies; per-row cent rounding for fixed mortgages; monthly-compounded conversion for variable mortgages and personal loans at those frequencies</td></tr>
+<tr><td>APR, trigger rate, interest (§4.1, §4.3 to §4.5)</td><td>4</td><td>No-fee shortcut (APR equals the calculated rate); unpaid interest never earns interest; prior accrued interest paid first and counted in C only when paid</td></tr>
+<tr><td>Business rules (§5)</td><td>4</td><td><a class="id" href="#BR-02">BR-02</a>, <a class="id" href="#BR-03">BR-03</a>, <a class="id" href="#BR-04">BR-04</a> and <a class="id" href="#BR-12">BR-12</a> reworded</td></tr>
+<tr><td>Validation (§6)</td><td>4</td><td>Payment and rate must be above 0; fee limit counts every fee; the two &quot;define&quot; items answered</td></tr>
+<tr><td>Appendix B</td><td>6</td><td>Skip-date rule and One Time dropped; month-end and semi-monthly rules; payoff row; non-financed fees outside the waterfall; column map redrawn</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<p>
+The numbered list of changes is in section 4 of this document.</p>
+<hr>
+<span id="prrd-2"></span><h2 id="prrd-section-by-section" tabindex="-1">2. Section by section <a class="anchor" href="#prrd-section-by-section" aria-label="Link to section: 2. Section by section">#</a></h2>
+<h3 id="prrd-document-control-and-version-history" tabindex="-1">Document control and version history <a class="anchor" href="#prrd-document-control-and-version-history" aria-label="Link to section: Document control and version history">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-document-control-and-version-history">
+<table>
+<caption class="visually-hidden">Document control and version history</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><th scope="row">Version</th><td>2.3, &quot;Ready for development review&quot;</td><td>Built against 2.3</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Version 3.0 (draft), &quot;For stakeholder review&quot;. Add a history row: &quot;3.0 – Draft – Records the decisions taken during development: rate rules at the 7- and 14-day frequencies, fee treatment, unpaid interest, dates, validation and screen changes.&quot;</td></tr>
+<tr><th scope="row">Reference workbook</th><td>&quot;COB Calculator v7&quot;</td><td>Parity tested against <code>Cost of Borrowing Rate Calc_Current.xlsm</code> (reference case REF-01, 156 rows)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Name the workbook file the parity tests use, and say which version gave the user's examples (<a class="id" href="#Q-B37-WHICH-EXCEL">Q-B37-WHICH-EXCEL</a>).</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-1-purpose-and-scope" tabindex="-1">§1 Purpose and scope <a class="anchor" href="#prrd-1-purpose-and-scope" aria-label="Link to section: §1 Purpose and scope">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-1-purpose-and-scope">
+<table>
+<caption class="visually-hidden">§1 Purpose and scope</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><td>Standalone calculator, manual input, disclosure values and schedule (§1.1)</td><td>Required</td><td>A single page; every value is typed in; results and a full schedule</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>Four use cases (§1.1)</td><td>New, Renewal, Payment change, Variable rate payment change</td><td>The engine has all four. The page offers three: Variable rate payment change is hidden (user decision 2026-10-01)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Keep the four in scope; add &quot;Variable rate payment change is not offered on the page until the stakeholders confirm its rules.&quot;</td></tr>
+<tr><td>Reproduce the workbook logic (§1.1)</td><td>Converter sheet and the macro</td><td>Reproduces them, apart from the differences in the coverage report section 4</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>&quot;Reproduce the workbook logic, except the differences listed in section 9 (new).&quot;</td></tr>
+<tr><td>No Wealthview integration (§1.2)</td><td>Out of scope</td><td>No integration</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>Payment amount calculation (§1.2)</td><td>Out of scope; entered by the user</td><td>Entered by the user; never calculated</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>No storage of member data (§1.2)</td><td>Out of scope</td><td>Nothing is saved; closing the page clears it</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-2-guiding-principles" tabindex="-1">§2 Guiding principles <a class="anchor" href="#prrd-2-guiding-principles" aria-label="Link to section: §2 Guiding principles">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-2-guiding-principles">
+<table>
+<caption class="visually-hidden">§2 Guiding principles</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><th scope="row">Functional parity</th><td>Same outputs as the workbook for the same inputs</td><td>Same outputs for REF-01 to 1.3e-14 relative with the leap-aware switch off. With the shipped switches, results differ on purpose in the cases of <a class="id" href="#DEV-B37-LEAPN">DEV-B37-LEAPN</a>, <a class="id" href="#DEV-B38-ROUND">DEV-B38-ROUND</a> and <a class="id" href="#DEV-B39-M12">DEV-B39-M12</a> (a few cents of interest) and in the other DEV cases</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>&quot;Same outputs as the workbook, except for the decided differences in section 9. Each difference has an ID, a reason and a test.&quot;</td></tr>
+<tr><th scope="row">Manual entry</th><td>Required</td><td>Yes</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><th scope="row">Regulatory alignment</th><td>&quot;Cost of Borrowing regulations under the Bank Act&quot;</td><td>Rate conversion is documented against the Interest Act s.6; the APR shape against the Financial Consumer Protection Framework Regulations (SOR/2021-181). Project research finds the Bank Act regime applies only to banks (Alterna Bank). Alterna Savings is an Ontario credit union, governed by the Credit Unions and Caisses Populaires Act, 2020 and O. Reg. 108/22. Both regimes use the same APR formula (O. Reg. 108/22 s.3, SOR/2021-181 s.47), so no figure changes</td><td><span class="status" data-state="open"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-open"/></svg></span>Open decision</span></td><td>&quot;Calculations must be consistent with the cost of borrowing disclosure rules that apply to the lending entity: for Alterna Savings, the Credit Unions and Caisses Populaires Act, 2020 and O. Reg. 108/22; for Alterna Bank, the Bank Act and SOR/2021-181. Both use the same APR formula (§4.1). Fixed-rate mortgage rates are stated and compounded half-yearly, not in advance, to satisfy Interest Act s.6. In Ontario the APR must be consistent with that rate (O. Reg. 108/22 s.4(2)).&quot; Compliance to confirm the citations and which entity lends on each product (<a class="id" href="#Q-B37-LAW">Q-B37-LAW</a>).</td></tr>
+<tr><th scope="row">Auditability (export, print)</th><td>Required</td><td>Print or save as PDF, and CSV download of the schedule</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-3-1-input-fields" tabindex="-1">§3.1 Input fields <a class="anchor" href="#prrd-3-1-input-fields" aria-label="Link to section: §3.1 Input fields">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-3-1-input-fields">
+<table>
+<caption class="visually-hidden">§3.1 Input fields</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><td>Use case (<a class="id" href="#IN-01">IN-01</a>)</td><td>Dropdown with four values</td><td>&quot;Flow&quot; dropdown: New mortgage or loan, Renewal, Payment change. The fourth is hidden on the page</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Rename the field &quot;Flow&quot; or keep &quot;Use Case&quot;; list the three offered values and note the hidden fourth.</td></tr>
+<tr><td>Loan amount (<a class="id" href="#IN-02">IN-02</a>)</td><td>Total amount including financed fees; for payment change, the balance at the change date</td><td>Same. Must be above 0</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep; add &quot;For Renewal, the balance at the renewal date.&quot;</td></tr>
+<tr><td>Product type (<a class="id" href="#IN-03">IN-03</a>)</td><td>Personal loan or Mortgage</td><td>Same. Renewal and Payment change accept both; Variable rate payment change forces Mortgage</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Add: &quot;Renewal and Payment change apply to both product types. Variable rate payment change is mortgage only.&quot;</td></tr>
+<tr><td>Rate type (<a class="id" href="#IN-04">IN-04</a>)</td><td>Fixed mortgages compound semi-annually; all others monthly</td><td>Same rate basis. Variable rate payment change forces Variable</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep; add the forced Variable.</td></tr>
+<tr><td>Contract rate (<a class="id" href="#IN-05">IN-05</a>)</td><td>Annual rate</td><td>Percent number, must be above 0 (<a class="id" href="#DEV-OQAA">DEV-OQAA</a>)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Add &quot;Must be greater than 0%.&quot;</td></tr>
+<tr><td>Financed and non-financed fees (<a class="id" href="#IN-06">IN-06</a>, <a class="id" href="#IN-07">IN-07</a>)</td><td>Two currency fields</td><td>An itemized fee list: name, amount and a Financed flag per fee. The page ships with the Financed control switched off, so every fee typed on the page is treated as non-financed (decision 7). The engine supports both kinds</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Replace the two fields with &quot;Fees: a list of fees, each with a name, an amount (0 or more) and whether it is financed.&quot; Record that the page sends every fee as non-financed until the Financed option is switched on.</td></tr>
+<tr><td>Payment amount (<a class="id" href="#IN-08">IN-08</a>)</td><td>Scheduled payment, excludes taxes</td><td>Entered; must be above 0 (<a class="id" href="#DEV-OQY">DEV-OQY</a>)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Add &quot;Must be greater than $0.&quot;</td></tr>
+<tr><td>Payment frequency (<a class="id" href="#IN-09">IN-09</a>)</td><td>Six values</td><td>Engine: six values. Page: four (Weekly, Bi-weekly, Semi-monthly, Monthly); the two accelerated values are hidden (<span class="id" data-id="B28">B28</span>) because they give the same result. Labels show payments per year, for example &quot;Weekly (52/yr)&quot;. Personal loans take every frequency (DEC-<span class="id" data-id="B33">B33</span>-FREQ)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>List the four offered values; keep <a class="id" href="#BR-09">BR-09</a> for the accelerated ones; say a personal loan may use any frequency.</td></tr>
+<tr><td>Start date (<a class="id" href="#IN-10">IN-10</a> to IN-10d)</td><td>Disbursal date, Last payment date, Renewal date, Payment change date</td><td>Three labels: Disbursal date (New), Renewal date (Renewal), Date of change (Payment change and Variable rate payment change). &quot;Last payment date&quot; and &quot;Payment change date&quot; are merged into Date of change</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Replace IN-10a to IN-10d with three labels: Disbursal date, Renewal date, Date of change.</td></tr>
+<tr><td>Accrued interest (<a class="id" href="#IN-11">IN-11</a>)</td><td>Mandatory for Renewal and Payment change; accepts $0.00; not shown for New</td><td>Same; also required for Variable rate payment change; must be 0 or more</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep; add Variable rate payment change.</td></tr>
+<tr><td>First payment date (<a class="id" href="#IN-12">IN-12</a>)</td><td>First payment; Next payment date for payment change</td><td>Same labels. A semi-monthly date that is not the 15th or month-end moves forward to the next of those, with a note on screen and on the printout (<a class="id" href="#DEV-OQZ">DEV-OQZ</a>)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Add the semi-monthly move.</td></tr>
+<tr><td>End date (<a class="id" href="#IN-13">IN-13</a>)</td><td>Maturity of the term</td><td>Same. A payment that falls on the End date is included</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep; add &quot;A payment on the End date is part of the term.&quot;</td></tr>
+<tr><td>Not in v2.3</td><td>–</td><td>Contract term: read only, from the start date, whole years and months rounded up; &quot;Remaining contract term&quot; for Renewal and Payment change; a &quot;Term based on&quot; choice when the term to the End date and to the last payment differ (<a class="id" href="#DEV-OQP">DEV-OQP</a>). Contract date and the semi-annual reference date are not asked</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Add the Contract term as a displayed field. State that it does not change any figure.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-3-2-calculated-outputs" tabindex="-1">§3.2 Calculated outputs <a class="anchor" href="#prrd-3-2-calculated-outputs" aria-label="Link to section: §3.2 Calculated outputs">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-3-2-calculated-outputs">
+<table>
+<caption class="visually-hidden">§3.2 Calculated outputs</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><th scope="row">Semi-annual compounding rate (OUT-01)</th><td>Fixed mortgages: converted. Variable: the contract rate</td><td>Shown as &quot;Calculated rate&quot;. Fixed mortgage: converted from semi-annual. Variable mortgage and personal loan: the contract rate at Monthly and Semi-monthly; converted as monthly-compounded at the 7- and 14-day frequencies (<a class="id" href="#DEV-B39-M12">DEV-B39-M12</a>)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Rename to &quot;Calculated rate&quot; and restate per section 4.2 below.</td></tr>
+<tr><th scope="row">APR (OUT-02)</th><td>Per §4.1</td><td>Per §4.1, plus the no-fee shortcut (see §4.1)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>See §4.1.</td></tr>
+<tr><th scope="row">Cost of borrowing amount (OUT-03)</th><td>Interest and fees over the term</td><td>Total interest plus every fee, financed or not</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep; add &quot;every fee counts in full.&quot;</td></tr>
+<tr><th scope="row">Number of payments (OUT-04)</th><td>Scheduled payments over the term</td><td>Rows actually generated: stops at the End date or at payoff</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep; add &quot;fewer if the loan is paid off before the End date.&quot;</td></tr>
+<tr><th scope="row">Total of all payments (OUT-05)</th><td>Sum of scheduled payments</td><td>Sum of the Payment column; a payoff row counts only what was needed</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep; add the payoff row.</td></tr>
+<tr><th scope="row">Total interest (OUT-06)</th><td>Interest portion across all payments</td><td>Interest charged over the term, including period interest still unpaid at the end. Prior accrued interest (<a class="id" href="#IN-11">IN-11</a>) counts only as far as it is paid (<span class="id" data-id="OQ-W">OQ-W</span>)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>&quot;Interest charged over the term, including any period interest not yet paid at the End date.&quot; Keep <span class="id" data-id="OQ-W">OQ-W</span> open.</td></tr>
+<tr><th scope="row">Total principal (OUT-07)</th><td>Principal portion across all payments</td><td>Sum of the Principal paid column</td><td><span class="status" data-state="open"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-open"/></svg></span>Open decision</span></td><td>Keep; the workbook uses total payments less total interest, which includes fees paid (<a class="id" href="#OQ-R">OQ-R</a>).</td></tr>
+<tr><th scope="row">Schedule (OUT-08)</th><td>Per §3.3</td><td>Per §3.3 with the columns in Appendix B.6 below</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>See §3.3.</td></tr>
+<tr><th scope="row">Trigger rate (OUT-09)</th><td>Variable mortgages</td><td>Same</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><th scope="row">Not in v2.3</th><td>–</td><td>Term in days; Balance at end date; Unpaid interest at end date (only when above 0); with the Financed option on, Fees recovered through payments and Disbursal amount</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Add these as displayed figures.</td></tr>
+<tr><th scope="row">Display precision</th><td>Not set (§6 asks for it)</td><td>Currency 2 decimals; rates 5 decimals; no rounding inside the calculation except the per-row cent rounding of <a class="id" href="#DEV-B38-ROUND">DEV-B38-ROUND</a></td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>State the precision (see §6).</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-3-3-amortization-schedule" tabindex="-1">§3.3 Amortization schedule <a class="anchor" href="#prrd-3-3-amortization-schedule" aria-label="Link to section: §3.3 Amortization schedule">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-3-3-amortization-schedule">
+<table>
+<caption class="visually-hidden">§3.3 Amortization schedule</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><td>Interest, principal, balance per payment</td><td>Required</td><td>Yes, plus date, days, opening balance, period interest, accrued interest opening and closing, payment and fees</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>Separate column for financed fees against the first payment, &quot;added to the mortgage principal&quot;</td><td>Required</td><td>Financed fees sit inside the opening balance and are recovered through the waterfall, shown as Fees opening, Fees paid and Fees closing. These columns are hidden while the Financed option is off</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>&quot;Fees still to recover, fees paid and fees remaining are shown per payment when financed fees are in use.&quot; Remove &quot;added to the mortgage principal&quot;: they are already in <a class="id" href="#IN-02">IN-02</a>.</td></tr>
+<tr><td>Export</td><td>§7</td><td>Screen table, printed table (short headings) and CSV</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-4-1-cost-of-borrowing-rate-apr" tabindex="-1">§4.1 Cost of borrowing rate (APR) <a class="anchor" href="#prrd-4-1-cost-of-borrowing-rate-apr" aria-label="Link to section: §4.1 Cost of borrowing rate (APR)">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-4-1-cost-of-borrowing-rate-apr">
+<table>
+<caption class="visually-hidden">§4.1 Cost of borrowing rate (APR)</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><th scope="row">Formula</th><td>APR = C ÷ (T × P) × 100</td><td>Same, when there are fees</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><th scope="row">No fees</th><td>Not stated</td><td>With $0 of fees the APR is the Calculated rate itself, as the macro does</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Add: &quot;When total fees are $0, the APR equals the Calculated rate.&quot;</td></tr>
+<tr><th scope="row">T</th><td>Term days ÷ 365</td><td>Actual days from the start date to the last payment row, ÷ 365 (no leap split)</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep; say &quot;to the last payment date&quot; and &quot;not split for leap years.&quot;</td></tr>
+<tr><th scope="row">P</th><td>Average opening balance</td><td>Simple mean of each row's opening balance (includes financed fees still owed)</td><td><span class="status" data-state="open"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-open"/></svg></span>Open decision</span></td><td>Keep; the workbook uses opening principal (<a class="id" href="#OQ-Q">OQ-Q</a>). With fees the APR can differ, for example 9.25% against 9.63%.</td></tr>
+<tr><th scope="row">Zero-day term</th><td>Not stated</td><td>A same-day contract with fees is rejected with a message (the workbook divides by zero)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Add to §6.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-4-2-semi-annual-rate-conversion" tabindex="-1">§4.2 Semi-annual rate conversion <a class="anchor" href="#prrd-4-2-semi-annual-rate-conversion" aria-label="Link to section: §4.2 Semi-annual rate conversion">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-4-2-semi-annual-rate-conversion">
+<table>
+<caption class="visually-hidden">§4.2 Semi-annual rate conversion</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><td>Formula</td><td>i_n = n × [(1 + i_m ÷ m)^(m ÷ n) − 1]</td><td>Same formula</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>n for Weekly and Bi-weekly (and accelerated)</td><td>Fixed: 52 and 26</td><td>Fixed mortgage: n = (days from the start date to the End date ÷ 7 or 14) ÷ YEARFRAC(start, end, basis 1), not 52 or 26 (<a class="id" href="#DEV-B37-LEAPN">DEV-B37-LEAPN</a>, <a class="id" href="#DEV-B38-ROUND">DEV-B38-ROUND</a>). Labels still read 52/yr and 26/yr</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Replace the frequency key for the 7- and 14-day frequencies with the leap-aware n. Keep 12 and 24 for Monthly and Semi-monthly.</td></tr>
+<tr><td>Per-row rounding</td><td>Not stated</td><td>Fixed mortgage at the 7- and 14-day frequencies: each row's period interest is rounded to the cent (half away from zero, as Excel ROUND) before the waterfall</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Add the rounding rule for these cases.</td></tr>
+<tr><td>Variable-rate mortgage</td><td>No conversion (m = n)</td><td>Monthly and Semi-monthly: the contract rate. Weekly and Bi-weekly: the contract rate as monthly-compounded, converted with m = 12 and the leap-aware n (<a class="id" href="#DEV-B39-M12">DEV-B39-M12</a>); interest not rounded per row</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Replace &quot;no conversion&quot; with the two cases.</td></tr>
+<tr><td>Personal loans</td><td>&quot;Monthly compounding at the contract rate (m = 12)&quot;</td><td>Same as the variable-rate mortgage, for either rate type</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Use the same wording as the variable-rate mortgage.</td></tr>
+<tr><td>Appendix A link</td><td>Validation at the stated n</td><td>Still holds: Appendix A is tested at n = 1 to 52 to 1e-12</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep, and say Appendix A tests the formula, not the leap-aware n.</td></tr>
+<tr><td>Legal basis</td><td>&quot;The Bank Act convention&quot;</td><td>Semi-annual compounding comes from the Interest Act s.6 (a federal Act that applies to every lender), not the Bank Act. s.6 requires the rate of a blended-payment mortgage to be stated yearly or half-yearly, not in advance; compounding half-yearly is the practice that satisfies it, not a mandate. s.7 makes the stated rate a ceiling</td><td><span class="status" data-state="open"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-open"/></svg></span>Open decision</span></td><td>Replace &quot;the Bank Act convention&quot; with &quot;half-yearly, not in advance (Interest Act s.6)&quot;. Compliance to confirm that the leap-aware n of <a class="id" href="#DEV-B37-LEAPN">DEV-B37-LEAPN</a> still gives a rate consistent with the s.6 statement (O. Reg. 108/22 s.4(2)) (<a class="id" href="#Q-B37-LAW">Q-B37-LAW</a>).</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-4-3-trigger-rate" tabindex="-1">§4.3 Trigger rate <a class="anchor" href="#prrd-4-3-trigger-rate" aria-label="Link to section: §4.3 Trigger rate">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-4-3-trigger-rate">
+<table>
+<caption class="visually-hidden">§4.3 Trigger rate</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><th scope="row">Formula</th><td>Payment × payments per year ÷ current principal</td><td>Same, with 52, 26, 24 or 12 (never the leap-aware n) and the Loan amount as current principal</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep; add &quot;payments per year is 52, 26, 24 or 12.&quot;</td></tr>
+<tr><th scope="row">Scope</th><td>Variable mortgages only</td><td>Same, in every flow</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-4-4-interest-accrual-and-day-count" tabindex="-1">§4.4 Interest accrual and day count <a class="anchor" href="#prrd-4-4-interest-accrual-and-day-count" aria-label="Link to section: §4.4 Interest accrual and day count">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-4-4-interest-accrual-and-day-count">
+<table>
+<caption class="visually-hidden">§4.4 Interest accrual and day count</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><th scope="row">Actual days, 365 or 366 split</th><td>Required</td><td>Same; days in a leap year ÷ 366, others ÷ 365, summed</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><th scope="row">Precision</th><td>Not stated</td><td>Full precision, except the per-row cent rounding in §4.2</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Cross-refer to §4.2.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-4-5-accrued-interest-treatment" tabindex="-1">§4.5 Accrued interest treatment <a class="anchor" href="#prrd-4-5-accrued-interest-treatment" aria-label="Link to section: §4.5 Accrued interest treatment">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-4-5-accrued-interest-treatment">
+<table>
+<caption class="visually-hidden">§4.5 Accrued interest treatment</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><td>Added to the first payment's interest</td><td>Required</td><td>Yes: paid before anything else, oldest first</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>Excess carries forward</td><td>Required</td><td>Yes</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>Interest on unpaid interest</td><td>Not stated; the workbook adds unpaid interest to the balance, where it earns interest</td><td>Unpaid interest (<a class="id" href="#IN-11">IN-11</a> and any shortfall) sits outside the balance and earns nothing (<a class="id" href="#DEV-OQL">DEV-OQL</a>). The workbook rule is built behind a switch that ships off</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Add: &quot;Unpaid interest is not added to the balance and does not earn interest.&quot;</td></tr>
+<tr><td>Prior accrued interest (<a class="id" href="#IN-11">IN-11</a>) in C and in P</td><td>Not stated</td><td>Counts in C only as it is paid; never in P</td><td><span class="status" data-state="open"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-open"/></svg></span>Open decision</span></td><td>Record <a class="id" href="#OQ-W2">OQ-W2</a>, <a class="id" href="#OQ-W3">OQ-W3</a> and <a class="id" href="#OQ-W5">OQ-W5</a>.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-5-business-rules" tabindex="-1">§5 Business rules <a class="anchor" href="#prrd-5-business-rules" aria-label="Link to section: §5 Business rules">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-5-business-rules">
+<table>
+<caption class="visually-hidden">§5 Business rules</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><th scope="row">Rule 1 (<a class="id" href="#BR-01">BR-01</a>)</th><td>Fixed mortgages: semi-annual</td><td>Same</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><th scope="row">Rule 2 (<a class="id" href="#BR-02">BR-02</a>)</th><td>Other products: monthly, equal to the contract rate</td><td>Equal to the contract rate at Monthly and Semi-monthly only; converted at the 7- and 14-day frequencies</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>&quot;...use monthly compounding. At Monthly and Semi-monthly the Calculated rate is the contract rate; at Weekly and Bi-weekly it is converted per §4.2.&quot;</td></tr>
+<tr><th scope="row">Rule 3 (<a class="id" href="#BR-03">BR-03</a>)</th><td>Financed fees in principal, separate column</td><td>In the opening balance, recovered in the waterfall, shown in the fee columns</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Reword per §3.3.</td></tr>
+<tr><th scope="row">Rule 4 (<a class="id" href="#BR-04">BR-04</a>)</th><td>Non-financed fees: not in principal, in C</td><td>Same: never in principal, never in the waterfall, counted only in C (<a class="id" href="#DEV-OQS">DEV-OQS</a>; the workbook recovers them in the waterfall)</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep, and add &quot;never recovered through the payments.&quot;</td></tr>
+<tr><th scope="row">Rules 5 and 6 (<a class="id" href="#BR-05">BR-05</a>, <a class="id" href="#BR-06">BR-06</a>)</th><td>Accrued interest mandatory for Renewal and Payment change; hidden for New</td><td>Same</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><th scope="row">Rule 7 (<a class="id" href="#BR-07">BR-07</a>)</th><td>Four start-date labels</td><td>Three labels</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Per §3.1.</td></tr>
+<tr><th scope="row">Rule 8 (<a class="id" href="#BR-08">BR-08</a>)</th><td>Trigger rate for variable mortgages</td><td>Same</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><th scope="row">Rule 9 (<a class="id" href="#BR-09">BR-09</a>)</th><td>Accelerated equal to regular</td><td>Same in the engine; hidden on the page</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep; add the page note.</td></tr>
+<tr><th scope="row">Rules 10, 11, 13 (<a class="id" href="#BR-10">BR-10</a>, <a class="id" href="#BR-11">BR-11</a>, <a class="id" href="#BR-13">BR-13</a>)</th><td>Accrued interest, day count, waterfall order</td><td>Same</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><th scope="row">Rule 12 (<a class="id" href="#BR-12">BR-12</a>)</th><td>First payment date is the Next payment date for payment changes</td><td>Same label</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><th scope="row">New rule</th><td>–</td><td>A personal loan may use any payment frequency (DEC-<span class="id" data-id="B33">B33</span>-FREQ)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Add as a new rule.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-6-validation-and-error-handling" tabindex="-1">§6 Validation and error handling <a class="anchor" href="#prrd-6-validation-and-error-handling" aria-label="Link to section: §6 Validation and error handling">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-6-validation-and-error-handling">
+<table>
+<caption class="visually-hidden">§6 Validation and error handling</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><td>Fee limit</td><td>Total fees less than the loan amount</td><td>Financed plus non-financed fees must be less than the loan amount</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>Date order</td><td>First payment not before start; End after First payment</td><td>Same; the same day is allowed for start and first payment; the End date is compared with the moved semi-monthly date</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep, with the two clarifications.</td></tr>
+<tr><td>Non-numeric and negative values</td><td>Rejected, except where $0.00 is allowed</td><td>Rejected. Loan amount, rate and payment must be above 0; fees and accrued interest may be 0</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>List which fields accept 0.</td></tr>
+<tr><td>Mandatory fields</td><td>Required per use case</td><td>Same</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>Error display</td><td>Not stated</td><td>One message at a time in the error box</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>&quot;Define&quot; rounding and precision</td><td>Open</td><td>Answered: currency 2 decimals, rates 5 decimals, no intermediate rounding except <a class="id" href="#DEV-B38-ROUND">DEV-B38-ROUND</a></td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Replace the &quot;define&quot; item with the rule.</td></tr>
+<tr><td>&quot;Define&quot; a final payment that does not pay off the loan</td><td>Open</td><td>Answered: no last-payment adjustment. The schedule stops at the End date and shows the Balance at end date. A payoff row pays only the remaining principal</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Replace the &quot;define&quot; item with the rule.</td></tr>
+<tr><td>Zero-day term with fees</td><td>Not stated</td><td>Rejected with a message</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Add.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-7-non-functional-requirements" tabindex="-1">§7 Non-functional requirements <a class="anchor" href="#prrd-7-non-functional-requirements" aria-label="Link to section: §7 Non-functional requirements">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-7-non-functional-requirements">
+<table>
+<caption class="visually-hidden">§7 Non-functional requirements</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><td>Parity test scenarios</td><td>Required</td><td>REF-01 from the workbook, Appendix A, oracle scenarios S0 to S9 and the user's Excel examples. Still missing: a live-workbook case with fees and accrued interest</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Keep, and list the reference cases.</td></tr>
+<tr><td>Export or print</td><td>Required</td><td>Print or PDF, CSV</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>Fields keep values when the use case changes</td><td>Required</td><td>Shared fields keep their values; the page only shows or hides each flow's own fields</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>No member data stored</td><td>Required</td><td>Nothing stored</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><td>Not in v2.3</td><td>–</td><td>A Help page (this manual, the coverage report, the domain overview and this draft)</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Add &quot;Help: an in-page link to the user manual.&quot;</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-8-assumptions-and-resolved-questions" tabindex="-1">§8 Assumptions and resolved questions <a class="anchor" href="#prrd-8-assumptions-and-resolved-questions" aria-label="Link to section: §8 Assumptions and resolved questions">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-8-assumptions-and-resolved-questions">
+<table>
+<caption class="visually-hidden">§8 Assumptions and resolved questions</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><th scope="row">Resolved questions (<span class="id" data-id="OQ-01">OQ-01</span> to <span class="id" data-id="OQ-06">OQ-06</span>)</th><td>Resolved</td><td>Built as resolved</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><th scope="row">New open questions</th><td>–</td><td><a class="id" href="#OQ-Q">OQ-Q</a> (P basis), <a class="id" href="#OQ-R">OQ-R</a> (principal paid), <span class="id" data-id="OQ-W">OQ-W</span> (<a class="id" href="#IN-11">IN-11</a> in C and P), <a class="id" href="#Q-B37-LAW">Q-B37-LAW</a>, <a class="id" href="#Q-B37-WHICH-EXCEL">Q-B37-WHICH-EXCEL</a>, the <span class="id" data-id="Q-B39">Q-B39</span> questions, <a class="id" href="#Q-MSG">Q-MSG</a> (interim wording)</td><td><span class="status" data-state="open"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-open"/></svg></span>Open decision</span></td><td>Add a table of open questions.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-appendix-a-validation-set" tabindex="-1">Appendix A: Validation set <a class="anchor" href="#prrd-appendix-a-validation-set" aria-label="Link to section: Appendix A: Validation set">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-appendix-a-validation-set">
+<table>
+<caption class="visually-hidden">Appendix A: Validation set</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><th scope="row">3.74% at m = 2, n = 1 to 52</th><td>Unit-test cases</td><td>Tested to 1e-12</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep. Add: &quot;These values test the formula at the stated n. Weekly and Bi-weekly calculations use the leap-aware n of §4.2.&quot;</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<h3 id="prrd-appendix-b-amortization-schedule-logic" tabindex="-1">Appendix B: Amortization schedule logic <a class="anchor" href="#prrd-appendix-b-amortization-schedule-logic" aria-label="Link to section: Appendix B: Amortization schedule logic">#</a></h3>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-appendix-b-amortization-schedule-logic">
+<table>
+<caption class="visually-hidden">Appendix B: Amortization schedule logic</caption>
+<thead><tr><th scope="col">Topic</th><th scope="col">v2.3 says</th><th scope="col">COB-ts does</th><th scope="col">Status</th><th scope="col">Proposed v3</th></tr></thead>
+<tbody>
+<tr><th scope="row">B.1 fees to recover</th><td>Financed plus non-financed</td><td>Financed only; non-financed fees never enter the waterfall (<a class="id" href="#DEV-OQS">DEV-OQS</a>)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>&quot;feesToRecover = financed fees.&quot;</td></tr>
+<tr><th scope="row">B.1 annual rate</th><td>Contract rate, or the converter rate</td><td>Per §4.2 v3</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Refer to §4.2.</td></tr>
+<tr><th scope="row">B.2 loop and stop</th><td>Stop when the date reaches or passes the End date</td><td>A row dated on the End date is included; the loop stops at the first date after it, or after payoff</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>&quot;Stop at the first date after the End date.&quot;</td></tr>
+<tr><th scope="row">B.2 payoff</th><td>Stop at $0.00</td><td>Same; the payoff row's Payment is only the remaining principal</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Add the payoff-row payment.</td></tr>
+<tr><th scope="row">B.3 interest</th><td>Actual days, leap split</td><td>Same</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Keep.</td></tr>
+<tr><th scope="row">B.4 weekly and bi-weekly</th><td>Skip-date rule (fifth weekday)</td><td>Every 7 or 14 days from the first payment date. The skip-date code is unreachable in the macro (<span class="id" data-id="OQ-I">OQ-I</span>, <span class="id" data-id="OQ-U">OQ-U</span>)</td><td><span class="status" data-state="out"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-out"/></svg></span>Not covered</span> – out of scope</td><td>Remove the skip-date rule.</td></tr>
+<tr><th scope="row">B.4 semi-monthly</th><td>15th and month-end</td><td>Exact port of the macro, plus the first-date move (<a class="id" href="#DEV-OQZ">DEV-OQZ</a>)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Describe the port and the move.</td></tr>
+<tr><th scope="row">B.4 monthly</th><td>End-of-month stepping</td><td>Same day each month, clamped to the month's last day; a month-end first date stays on month-ends (<a class="id" href="#DEV-OQX">DEV-OQX</a>; the workbook keeps the day number)</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Replace &quot;end-of-month stepping&quot; with this rule.</td></tr>
+<tr><th scope="row">B.4 One Time</th><td>Single payment</td><td>Not offered (<span class="id" data-id="OQ-G">OQ-G</span>)</td><td><span class="status" data-state="out"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-out"/></svg></span>Not covered</span> – out of scope</td><td>Remove.</td></tr>
+<tr><th scope="row">B.5 waterfall</th><td>Interest, fees, principal</td><td>Same; principal is capped at what is owed</td><td><span class="status" data-state="covered"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-covered"/></svg></span>Covered</span></td><td>Add the cap.</td></tr>
+<tr><th scope="row">B.6 columns</th><td>14 workbook columns (B to O)</td><td>#, Date, Days, Opening balance, Fees opening, Period interest, Accrued interest opening, Payment, Interest paid, Fees paid, Principal paid, Accrued interest closing, Fees closing, Balance. No separate opening and closing principal columns; no cumulative interest column. The CSV keeps its own order</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Replace the B to O map with the calculator's columns.</td></tr>
+<tr><th scope="row">B.7 totals</th><td>P, T, C, APR</td><td>Per §4.1 v3</td><td><span class="status" data-state="partial"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><use href="#g-partial"/></svg></span>Partly covered</span></td><td>Refer to §4.1.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<hr>
+<span id="prrd-3"></span><h2 id="prrd-unchanged-from-v2-3" tabindex="-1">3. Unchanged from v2.3 <a class="anchor" href="#prrd-unchanged-from-v2-3" aria-label="Link to section: 3. Unchanged from v2.3">#</a></h2>
+<p>
+Keep these as they are: §1.2 out of scope; §2 manual entry and auditability; <a class="id" href="#IN-02">IN-02</a>, <a class="id" href="#IN-04">IN-04</a>, <a class="id" href="#IN-11">IN-11</a> to <a class="id" href="#IN-13">IN-13</a> (with the small additions above); OUT-03 to OUT-05 and OUT-09; §4.3; §4.4; <a class="id" href="#BR-01">BR-01</a>, <a class="id" href="#BR-05">BR-05</a>, <a class="id" href="#BR-06">BR-06</a> and <a class="id" href="#BR-08">BR-08</a> to <a class="id" href="#BR-13">BR-13</a>; Appendix A; B.3 and B.5.</p>
+<hr>
+<span id="prrd-4"></span><h2 id="prrd-list-of-changes-for-v3" tabindex="-1">4. List of changes for v3 <a class="anchor" href="#prrd-list-of-changes-for-v3" aria-label="Link to section: 4. List of changes for v3">#</a></h2>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-list-of-changes-for-v3">
+<table>
+<caption class="visually-hidden">4. List of changes for v3</caption>
+<thead><tr><th scope="col">Change</th><th scope="col">Section</th><th scope="col">What changes</th><th scope="col">Source</th></tr></thead>
+<tbody>
+<tr><th scope="row">V3 change 1</th><td>§2</td><td>Parity means &quot;same as the workbook except the listed differences&quot;</td><td>Coverage report section 4</td></tr>
+<tr><th scope="row">V3 change 2</th><td>§1.1, §3.1</td><td>Variable rate payment change hidden on the page; engine keeps it</td><td>User decision 2026-10-01</td></tr>
+<tr><th scope="row">V3 change 3</th><td>§3.1</td><td>Itemized fees with a Financed flag; page sends every fee as non-financed</td><td>Decision 7; <span class="id" data-id="Q-FEE-CSV">Q-FEE-CSV</span></td></tr>
+<tr><th scope="row">V3 change 4</th><td>§3.1</td><td>Start-date labels: Disbursal date, Renewal date, Date of change</td><td>Decisions 2 and 5</td></tr>
+<tr><th scope="row">V3 change 5</th><td>§3.1, §5</td><td>Renewal and Payment change accept personal loans; a personal loan takes any frequency</td><td>Decision 9 revised; DEC-<span class="id" data-id="B33">B33</span>-FREQ</td></tr>
+<tr><th scope="row">V3 change 6</th><td>§3.1</td><td>Accelerated frequencies hidden; labels show payments per year</td><td><span class="id" data-id="B28">B28</span>; <span class="id" data-id="OQ-V">OQ-V</span></td></tr>
+<tr><th scope="row">V3 change 7</th><td>§3.1, §6</td><td>Rate and payment must be above 0</td><td><a class="id" href="#DEV-OQAA">DEV-OQAA</a>; <a class="id" href="#DEV-OQY">DEV-OQY</a></td></tr>
+<tr><th scope="row">V3 change 8</th><td>§3.1</td><td>Semi-monthly first date moved to the 15th or month-end</td><td><a class="id" href="#DEV-OQZ">DEV-OQZ</a></td></tr>
+<tr><th scope="row">V3 change 9</th><td>§3.1</td><td>Contract term shown read-only, whole years and months, with &quot;Term based on&quot;</td><td><a class="id" href="#DEV-OQP">DEV-OQP</a></td></tr>
+<tr><th scope="row">V3 change 10</th><td>§3.2</td><td>OUT-01 renamed &quot;Calculated rate&quot;; new figures added</td><td>User decisions</td></tr>
+<tr><th scope="row">V3 change 11</th><td>§3.2, §4.5</td><td>Total interest includes unpaid period interest; unpaid interest earns nothing</td><td><a class="id" href="#DEV-OQL">DEV-OQL</a></td></tr>
+<tr><th scope="row">V3 change 12</th><td>§4.1</td><td>APR equals the Calculated rate when fees are $0</td><td>Workbook macro</td></tr>
+<tr><th scope="row">V3 change 13</th><td>§4.2</td><td>Leap-aware n with YEARFRAC at the 7- and 14-day frequencies (fixed mortgages)</td><td><a class="id" href="#DEV-B37-LEAPN">DEV-B37-LEAPN</a>; <a class="id" href="#DEV-B38-ROUND">DEV-B38-ROUND</a></td></tr>
+<tr><th scope="row">V3 change 14</th><td>§4.2</td><td>Per-row cent rounding of period interest (fixed mortgages, 7- and 14-day)</td><td><a class="id" href="#DEV-B38-ROUND">DEV-B38-ROUND</a></td></tr>
+<tr><th scope="row">V3 change 15</th><td>§4.2, §5</td><td>Variable mortgages and personal loans converted as monthly-compounded at the 7- and 14-day frequencies</td><td><a class="id" href="#DEV-B39-M12">DEV-B39-M12</a></td></tr>
+<tr><th scope="row">V3 change 16</th><td>§3.3, B.1, §5</td><td>Non-financed fees never enter the waterfall</td><td><a class="id" href="#DEV-OQS">DEV-OQS</a></td></tr>
+<tr><th scope="row">V3 change 17</th><td>§6</td><td>Rounding, display precision and the final-payment rule defined</td><td>User decisions; <span class="id" data-id="B13">B13</span></td></tr>
+<tr><th scope="row">V3 change 18</th><td>B.2</td><td>A payment on the End date is included; payoff row pays only what is owed</td><td>Workbook macro</td></tr>
+<tr><th scope="row">V3 change 19</th><td>B.4</td><td>Skip-date rule and One Time removed</td><td><span class="id" data-id="OQ-I">OQ-I</span>; <span class="id" data-id="OQ-U">OQ-U</span>; <span class="id" data-id="OQ-G">OQ-G</span></td></tr>
+<tr><th scope="row">V3 change 20</th><td>B.4</td><td>Month-end monthly rule</td><td><a class="id" href="#DEV-OQX">DEV-OQX</a></td></tr>
+<tr><th scope="row">V3 change 21</th><td>B.6</td><td>Column map replaced with the calculator's columns</td><td><a class="id" href="#OQ-J">OQ-J</a></td></tr>
+<tr><th scope="row">V3 change 22</th><td>§7</td><td>Help page added</td><td><a class="id" href="#B29">B29</a></td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+<hr>
+<span id="prrd-5"></span><h2 id="prrd-questions-for-the-stakeholders-before-v3-is" tabindex="-1">5. Questions for the stakeholders before v3 is issued <a class="anchor" href="#prrd-questions-for-the-stakeholders-before-v3-is" aria-label="Link to section: 5. Questions for the stakeholders before v3 is issued">#</a></h2>
+<div class="table-wrap" role="region" tabindex="0" aria-labelledby="prrd-questions-for-the-stakeholders-before-v3-is">
+<table>
+<caption class="visually-hidden">5. Questions for the stakeholders before v3 is issued</caption>
+<thead><tr><th scope="col">Question</th><th scope="col">Why it matters</th></tr></thead>
+<tbody>
+<tr><td>Average balance basis (<a class="id" href="#OQ-Q">OQ-Q</a>): is P the average opening balance (BRD) or the average opening principal (workbook)?</td><td>The APR with fees differs, for example 9.25% against 9.63%.</td></tr>
+<tr><td>Total principal (<a class="id" href="#OQ-R">OQ-R</a>): is it the sum of principal paid, or total payments less interest?</td><td>The figure differs whenever fees are recovered through payments.</td></tr>
+<tr><td>Prior accrued interest (<a class="id" href="#OQ-W2">OQ-W2</a>, <a class="id" href="#OQ-W3">OQ-W3</a>, <a class="id" href="#OQ-W5">OQ-W5</a>): how it accrued interest counts in C and P</td><td>No workbook reference exists for this input.</td></tr>
+<tr><td>Legal basis (<a class="id" href="#Q-B37-LAW">Q-B37-LAW</a>): Bank Act or Ontario credit union law for disclosure, and Interest Act s.6 for semi-annual compounding</td><td>Wording of §2 and §4.2; the calculation does not change. Needs compliance to say which entity (Alterna Savings or Alterna Bank) lends on each product, and to recheck the Ontario citation after 1 March 2027 (CUCPA 2020 s.275).</td></tr>
+<tr><td>Workbook version (<a class="id" href="#Q-B37-WHICH-EXCEL">Q-B37-WHICH-EXCEL</a>): which workbook version gave the user's examples</td><td>Names the parity reference in v3.</td></tr>
+<tr><td>Monthly-compounded conversion (<span class="id" data-id="Q-B39-VAR1-CENT">Q-B39-VAR1-CENT</span>, <span class="id" data-id="Q-B39-VAR2-FREQ">Q-B39-VAR2-FREQ</span>, <span class="id" data-id="Q-B39-PL-EXAMPLE">Q-B39-PL-EXAMPLE</span>, <span class="id" data-id="Q-B39-UNIFIED">Q-B39-UNIFIED</span>, <span class="id" data-id="Q-B39-ENGINES">Q-B39-ENGINES</span>)</td><td>Confirms the monthly-compounded conversion against more Excel examples and whether the other engines follow.</td></tr>
+<tr><td>Wording (<a class="id" href="#Q-MSG">Q-MSG</a>): final wording of messages, hints and labels</td><td>Every on-screen text is interim until confirmed.</td></tr>
+<tr><td>Excluded fees: should some fees stay out of C?</td><td>O. Reg. 108/22 and SOR/2021-181 exclude some fees from the cost of borrowing (for example mortgage default insurance and discharge fees). The calculator counts every fee in C (<span class="id" data-id="OQ-E">OQ-E</span>), so C is overstated if such a fee is entered. The same regulations say principal &quot;does not include any cost of borrowing&quot;, which bears on <a class="id" href="#OQ-Q">OQ-Q</a>.</td></tr>
+<tr><td>Financed option: switch it on?</td><td>Today a fee typed on the page is always non-financed, which changes the APR for a fee staff used to enter as financed.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="table-hint">Scroll sideways to see all columns.</p>
+</div>
+</article>
 </main>
 </div>
 <footer class="help-footer">
-<p>Built 2026-10-14 (UTC) from <code>COB-user-manual.md</code> (sha256 <code>22f9cb22df7f</code>); <code>COB-coverage.md</code> (sha256 <code>dd51ea26dcd7</code>); <code>COB-domain-overview.md</code> (sha256 <code>12adafdd14ed</code>).</p>
+<p>Built 2026-10-15 (UTC) from <code>COB-user-manual.md</code> (sha256 <code>ad399161f0e1</code>); <code>COB-coverage.md</code> (sha256 <code>dd51ea26dcd7</code>); <code>COB-domain-overview.md</code> (sha256 <code>12adafdd14ed</code>); <code>v3_PRRD_COB.md</code> (sha256 <code>f12d61c3fd88</code>).</p>
 <p>The calculator tab you came from is still open; you can close this tab instead. Use the tabs above to search another document: your browser's Find reaches all three in Chrome.</p>
 </footer>
 <p class="toast" id="live" role="status"></p>
-<script type="application/json" id="help-build">{"built":"2026-10-14","documents":[{"key":"manual","file":"COB-user-manual.md","sha256":"22f9cb22df7f22e0ac6fe318c89391b58ced1c9ec080c2db519205b65dd045c1"},{"key":"coverage","file":"COB-coverage.md","sha256":"dd51ea26dcd79095e62297af4e586082be07c054c4f650e6d1b9df99db95a6c7"},{"key":"domain","file":"COB-domain-overview.md","sha256":"12adafdd14ed83018eaf927fb0fe1e95700cde8e4e63ef554c569d386686172a"}],"generator":"86086e66e2dfa0cd75e05cb656ded1f1fb5c62953a8f6cf892e9815971ec0aa4","packages":{"markdown-it":"15.0.2","mermaid":"11.17.2"},"diagrams":14}</script>
+<script type="application/json" id="help-build">{"built":"2026-10-15","documents":[{"key":"manual","file":"COB-user-manual.md","sha256":"ad399161f0e1cbf1c261f9b7283e88abf6091a6df1a44cbffc0ae95e02f9390b"},{"key":"coverage","file":"COB-coverage.md","sha256":"dd51ea26dcd79095e62297af4e586082be07c054c4f650e6d1b9df99db95a6c7"},{"key":"domain","file":"COB-domain-overview.md","sha256":"12adafdd14ed83018eaf927fb0fe1e95700cde8e4e63ef554c569d386686172a"},{"key":"prrd","file":"v3_PRRD_COB.md","sha256":"f12d61c3fd8820904fef13f42b34ee33e0b947135a4129b848499841d27b7615"}],"generator":"ef811efa4fcc1be3e8072f4e0794b2e01b22a6a8c43466f0393b9b2ba9cbdb1c","packages":{"markdown-it":"15.0.2","mermaid":"11.17.2"},"diagrams":14}</script>
 <script>
 (function () {
   'use strict';
   var doc = document;
   var root = doc.documentElement;
-  var KEYS = ['manual', 'coverage', 'domain'];
+  var KEYS = ['manual', 'coverage', 'domain', 'prrd'];
   var live = doc.getElementById('live');
   var notice = doc.getElementById('notice');
   var box = doc.getElementById('goto');
@@ -2057,7 +2436,7 @@ The <span class="id" data-id="FB-16">FB-16</span> example is QA's measured figur
     var id = hash.replace(/^#/, '');
     try { id = decodeURIComponent(id); } catch (e) { /* keep the raw text */ }
     if (!id) return { key: 'manual' };
-    var m = /^(?:doc-)?(manual|coverage|domain)$/.exec(id);
+    var m = /^(?:doc-)?(manual|coverage|domain|prrd)$/.exec(id);
     if (m) return { key: m[1], top: true };
     var el = doc.getElementById(id) || doc.getElementById(id.toUpperCase());
     if (!el) return { key: 'manual', missing: id };

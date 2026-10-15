@@ -1,7 +1,7 @@
 # Help page add-on
 
-The calculator's Help page (`ui/help.html`) is generated from the three documents in `COB-ts/docs/` (user manual,
-coverage report, domain overview). Everything Help is in this folder, with its own `package.json`, lock and
+The calculator's Help page (`ui/help.html`) is generated from the four documents in `COB-ts/docs/` (user manual,
+coverage report, domain overview, requirements v3 draft `v3_PRRD_COB.md`). Everything Help is in this folder, with its own `package.json`, lock and
 `node_modules`; the calculator, the engine and the root `package.json` know nothing of it. The only other Help files
 are the generated page `ui/help.html` and two marked blocks in `ui/ca.html` (the "Help" link in the header).
 
