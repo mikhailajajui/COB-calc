@@ -43,7 +43,7 @@ Errors appear in a red box under the input form.
 
 ### Getting help
 
-The page header has a **Help** link. Select it to open the Help page in a new tab. The Help page holds this manual, the coverage report and the domain overview. It is a plain saved page, so it opens by itself and does not need the calculator to run. Your calculator tab stays as it is, with nothing lost.
+The page header has a **Help** link. Select it to open the Help page in a new tab. The Help page holds this manual, the coverage report, the domain overview and the requirements v3 draft (BRD v2.3 compared with the calculator). It is a plain saved page, so it opens by itself and does not need the calculator to run. Your calculator tab stays as it is, with nothing lost.
 
 ---
 

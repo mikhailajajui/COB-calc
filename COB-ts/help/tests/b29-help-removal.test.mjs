@@ -120,7 +120,7 @@ describe('B29-X5 scenario A: documents kept, Help removed by the documented step
 
   it('B29-INV-DOCSKEPT: the docs tree hash is unchanged by the procedure', () => {
     expect(treeHash(join(copy, 'docs'))).toBe(docsBefore);
-    expect(walk(join(copy, 'docs')).sort()).toEqual(['COB-coverage.md', 'COB-domain-overview.md', 'COB-user-manual.md']);
+    expect(walk(join(copy, 'docs')).sort()).toEqual(['COB-coverage.md', 'COB-domain-overview.md', 'COB-user-manual.md', 'v3_PRRD_COB.md']);
   });
 
   it('B29-INV-OWNPKG: root package.json and package-lock.json equal the baseline and the lock name@version set equals the fixture', () => {

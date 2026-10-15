@@ -49,13 +49,13 @@ d('T1 registry (B29-R1, decision 2)', () => {
     expect(existsSync(m.out)).toBe(false);
   });
 
-  it('keys, tab order and article ids: manual, coverage, domain', () => {
+  it('keys, tab order and article ids: manual, coverage, domain, prrd', () => {
     const r = buildDocs();
     expect(r.status, r.stderr).toBe(0);
     const nav = elements(r.html, 'nav').find((n) => n.attrs['aria-label'] === 'Documents');
     expect(nav, 'nav[aria-label="Documents"] missing').toBeTruthy();
     const hrefs = tags(nav.inner, 'a').map((a) => a.attrs.href);
-    expect(hrefs).toEqual(['#doc-manual', '#doc-coverage', '#doc-domain']);
+    expect(hrefs).toEqual(['#doc-manual', '#doc-coverage', '#doc-domain', '#doc-prrd']);
     const labels = elements(nav.inner, 'a').map((a) => textOf(a.inner));
     expect(labels[0]).toMatch(/^User manual/);
     expect(labels[1]).toMatch(/^Coverage report/);
@@ -338,7 +338,7 @@ d('T4 table of contents (B29-R4)', () => {
   it('one nav per document, labelled "Contents of the <title>", link text equals the heading text with numbers kept', () => {
     const r = buildDocs({ manual: md });
     const navs = elements(r.html, 'nav').filter((n) => /^Contents of the /.test(n.attrs['aria-label'] ?? ''));
-    expect(navs.length).toBe(3);
+    expect(navs.length).toBe(4);
     const t = toc(r.html);
     expect(t.attrs['aria-label']).toBe('Contents of the Doc title');
     expect(elements(t.inner, 'a').map((a) => textOf(a.inner))).toEqual(['1. Alpha', '1.1 Alpha one', '1.2 Alpha two', '2. Beta']);
@@ -1248,12 +1248,12 @@ d('T14 page structure and fingerprint (B29-R9, B29-R12)', () => {
     expect(r.html).toMatch(/<noscript\b/);
   });
 
-  it('all three articles are visible in the static HTML (no hidden attribute written by the build); one <h1> per document', () => {
+  it('all four articles are visible in the static HTML (no hidden attribute written by the build); one <h1> per document', () => {
     const r = get();
     const arts = tags(r.html, 'article');
-    expect(arts.map((a) => a.attrs.id)).toEqual(['doc-manual', 'doc-coverage', 'doc-domain']);
+    expect(arts.map((a) => a.attrs.id)).toEqual(['doc-manual', 'doc-coverage', 'doc-domain', 'doc-prrd']);
     for (const a of arts) expect('hidden' in a.attrs).toBe(false);
-    expect(elements(r.html, 'h1').length).toBe(3);
+    expect(elements(r.html, 'h1').length).toBe(4);
   });
 
   it('Back to calculator is the root-absolute /ui/ca.html', () => {
@@ -1280,7 +1280,7 @@ d('T14 page structure and fingerprint (B29-R9, B29-R12)', () => {
     expect(fp.attrs.type).toBe('application/json');
     const j = JSON.parse(fp.inner);
     const s = JSON.stringify(j);
-    for (const file of ['COB-user-manual.md', 'COB-coverage.md', 'COB-domain-overview.md']) {
+    for (const file of ['COB-user-manual.md', 'COB-coverage.md', 'COB-domain-overview.md', 'v3_PRRD_COB.md']) {
       expect(s).toContain(sha(readFileSync(join(r.dir, file))));
     }
     expect(s).toContain('15.0.2');

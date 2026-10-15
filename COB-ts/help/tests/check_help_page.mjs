@@ -77,7 +77,7 @@ function watch(page) {
   return w;
 }
 const visible = (page, sel) => page.evaluate((s) => { const e = document.querySelector(s); if (!e) return false; const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0; }, sel);
-const activeDoc = (page) => page.evaluate(() => ['manual', 'coverage', 'domain'].filter((k) => { const a = document.getElementById('doc-' + k); const r = a.getBoundingClientRect(); return getComputedStyle(a).display !== 'none' && !a.hidden && r.height > 0; }));
+const activeDoc = (page) => page.evaluate(() => ['manual', 'coverage', 'domain', 'prrd'].filter((k) => { const a = document.getElementById('doc-' + k); const r = a.getBoundingClientRect(); return getComputedStyle(a).display !== 'none' && !a.hidden && r.height > 0; }));
 const tabCurrent = (page) => page.evaluate(() => [...document.querySelectorAll('nav[aria-label="Documents"] a')].filter((a) => a.getAttribute('aria-current') === 'page').map((a) => a.getAttribute('href')));
 
 try {

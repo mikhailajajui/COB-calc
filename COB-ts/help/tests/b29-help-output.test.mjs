@@ -333,7 +333,7 @@ describe('B29 output: offline, CSP, size and script (B29-INV-OFFLINE, decision 7
   it('no article carries a hidden attribute in the static HTML, and a <noscript> fallback exists', () => {
     const html = page();
     for (const a of tags(html, 'article')) expect('hidden' in a.attrs).toBe(false);
-    expect(tags(html, 'article').length).toBe(3);
+    expect(tags(html, 'article').length).toBe(4);
     expect(html).toMatch(/<noscript\b/);
   });
 

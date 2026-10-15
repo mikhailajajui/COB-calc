@@ -212,10 +212,11 @@ main { display: block; min-width: 0; }
 article.doc { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-width: 0; }
 article.doc > *, .doc-body > * { min-width: 0; }
 .doc-body { min-width: 0; }
-.js:not(.ready) #doc-manual, .js:not(.ready) #doc-coverage, .js:not(.ready) #doc-domain { display: none; }
+.js:not(.ready) #doc-manual, .js:not(.ready) #doc-coverage, .js:not(.ready) #doc-domain, .js:not(.ready) #doc-prrd { display: none; }
 .js[data-doc="manual"]:not(.ready) #doc-manual,
 .js[data-doc="coverage"]:not(.ready) #doc-coverage,
-.js[data-doc="domain"]:not(.ready) #doc-domain { display: grid; }
+.js[data-doc="domain"]:not(.ready) #doc-domain,
+.js[data-doc="prrd"]:not(.ready) #doc-prrd { display: grid; }
 .notice { margin: 0 0 var(--space-4); padding: var(--space-3) var(--space-4); background: var(--paper-raised); border-left: 4px solid var(--accent); border-radius: var(--radius-control); }
 .notice:empty { display: none; }
 
@@ -379,15 +380,15 @@ span.id { color: inherit; }
 @page { size: letter portrait; margin: 14mm; }
 @page coverage { size: letter landscape; margin: 12mm; }
 @media print {
-  #doc-coverage { page: coverage; }
+  #doc-coverage, #doc-prrd { page: coverage; }
   html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #ffffff; color: #000000; }
   body { font-size: 10.5pt; line-height: 1.4; }
   .help-header, .doc-bar, .doc-nav, nav[aria-label="Documents"], .toc, .toc-box, nav[aria-label^="Contents of"], .anchor, .skip, .goto, .toast, .notice, button, noscript, .table-hint, .sprite { display: none !important; }
   article.doc[hidden] { display: none !important; }
   .help-shell { max-width: none; padding: 0; }
   article.doc, .js[data-doc] article.doc { display: block; }
-  .js:not(.ready) #doc-manual, .js:not(.ready) #doc-coverage, .js:not(.ready) #doc-domain { display: none; }
-  .js[data-doc="manual"]:not(.ready) #doc-manual, .js[data-doc="coverage"]:not(.ready) #doc-coverage, .js[data-doc="domain"]:not(.ready) #doc-domain { display: block; }
+  .js:not(.ready) #doc-manual, .js:not(.ready) #doc-coverage, .js:not(.ready) #doc-domain, .js:not(.ready) #doc-prrd { display: none; }
+  .js[data-doc="manual"]:not(.ready) #doc-manual, .js[data-doc="coverage"]:not(.ready) #doc-coverage, .js[data-doc="domain"]:not(.ready) #doc-domain, .js[data-doc="prrd"]:not(.ready) #doc-prrd { display: block; }
   .doc h1 { font-size: 18pt; }
   .doc h2 { font-size: 13pt; break-after: avoid; }
   .doc h3 { font-size: 11pt; break-after: avoid; }
