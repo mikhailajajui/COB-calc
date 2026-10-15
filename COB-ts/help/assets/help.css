@@ -299,7 +299,7 @@ span.id { color: inherit; }
               linear-gradient(to left, rgba(0, 0, 0, 0.18), transparent) right center / 10px 100% no-repeat scroll;
 }
 .table-hint { margin: 0 0 var(--space-4); font-size: var(--text-sm); color: var(--ink-muted); }
-.doc table { border-collapse: separate; border-spacing: 0; min-width: 640px; width: 100%; table-layout: auto; }
+.doc table { border-collapse: separate; border-spacing: 0; table-layout: auto; }
 .doc table.wide { min-width: 880px; }
 .doc th, .doc td {
   padding: 8px 12px; vertical-align: top; text-align: left; font-size: var(--text-sm); line-height: 1.45;
