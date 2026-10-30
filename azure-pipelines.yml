@@ -48,11 +48,13 @@ stages:
           - script: npm run typecheck
             displayName: Typecheck
 
-          - script: npm test
-            displayName: Test
-
+          # Build before testing: the server tests (a13-serve and others) request the compiled
+          # engine under /dist and get 404 if it isn't there yet.
           - script: npm run build
             displayName: Build (src/ -> dist/)
+
+          - script: npm test
+            displayName: Test
 
           - script: |
               set -euo pipefail
