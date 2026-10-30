@@ -1,0 +1,70 @@
+name: Deploy COB-ts (deploy branch) to GitHub Pages
+
+# Publishes the COB-ts calculator from the deploy branch at the site root
+# (https://<owner>.github.io/<repo>/). Pages serves static files only, so
+# ui/serve.mjs doesn't run here: no security headers, /healthz or host checks
+# (those are tested on Azure App Service, docs/DEPLOY-AZURE.md). The served
+# files are the same as the Azure package (ui/, dist/) plus a static
+# version.json; the root-absolute paths in the copies are made relative so the
+# page works under the /<repo>/ subpath. The sources stay untouched.
+
+on:
+  push:
+    branches: [deploy]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      # Build before testing: the server tests request the compiled engine under /dist.
+      - name: Build & test
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+          npm test
+
+      - name: Assemble the site
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp -R ui dist _site/
+          rm _site/ui/serve.mjs _site/ui/ca.html
+          cp ui/ca.html _site/index.html
+          node -e "const {version}=require('./package.json'); process.stdout.write(JSON.stringify({version}))" > _site/version.json
+
+          sed -i 's#"/ui/#"ui/#g' _site/index.html
+          sed -i "s#'/dist/ca/index.js'#'../dist/ca/index.js'#; s#fetch('/version.json')#fetch('version.json')#" _site/ui/ca.js
+          sed -i 's#url("/ui/assets/#url("assets/#g' _site/ui/ca.css
+
+          # Fail the build if any root-absolute reference survives.
+          if grep -nE "(from |src=|href=|url\(|fetch\()\s*['\"]?/(ui|dist|version)" _site/index.html _site/ui/ca.js _site/ui/ca-view.js _site/ui/ca.css; then exit 1; fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
