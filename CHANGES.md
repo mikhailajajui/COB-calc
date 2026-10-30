@@ -2246,6 +2246,18 @@ No other code changed: no `package.json`, lock, script, `serve.mjs`, `src/`, tes
 - `dist/ca/index.js` imports on 24.22.2.
 - The test app (`cob-calc-majaj`, F1, Canada Central, still on `NODE|22-lts`) was checked live from an allowed IP the same day: page and assets, `/healthz`, `/version.json` 200; `/package.json`, `/ui/serve.mjs`, `src/` 404; full header set including HSTS; HTTP → HTTPS 301; TLS 1.0/1.1 refused. The user switches its stack to Node 24 LTS in the portal; the main session re-checks it afterwards.
 
+### 94. WIN-DEPLOY: Azure App Service on Windows (2026-10-30, user decision 2026-10-30; branch `win_deploy`; not yet deployed)
+
+**What.** The calculator can run on App Service for **Windows**, under IIS and iisnode (`docs/DEPLOY-AZURE-WINDOWS.md`).
+- `ui/serve.mjs`: in hosted mode, `PORT` may also be a Windows named pipe `\\.\pipe\<name>` (iisnode passes one); the server listens on it and names it in the start-up and `cannot listen on` lines. Local mode and numeric ports are unchanged; a malformed pipe name gets the R5-2 `PORT` message. Header comment unchanged.
+- New `server.cjs` (iisnode's entry point; `require()` can't load `serve.mjs`, an ES module with top-level `await`) and `web.config` (every request to iisnode, `iisnode` log folder hidden, `Server`/`X-Powered-By` removed, error replies passed through, debugger and developer errors off). Both at the project root, outside `ui/`, so the SEC-6 `ui/` file list is unchanged and neither is published.
+- `azure-pipelines.yml`: triggers on `win_deploy`; packages `server.cjs` and `web.config` too; new Windows job runs the pipe test on a real named pipe; the deploy stage targets a Windows web app (zip deploy, `WEBSITE_NODE_DEFAULT_VERSION=~24`, 64-bit worker, platform build off).
+- New test `tests/tooling/win-serve-pipe.test.ts` (17 tests). Pin `share/tests/fixtures/pre-b30-pins.json` `ui/serve.mjs` 8d9df7a3… → b4010135… (recorded in the file).
+
+**Evidence (main session, 2026-10-30, Node 22.23.4, `win_deploy` worktree).** Typecheck (src and tests) clean; full suite 100 files, 4394 passed + 5 expected fail, 1 failed: F23 (fails on purpose on Node < 26.13.0). `win-serve-pipe` 17/17 (on macOS, where the pipe string is a Unix socket path; the Windows job covers a real named pipe). `server.cjs` loaded with `require()` starts the server.
+
+**Still to do.** First deployment on a Windows App Service (B1 or higher), with the checklist in `docs/DEPLOY-AZURE-WINDOWS.md`; the four *to confirm* items there (IIS-generated replies without the app's headers, connection handling behind IIS, the `Host` header through iisnode, `WEBSITE_HOSTNAME` in the Node process).
+
 ## Known open items that still affect this copy
 
 - OQ-W: how IN-11 past accrued interest is treated (interest on it, in C, in P) is

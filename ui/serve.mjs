@@ -34,8 +34,13 @@ function parsePort(raw, fallback) {
   return Number(raw);
 }
 
-const port = parsePort(rawPort, hosted ? 8080 : 5173);
+// On App Service for Windows, iisnode passes a named pipe (\\.\pipe\<name>) in PORT; hosted mode listens on it
+// (docs/DEPLOY-AZURE-WINDOWS.md). Local mode still takes only a port number.
+const WINDOWS_PIPE =/^\\\\\.\\pipe\\[A-Za-z0-9{}._-]{1,200}$/;
+const pipe = hosted && rawPort !== undefined && WINDOWS_PIPE.test(rawPort) ? rawPort : null;
+const port = pipe === null ? parsePort(rawPort, hosted ? 8080 : 5173) : null;
 const address = hosted ? '0.0.0.0' : '127.0.0.1';
+const listenTarget = pipe ?? `${address}:${port}`;
 
 const HOST_NAME = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*(:[1-9][0-9]{0,4})?$/;
 
@@ -221,15 +226,17 @@ const server = createServer(
   handleRequest,
 );
 
-server.on('error', (err) => failFast(`cannot listen on ${address}:${port}: ${err.code}`));
+server.on('error', (err) => failFast(`cannot listen on ${listenTarget}: ${err.code}`));
 server.on('clientError', onClientError);
 server.on('checkExpectation', (req, res) => handleRequest(req, res, true));
 server.on('checkContinue', handleRequest);
 
-server.listen(port, address, () => {
+const onListening = () => {
   if (hosted) {
-    console.log(`cob-calculator (Canada): hosted mode, listening on ${address}:${port}; allowed hosts: ${[...okHosts].join(', ')}`);
+    console.log(`cob-calculator (Canada): hosted mode, listening on ${listenTarget}; allowed hosts: ${[...okHosts].join(', ')}`);
   } else {
     console.log(`cob-calculator test UI (Canada): http://localhost:${port} (listening on 127.0.0.1:${port} only)`);
   }
-});
+};
+if (pipe === null) server.listen(port, address, onListening);
+else server.listen(pipe, onListening);

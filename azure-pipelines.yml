@@ -1,11 +1,17 @@
 # Azure Pipelines for the COB calculator (COB-ts, Canada).
 #
-# Build stage (always runs): Node 26.13.0 (.nvmrc; .npmrc sets engine-strict, so an older
-# Node stops npm ci with EBADENGINE), then typecheck, test and build. It packages only
-# ui/, dist/ and package.json, as docs/DEPLOY-AZURE.md "What to deploy" asks.
+# This is the win_deploy version: it targets Azure App Service on WINDOWS
+# (docs/DEPLOY-AZURE-WINDOWS.md). The Linux version is on the deploy branch.
 #
-# Deploy stage (off by default): zip-deploys that package to a Linux App Service running
-# NODE|24-lts with the startup command `node ui/serve.mjs` and the platform build turned off.
+# Build stage (always runs): Node 26.13.0 (.nvmrc; .npmrc sets engine-strict, so an older
+# Node stops npm ci with EBADENGINE), then typecheck, build and test on Linux. It packages
+# ui/, dist/ and package.json plus the two Windows files, server.cjs (iisnode's entry
+# point) and web.config. A second job runs the named-pipe test on a Windows agent, where
+# serve.mjs listens on a real Windows named pipe, as it does under iisnode.
+#
+# Deploy stage (off by default): zip-deploys that package to a Windows App Service with
+# WEBSITE_NODE_DEFAULT_VERSION=~24, a 64-bit worker (Node 24 on Windows ships 64-bit only)
+# and the platform build turned off.
 # It is left out of the run at compile time unless the `deploy` parameter is true, so the
 # pipeline runs before any Azure service connection exists. To turn it on:
 #   1. Create an Azure Resource Manager service connection in the DevOps project.
@@ -15,7 +21,7 @@
 trigger:
   branches:
     include:
-      - deploy
+      - win_deploy
 
 pr: none
 
@@ -59,8 +65,8 @@ stages:
           - script: |
               set -euo pipefail
               mkdir -p "$(Build.ArtifactStagingDirectory)/app"
-              cp -R ui dist package.json "$(Build.ArtifactStagingDirectory)/app/"
-            displayName: Stage ui/, dist/ and package.json
+              cp -R ui dist package.json server.cjs web.config "$(Build.ArtifactStagingDirectory)/app/"
+            displayName: Stage ui/, dist/, package.json, server.cjs and web.config
 
           - task: ArchiveFiles@2
             displayName: Zip the app
@@ -76,6 +82,25 @@ stages:
               targetPath: $(Build.ArtifactStagingDirectory)/cob-calculator.zip
               artifact: cob-calculator
 
+      - job: WindowsPipe
+        displayName: Named-pipe test on Windows
+        pool:
+          vmImage: windows-latest
+        steps:
+          - task: UseNode@1
+            displayName: Use Node $(nodeVersion)
+            inputs:
+              version: $(nodeVersion)
+
+          - script: npm ci
+            displayName: npm ci
+
+          - script: npm run build
+            displayName: Build (src/ -> dist/)
+
+          - script: npx vitest run tests/tooling/win-serve-pipe.test.ts
+            displayName: Test serve.mjs on a Windows named pipe
+
   - ${{ if eq(parameters.deploy, true) }}:
       - stage: Deploy
         dependsOn: Build
@@ -84,7 +109,7 @@ stages:
           - deployment: Deploy
             pool:
               vmImage: ubuntu-latest
-            environment: cob-calculator
+            environment: cob-calculator-windows
             strategy:
               runOnce:
                 deploy:
@@ -93,9 +118,11 @@ stages:
                       displayName: Deploy to App Service
                       inputs:
                         azureSubscription: $(azureServiceConnection)
-                        appType: webAppLinux
+                        appType: webApp
                         appName: $(webAppName)
                         package: $(Pipeline.Workspace)/cob-calculator/cob-calculator.zip
-                        runtimeStack: 'NODE|24-lts'
-                        startUpCommand: node ui/serve.mjs
-                        appSettings: -SCM_DO_BUILD_DURING_DEPLOYMENT false
+                        # Zip deploy, not run-from-package: iisnode writes its logs under the
+                        # site folder, which run-from-package mounts read-only.
+                        deploymentMethod: zipDeploy
+                        appSettings: -WEBSITE_NODE_DEFAULT_VERSION ~24 -SCM_DO_BUILD_DURING_DEPLOYMENT false
+                        configurationStrings: -use32BitWorkerProcess false
