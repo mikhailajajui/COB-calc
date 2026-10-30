@@ -1,0 +1,160 @@
+/**
+ * 2026-10-01 USER-APPROVED REVERSAL: Renewal allows a personal loan again (forcedProductType null; the
+ * Renewal lock and its message are gone). This file keeps its name (it is the B21 history) but now pins
+ * the reversed rule: Renewal + personal loan is valid and monthly-only (B27), Renewal + mortgage is valid,
+ * VRPC stays locked to mortgage + variable. The text below is the original B21 header.
+ *
+ * B21 (COB-architecture.md §5 B21, revision 21; stakeholder decision 9, FB-23; closes DQ-16 and QA
+ * finding F-3): Renewal is mortgage-only, locked like VRPC. Payment Change stays open to personal
+ * loans. The workbook has no use cases, so no Excel behaviour to match and no DEV ID.
+ * Interim messages (Q-MSG): `flow '<flow>' is <allowed> only, got productType='<p>', rateType='<r>'`
+ * with <allowed> = "mortgage" (renewal) or "mortgage + variable-rate" (VRPC).
+ *
+ * Tests (14): B21-1, B21-2 x2, B21-3, B21-4, B21-5 x2, B21-6, B21-7 x2, B21-8 x3.
+ * (A6-2 table, A6-5, A6-6 edits are in flows-a6.test.ts; row 13 / 13b in a9-input-issues.test.ts.)
+ * No date sequences asserted, so this file does not join `test:tz`.
+ */
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { calculateCobCanada, collectInputIssues, FLOWS } from '../../src/ca/index.js';
+import type { CobCanadaInput, CobFlow } from '../../src/ca/index.js';
+import { validateCobCanadaInput } from '../../src/ca/validate.js';
+import { ROOT } from '../architecture/support.js';
+// @ts-ignore -- plain .mjs shared with the golden generators (no .d.ts)
+import * as corpusV1 from './fixtures/generate_golden.mjs';
+// @ts-ignore -- plain .mjs (no .d.ts)
+import * as corpusPc from './fixtures/generate_golden_pc.mjs';
+import { asInput, utcDate } from './support/builders.js';
+
+const d = utcDate;
+
+function base(flow: CobFlow, over: Record<string, unknown> = {}): CobCanadaInput {
+  const input: Record<string, unknown> = {
+    flow,
+    productType: 'mortgage',
+    rateType: 'variable',
+    loanAmount: 250000,
+    fees: { fees: [] },
+    contractRatePercent: 5.19,
+    paymentAmount: 1300,
+    paymentFrequency: 'monthly',
+    firstPaymentDate: d('2027-02-01'),
+    endDate: d('2028-02-01'),
+    termYears: 1,
+    termMonths: 0,
+    ...(flow === 'newMortgageOrLoan' ? { disbursalDate: d('2027-01-01') } : { renewalDate: d('2027-01-15'), accruedInterest: 0 }),
+    ...over,
+  };
+  for (const k of Object.keys(over)) if (over[k] === undefined) delete input[k];
+  return asInput(input);
+}
+const thrown = (fn: () => unknown): Error => {
+  try {
+    fn();
+  } catch (e) {
+    return e as Error;
+  }
+  throw new Error('expected a throw');
+};
+const semi = (r: string) => (r === 'fixed' ? { semiAnnualCompoundingDate: d('2027-01-15') } : {});
+
+describe('B21 reversed 2026-10-01: Renewal is open to personal loans (was mortgage-only, decision 9)', () => {
+  it("B21-1: the catalogue: renewal, paymentChange and new force nothing; VRPC unchanged (mortgage + variable)", () => {
+    expect(FLOWS.renewal.forcedProductType).toBeNull();
+    expect(FLOWS.renewal.forcedRateType).toBeNull();
+    expect(FLOWS.paymentChange.forcedProductType).toBeNull();
+    expect(FLOWS.paymentChange.forcedRateType).toBeNull();
+    expect(FLOWS.newMortgageOrLoan.forcedProductType).toBeNull();
+    expect(FLOWS.variableRatePaymentChange.forcedProductType).toBe('mortgage');
+    expect(FLOWS.variableRatePaymentChange.forcedRateType).toBe('variable');
+  });
+
+  for (const rate of ['fixed', 'variable']) {
+    it(`B21-2 (reversed): renewal + personalLoan/${rate} + monthly is valid: no throw, no issue, calculates`, () => {
+      const x = base('renewal', { productType: 'personalLoan', rateType: rate });
+      expect(() => validateCobCanadaInput(x)).not.toThrow();
+      expect(collectInputIssues(x)).toEqual([]);
+      const res = calculateCobCanada(x);
+      expect(res.amortizationSchedule.length).toBeGreaterThan(0);
+      expect(res.triggerRatePercent).toBeNull();
+    });
+
+    // B33 (DEC-B33-FREQ): B27's Monthly-only rule is removed, so a weekly personal-loan renewal has no issue at all
+    // (was: the one B27 paymentFrequency issue). Still no flow issue (Renewal open to personal loans since 2026-10-01).
+    it(`B21-2b: renewal + personalLoan/${rate} + weekly: no issue (B33), no flow issue; it calculates`, () => {
+      const x = base('renewal', { productType: 'personalLoan', rateType: rate, paymentFrequency: 'weekly' });
+      expect(collectInputIssues(x)).toEqual([]);
+      expect(() => validateCobCanadaInput(x)).not.toThrow();
+      expect(calculateCobCanada(x).amortizationSchedule.length).toBeGreaterThan(0);
+    });
+  }
+
+  it('B21-3: renewal + mortgage (fixed and variable) is accepted and calculates', () => {
+    for (const r of ['fixed', 'variable'])
+      expect(calculateCobCanada(base('renewal', { rateType: r, ...semi(r) })).amortizationSchedule.length).toBeGreaterThan(0);
+  });
+
+  it('B21-4: renewal, paymentChange and newMortgageOrLoan are open to personal loans (both rate types)', () => {
+    for (const flow of ['renewal', 'paymentChange', 'newMortgageOrLoan'] as CobFlow[])
+      for (const r of ['fixed', 'variable'])
+        expect(() => validateCobCanadaInput(base(flow, { productType: 'personalLoan', rateType: r })), `${flow} ${r}`).not.toThrow();
+  });
+
+  it('B21-5a: renewal + personal loan, no renewalDate, no accrued: the issues are the date and accrued ones only (no flow issue)', () => {
+    const x = base('renewal', { productType: 'personalLoan', renewalDate: undefined, accruedInterest: undefined });
+    expect(collectInputIssues(x).map((i) => i.field)).toEqual(['renewalDate', 'accruedInterest']);
+  });
+
+  it('B21-5b: renewal + personal loan: the fee-limit issue then the date-order issue, no flow issue', () => {
+    const x = base('renewal', {
+      productType: 'personalLoan',
+      fees: { fees: [{ name: 'Admin', amount: 250000, financed: true }] },
+      endDate: d('2027-01-01'),
+    });
+    expect(collectInputIssues(x).map((i) => i.field)).toEqual(['fees', 'endDate']);
+  });
+
+  it('B21-6: the VRPC lock keeps its rule with the generalised message (personalLoan/fixed shows both values)', () => {
+    const x = base('variableRatePaymentChange', { productType: 'personalLoan', rateType: 'fixed' });
+    expect(thrown(() => validateCobCanadaInput(x)).message).toBe(
+      "flow 'variableRatePaymentChange' is mortgage + variable-rate only, got productType='personalLoan', rateType='fixed'",
+    );
+  });
+
+  it('B21-7a: golden v1 generator: a personal-loan renewal key is still sent as paymentChange (the committed golden is not regenerated), mortgage keeps renewal; every corpus input validates', () => {
+    let pl = 0;
+    let mort = 0;
+    for (const g of corpusV1.buildGroups())
+      for (const c of g.cases) {
+        const input = corpusV1.makeInput(c.params);
+        if (c.params.flowKey.startsWith('renewal')) {
+          if (c.params.productType === 'personalLoan') {
+            expect(input.flow).toBe('paymentChange');
+            pl++;
+          } else {
+            expect(input.flow).toBe('renewal');
+            mort++;
+          }
+        }
+        expect(() => validateCobCanadaInput(input), c.label).not.toThrow();
+      }
+    expect(pl).toBeGreaterThan(0);
+    expect(mort).toBeGreaterThan(0);
+  });
+
+  it('B21-7b: the PC golden corpus has no renewal input at all', () => {
+    let n = 0;
+    for (const g of corpusPc.buildGroups())
+      for (const c of g.cases) {
+        expect(corpusPc.makeInput(c.params).flow).not.toBe('renewal');
+        n++;
+      }
+    expect(n).toBeGreaterThan(0);
+  });
+
+  it('B21-8a: ui/ca.js reads the lock from FLOWS (forcedProductType), with no renewal-specific code', () => {
+    const js = readFileSync(`${ROOT}/ui/ca.js`, 'utf8');
+    expect(js).toMatch(/spec\.forcedProductType/);
+    expect(js).toMatch(/productTypeEl\.disabled = true/);
+  });
+});

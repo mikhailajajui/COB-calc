@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cost of Borrowing Calculator | Alterna Savings</title>
+<link rel="stylesheet" href="/ui/ca.css" />
+</head>
+<body>
+  <header class="brand">
+    <a class="brand-logo" href="https://www.alterna.ca/" rel="noopener">
+      <img id="brandLogo" src="/ui/assets/alterna-savings.svg" alt="Alterna Savings" width="236" height="37" />
+      <span class="brand-fallback" hidden>Alterna Savings</span>
+    </a>
+  </header>
+
+  <h1>Cost of Borrowing Calculator</h1>
+  <p class="sub">
+    Calculate the cost of borrowing for a mortgage or personal loan over its current
+    term: the COB amount and rate, total interest, and a full payment schedule. For
+    variable-rate mortgages it also shows the trigger rate. Fixed-rate mortgage rates
+    are compounded semi-annually.
+  </p>
+  <p class="sub disclaimer">
+    <strong>Note:</strong> results are estimates. They don't replace the cost of
+    borrowing disclosure in the loan documents.
+  </p>
+
+  <div class="print-only print-record" id="printRecord">
+    <h1 class="print-title">Alterna Savings — Cost of borrowing calculation</h1>
+    <p class="print-meta" id="printedLine">Printed <span id="printedAt"></span><span id="printEngine"></span></p>
+    <p class="print-meta" id="calculatedLine">Calculated <span id="calculatedAt"></span></p>
+    <p class="print-guard" id="printGuard">No current result. The inputs changed after the last calculation, or nothing was calculated. Calculate, then print.</p>
+    <div id="printBody">
+      <h2>Inputs</h2>
+      <dl class="print-inputs" id="printInputs"></dl>
+      <h3>Fees</h3>
+      <div id="printFees"></div>
+      <p class="print-taxes">* Payment amount does not include taxes.</p>
+      <h2>Results</h2>
+      <div class="figure-columns" id="printFigures">
+        <dl class="figures" id="printFiguresLeft"></dl>
+        <dl class="figures" id="printFiguresRight"></dl>
+      </div>
+    </div>
+  </div>
+  <section class="print-only print-schedule-section" id="printScheduleSection">
+    <div class="schedule-head">
+      <h2>Amortization schedule</h2>
+      <p class="schedule-count" id="printScheduleCount"></p>
+    </div>
+    <table class="schedule" id="printScheduleTable"></table>
+  </section>
+
+  <div class="calc-grid">
+  <div class="pane pane-form">
+  <form id="form">
+    <h2>Flow</h2>
+    <div class="grid">
+      <div class="field">
+        <label for="flow">Flow</label>
+        <select id="flow">
+          <option value="newMortgageOrLoan">New mortgage / loan</option>
+          <option value="renewal">Renewal</option>
+          <option value="paymentChange">Payment change</option>
+          <option value="variableRatePaymentChange" data-switch="variableRatePaymentChangeFlow">Variable rate payment change</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="productType">Product type</label>
+        <select id="productType">
+          <option value="mortgage">Mortgage</option>
+          <option value="personalLoan">Personal loan</option>
+        </select>
+        <span class="hint locked">Set by the selected flow.</span>
+      </div>
+      <div class="field">
+        <label for="rateType">Rate type</label>
+        <select id="rateType">
+          <option value="variable">Variable</option>
+          <option value="fixed" selected>Fixed</option>
+        </select>
+        <span class="hint locked">Set by the selected flow.</span>
+      </div>
+    </div>
+
+    <h2>Loan / mortgage details</h2>
+    <div class="grid">
+      <div class="field" data-switch="contractDateField">
+        <label for="contractDate">Contract date</label>
+        <input type="date" id="contractDate" aria-describedby="contractDate-hint" />
+        <span class="hint" id="contractDate-hint">The date these terms are quoted as of. Shown on the results; doesn't change the calculation.</span>
+      </div>
+      <div class="field">
+        <label for="loanAmount">Loan amount ($)</label>
+        <input type="text" inputmode="decimal" autocomplete="off" data-money id="loanAmount" value="227,829.65" aria-describedby="loanAmount-hint" />
+        <span class="hint" id="loanAmount-hint">Face amount, or current outstanding balance for existing/renewal flows.</span>
+      </div>
+      <div class="field">
+        <label for="contractRatePercent">Contract rate (%)</label>
+        <input type="number" step="0.001" id="contractRatePercent" value="3.74" />
+      </div>
+      <div class="field">
+        <label for="paymentAmount">Payment amount ($)</label>
+        <input type="text" inputmode="decimal" autocomplete="off" data-money id="paymentAmount" value="465.46" aria-describedby="paymentAmount-hint" />
+        <span class="hint" id="paymentAmount-hint">The scheduled payment.</span>
+      </div>
+      <div class="field">
+        <label for="paymentFrequency">Payment frequency</label>
+        <select id="paymentFrequency">
+          <option value="weekly" selected>Weekly (52/yr)</option>
+          <option value="acceleratedWeekly" data-switch="acceleratedFrequencies">Accelerated Weekly (52/yr)</option>
+          <option value="biweekly">Bi-weekly (26/yr)</option>
+          <option value="acceleratedBiweekly" data-switch="acceleratedFrequencies">Accelerated Bi-weekly (26/yr)</option>
+          <option value="semiMonthly">Semi-monthly (24/yr)</option>
+          <option value="monthly">Monthly (12/yr)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="firstPaymentDate" id="firstPaymentDate-label">First payment date</label>
+        <input type="date" id="firstPaymentDate" value="2026-03-23" />
+        <p class="hint" id="firstDateNote" role="status" hidden></p>
+      </div>
+      <div class="field">
+        <label for="endDate">End date</label>
+        <input type="date" id="endDate" value="2029-03-17" aria-describedby="endDate-hint" />
+        <span class="hint" id="endDate-hint">Payments are scheduled up to and including this date, or until the loan is paid off.</span>
+      </div>
+      <div class="field">
+        <label for="contractTerm" id="contractTerm-label">Contract term</label>
+        <input type="text" id="contractTerm" readonly aria-describedby="contractTerm-hint" />
+        <span class="hint" id="contractTerm-hint"></span>
+        <fieldset class="choice-group term-choice" id="contractTermChoice" aria-describedby="contractTerm-hint" hidden>
+          <legend class="choice-legend">Term based on</legend>
+          <div class="choice-options">
+            <label for="contractTermBasis-endDate" class="choice">
+              <input type="radio" id="contractTermBasis-endDate" name="contractTermBasis" value="endDate" autocomplete="off" checked />
+              <span class="choice-label" id="contractTermBasis-endDate-text"></span>
+            </label>
+            <label for="contractTermBasis-lastPayment" class="choice">
+              <input type="radio" id="contractTermBasis-lastPayment" name="contractTermBasis" value="lastPayment" autocomplete="off" />
+              <span class="choice-label" id="contractTermBasis-lastPayment-text"></span>
+            </label>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+    <fieldset class="conditional" id="newFlowFields">
+      <legend id="newFlowLegend">New mortgage or loan</legend>
+      <div class="grid">
+        <div class="field">
+          <label for="disbursalDate" id="disbursalDate-label">Disbursal date</label>
+          <input type="date" id="disbursalDate" value="2026-03-17" />
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="conditional" id="existingFlowFields">
+      <legend id="existingFlowLegend">Renewal</legend>
+      <div class="grid">
+        <div class="field">
+          <label for="renewalDate" id="renewalDate-label">Renewal date</label>
+          <input type="date" id="renewalDate" value="2026-01-01" />
+        </div>
+        <div class="field">
+          <label for="accruedInterest">Accrued interest ($)</label>
+          <input type="text" inputmode="decimal" autocomplete="off" data-money id="accruedInterest" value="" aria-describedby="accruedInterest-hint" />
+          <span class="hint" id="accruedInterest-hint">Interest accrued since the last payment date.</span>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="conditional" id="semiAnnualField">
+      <legend>Fixed-rate mortgage</legend>
+      <div class="grid">
+        <div class="field">
+          <label for="semiAnnualCompoundingDate">Semi-annual compounding reference date</label>
+          <input type="date" id="semiAnnualCompoundingDate" value="2025-12-15" aria-describedby="semiAnnualCompoundingDate-hint" />
+          <span class="hint" id="semiAnnualCompoundingDate-hint">For reference only. It doesn't change the calculation.</span>
+        </div>
+      </div>
+    </fieldset>
+
+    <h2>Fees</h2>
+    <div id="feesWrap">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Amount ($)</th><th data-switch="financedOption">Financed?</th><th><span class="visually-hidden">Actions</span></th></tr>
+        </thead>
+        <tbody id="feesBody"></tbody>
+      </table>
+    </div>
+    <button type="button" id="addFee" class="add-fee">Add fee</button>
+  </form>
+
+  <div id="error" role="alert"></div>
+  </div>
+
+  <div class="pane pane-results">
+    <section class="results" id="results" aria-labelledby="results-h">
+      <h2 id="results-h" tabindex="-1">Results</h2>
+      <p class="result-status" id="resultStatus">Results appear here after you calculate.</p>
+      <div id="resultBody" hidden>
+        <p class="result-context" id="resultContext"></p>
+        <dl class="headline" id="headlineFigures"></dl>
+        <dl class="figures" id="mainFigures"></dl>
+        <details class="disclosure more-figures">
+          <summary class="disclosure-summary">More figures</summary>
+          <div class="disclosure-body"><dl class="figures" id="moreFigures"></dl></div>
+        </details>
+      </div>
+      <div class="result-actions">
+        <div class="result-actions-buttons">
+          <button type="button" id="printSchedule" class="btn btn--secondary btn--unavailable" aria-disabled="true" aria-describedby="result-actions-hint">Print or save as PDF</button>
+          <button type="button" id="downloadCsv" class="btn btn--secondary btn--unavailable" aria-disabled="true" aria-describedby="result-actions-hint">Download CSV</button>
+        </div>
+        <p id="result-actions-hint" class="field-hint">Calculate first. Print and download need a current result.</p>
+      </div>
+    </section>
+  </div>
+  </div>
+
+  <section class="terms" id="contractTerms" aria-labelledby="contractTerms-heading" hidden>
+    <h3 id="contractTerms-heading">Contract terms<span data-switch="contractDateField"> — as of <span id="contractTermsDate"></span></span></h3>
+    <dl id="contractTermsList"></dl>
+    <p id="contractTermsNote" hidden></p>
+  </section>
+
+  <section class="schedule-section" id="scheduleSection" hidden>
+    <div class="schedule-head">
+      <h2 id="schedule-h">Amortization schedule</h2>
+      <p class="schedule-count" id="scheduleCount"></p>
+      <fieldset class="choice-group choice-group--plain column-toggle">
+        <legend class="choice-legend">Columns</legend>
+        <div class="choice-options">
+          <label for="scheduleColumns-all" class="choice choice--plain">
+            <input type="radio" id="scheduleColumns-all" name="scheduleColumns" value="all" />
+            <span class="choice-label">All</span>
+          </label>
+          <label for="scheduleColumns-compact" class="choice choice--plain">
+            <input type="radio" id="scheduleColumns-compact" name="scheduleColumns" value="compact" />
+            <span class="choice-label">Compact</span>
+          </label>
+        </div>
+      </fieldset>
+    </div>
+    <div class="schedule-scroll" role="region" aria-labelledby="schedule-h" tabindex="0">
+      <table class="schedule" id="scheduleTable"></table>
+    </div>
+  </section>
+
+  <script type="module" src="/ui/ca.js"></script>
+</body>
+</html>

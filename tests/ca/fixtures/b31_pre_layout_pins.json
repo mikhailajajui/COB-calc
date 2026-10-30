@@ -1,0 +1,178 @@
+{
+ "provenance": {
+  "source": "tests/ca/fixtures/a10_ui_capture_v1.json (sha256 171f8a33bf02bc0dd21c200945dfb16586bd64121ba631e2f1146b8b62a5f6d5, post-B24 (Contract term derived; Contract date and Semi-annual date hidden), captured 2026-09-30T23:08:50.938Z; the shipped page, financedOption off)",
+  "purpose": "B31-R9c pre-layout pins (COB-architecture.md §5 B31, revision 49): the switch-off figure lists and HTML before DEC-B31-LAYOUT. B31-T4 replays the new printFigures {left,right} / mainFigures / moreFigures through the legacy order (tests/ca/support/legacyFigureOrder.ts) and must hash to these. Written by QA in the B31 red step, 2026-10-05, before any product change. Never regenerated.",
+  "hash": "sha256 of the UTF-8 string (figures: of JSON.stringify(list); the others: of the captured outerHTML string)"
+ },
+ "scenarios": [
+  {
+   "id": "REF-01",
+   "raw": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": "227,829.65",
+    "contractRatePercent": "3.74",
+    "paymentAmount": "465.46",
+    "paymentFrequency": "weekly",
+    "firstPaymentDate": "2026-03-23",
+    "endDate": "2029-03-17",
+    "disbursalDate": "2026-03-17",
+    "renewalDate": "2026-01-01",
+    "accruedInterest": "",
+    "fees": []
+   },
+   "modes": {
+    "all": {
+     "figures": "03345813a60ab6c4e4346378acde84e6e8bf6f17fc2be52ee19bd9fefef409e2",
+     "figuresCount": 9,
+     "printFigures": "1bb0ae7fcc3577b98e411d1d6feb2cc18838e27b22f3f9bbba72791da16438f3",
+     "mainFigures": "fc85a4971b65359671c3816a483303574c45efb8ae9c3f25aaf79219cf830221",
+     "moreFigures": "04c8a21f6404732b16957a7e7c1e18339a378a312af1f4737e04eafc7ce5f121",
+     "mainCount": 5,
+     "moreCount": 2
+    },
+    "compact": {
+     "figures": "03345813a60ab6c4e4346378acde84e6e8bf6f17fc2be52ee19bd9fefef409e2",
+     "figuresCount": 9,
+     "printFigures": "1bb0ae7fcc3577b98e411d1d6feb2cc18838e27b22f3f9bbba72791da16438f3",
+     "mainFigures": "fc85a4971b65359671c3816a483303574c45efb8ae9c3f25aaf79219cf830221",
+     "moreFigures": "04c8a21f6404732b16957a7e7c1e18339a378a312af1f4737e04eafc7ce5f121",
+     "mainCount": 5,
+     "moreCount": 2
+    }
+   }
+  },
+  {
+   "id": "S1_fees",
+   "raw": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": "227,829.65",
+    "contractRatePercent": "3.74",
+    "paymentAmount": "465.46",
+    "paymentFrequency": "weekly",
+    "firstPaymentDate": "2026-03-23",
+    "endDate": "2029-03-17",
+    "disbursalDate": "2026-03-17",
+    "renewalDate": "2026-01-01",
+    "accruedInterest": "",
+    "fees": [
+     {
+      "name": "Financed fees",
+      "amount": "2,000.00",
+      "financed": false
+     },
+     {
+      "name": "Non-financed fees",
+      "amount": "500",
+      "financed": false
+     }
+    ]
+   },
+   "modes": {
+    "all": {
+     "figures": "281cc48635bff0c4fadee7b435d93bd9e4ed325295a4670ffb6cd657ea58c742",
+     "figuresCount": 9,
+     "printFigures": "e94ba3ecd841774d8853b6c0e9f459a989d3deda8f61a2bfce66023957885139",
+     "mainFigures": "fc85a4971b65359671c3816a483303574c45efb8ae9c3f25aaf79219cf830221",
+     "moreFigures": "04c8a21f6404732b16957a7e7c1e18339a378a312af1f4737e04eafc7ce5f121",
+     "mainCount": 5,
+     "moreCount": 2
+    },
+    "compact": {
+     "figures": "281cc48635bff0c4fadee7b435d93bd9e4ed325295a4670ffb6cd657ea58c742",
+     "figuresCount": 9,
+     "printFigures": "e94ba3ecd841774d8853b6c0e9f459a989d3deda8f61a2bfce66023957885139",
+     "mainFigures": "fc85a4971b65359671c3816a483303574c45efb8ae9c3f25aaf79219cf830221",
+     "moreFigures": "04c8a21f6404732b16957a7e7c1e18339a378a312af1f4737e04eafc7ce5f121",
+     "mainCount": 5,
+     "moreCount": 2
+    }
+   }
+  },
+  {
+   "id": "RENEWAL",
+   "raw": {
+    "flow": "renewal",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "loanAmount": "150,000.00",
+    "contractRatePercent": "4.19",
+    "paymentAmount": "900.00",
+    "paymentFrequency": "monthly",
+    "firstPaymentDate": "2026-05-01",
+    "endDate": "2028-10-01",
+    "disbursalDate": "2026-03-17",
+    "renewalDate": "2026-04-01",
+    "accruedInterest": "125.50",
+    "fees": [
+     {
+      "name": "Renewal & admin <fee>",
+      "amount": "250",
+      "financed": false
+     }
+    ]
+   },
+   "modes": {
+    "all": {
+     "figures": "38e82ed3730e4147b373d2918e5cb9340cc3883970dba26b5ae7d719413f8fa4",
+     "figuresCount": 9,
+     "printFigures": "0c3af2e5c3cf2885bfbbc7ba71ea396fc1dfe28ebbf602c12a578203eddc81fd",
+     "mainFigures": "78ba693b2004615e588df500878d6d3e1b3f759d89915c8e24485e9e3e592f1e",
+     "moreFigures": "d8491861b10c99c4cbd1c00f640b677c2303f27d6324ac1cb571997abbf7789f",
+     "mainCount": 5,
+     "moreCount": 2
+    },
+    "compact": {
+     "figures": "38e82ed3730e4147b373d2918e5cb9340cc3883970dba26b5ae7d719413f8fa4",
+     "figuresCount": 9,
+     "printFigures": "0c3af2e5c3cf2885bfbbc7ba71ea396fc1dfe28ebbf602c12a578203eddc81fd",
+     "mainFigures": "78ba693b2004615e588df500878d6d3e1b3f759d89915c8e24485e9e3e592f1e",
+     "moreFigures": "d8491861b10c99c4cbd1c00f640b677c2303f27d6324ac1cb571997abbf7789f",
+     "mainCount": 5,
+     "moreCount": 2
+    }
+   }
+  },
+  {
+   "id": "VRPC_zero_accrued",
+   "raw": {
+    "flow": "variableRatePaymentChange",
+    "productType": "mortgage",
+    "rateType": "variable",
+    "loanAmount": "300,000.00",
+    "contractRatePercent": "5.2",
+    "paymentAmount": "850.00",
+    "paymentFrequency": "biweekly",
+    "firstPaymentDate": "2026-06-26",
+    "endDate": "2031-06-15",
+    "disbursalDate": "2026-03-17",
+    "renewalDate": "2026-06-15",
+    "accruedInterest": "0.00",
+    "fees": []
+   },
+   "modes": {
+    "all": {
+     "figures": "d153e56573a336586c24e5a1d3808a6263b50a70771828cfa0ddb784315b07db",
+     "figuresCount": 10,
+     "printFigures": "da664b703eb0857168f9ca556392359dc24933b6e3682f6670fd9e0da83ef7d4",
+     "mainFigures": "57186bb6f1e4b270e2f0687e9d1ecf153316e4c18e1027c3081134f7bde8ed68",
+     "moreFigures": "816cb193a352ad535ea2414944eb35b06937b9ba1f6731337dff3ecbdaa04f79",
+     "mainCount": 6,
+     "moreCount": 2
+    },
+    "compact": {
+     "figures": "d153e56573a336586c24e5a1d3808a6263b50a70771828cfa0ddb784315b07db",
+     "figuresCount": 10,
+     "printFigures": "da664b703eb0857168f9ca556392359dc24933b6e3682f6670fd9e0da83ef7d4",
+     "mainFigures": "57186bb6f1e4b270e2f0687e9d1ecf153316e4c18e1027c3081134f7bde8ed68",
+     "moreFigures": "816cb193a352ad535ea2414944eb35b06937b9ba1f6731337dff3ecbdaa04f79",
+     "mainCount": 6,
+     "moreCount": 2
+    }
+   }
+  }
+ ]
+}

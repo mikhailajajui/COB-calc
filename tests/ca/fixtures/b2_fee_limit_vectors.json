@@ -1,0 +1,515 @@
+{
+ "source": "macro ValidateInput lines 151-185 transliteration (this file); NOT a live macro run, NOT the engine",
+ "rule": "OQ-M: reject when (sum financed + sum non-financed) >= loanAmount; accept when strictly less",
+ "trust_check": [
+  "012 D-08 x2",
+  "b1 fee_limit x4"
+ ],
+ "generated_by": "cd COB-ts/tests/ca/fixtures && python3 generate_b2_fee_limit_vectors.py",
+ "base_request": {
+  "flow": "newMortgageOrLoan",
+  "productType": "personalLoan",
+  "rateType": "fixed",
+  "contractRatePercent": 6.0,
+  "paymentAmount": 500,
+  "paymentFrequency": "monthly",
+  "disbursalDate": "2026-01-01",
+  "firstPaymentDate": "2026-02-01",
+  "endDate": "2026-12-01",
+  "termYears": 1,
+  "termMonths": 0
+ },
+ "cases": [
+  {
+   "id": "C1_cash_over",
+   "loanAmount": 1000,
+   "fees": [
+    {
+     "name": "Cash0",
+     "amount": 1500,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 0.0,
+   "macro_non_fin_fee": 1500.0,
+   "macro_sum": 1500.0,
+   "list_order_sum": 1500.0,
+   "accept": false,
+   "macro_message": "Total Fees must be less than the Loan Amount",
+   "accepted_before_b2": true,
+   "red_before_b2": true,
+   "note": "cash only, above the loan"
+  },
+  {
+   "id": "C2_cash_equal",
+   "loanAmount": 1000,
+   "fees": [
+    {
+     "name": "Cash0",
+     "amount": 1000,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 0.0,
+   "macro_non_fin_fee": 1000.0,
+   "macro_sum": 1000.0,
+   "list_order_sum": 1000.0,
+   "accept": false,
+   "macro_message": "Total Fees must be less than the Loan Amount",
+   "accepted_before_b2": true,
+   "red_before_b2": true,
+   "note": "cash only, equal to the loan (>= rejects)"
+  },
+  {
+   "id": "C3_cash_just_below",
+   "loanAmount": 1000,
+   "fees": [
+    {
+     "name": "Cash0",
+     "amount": 999.99,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 0.0,
+   "macro_non_fin_fee": 999.99,
+   "macro_sum": 999.99,
+   "list_order_sum": 999.99,
+   "accept": true,
+   "macro_message": null,
+   "accepted_before_b2": true,
+   "red_before_b2": false,
+   "note": "cash only, 1 cent below"
+  },
+  {
+   "id": "C4_two_cash_cross",
+   "loanAmount": 1000,
+   "fees": [
+    {
+     "name": "Cash0",
+     "amount": 600,
+     "financed": false,
+     "includedInCob": true
+    },
+    {
+     "name": "Cash1",
+     "amount": 400.01,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 0.0,
+   "macro_non_fin_fee": 1000.01,
+   "macro_sum": 1000.01,
+   "list_order_sum": 1000.01,
+   "accept": false,
+   "macro_message": "Total Fees must be less than the Loan Amount",
+   "accepted_before_b2": true,
+   "red_before_b2": true,
+   "note": "two cash fees summing above the loan"
+  },
+  {
+   "id": "M1_mixed_over",
+   "loanAmount": 1000,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 600,
+     "financed": true,
+     "includedInCob": true
+    },
+    {
+     "name": "Cash1",
+     "amount": 400.01,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 600.0,
+   "macro_non_fin_fee": 400.01,
+   "macro_sum": 1000.01,
+   "list_order_sum": 1000.01,
+   "accept": false,
+   "macro_message": "Total Fees must be less than the Loan Amount",
+   "accepted_before_b2": true,
+   "red_before_b2": true,
+   "note": "financed + cash, 1 cent over"
+  },
+  {
+   "id": "M2_mixed_equal",
+   "loanAmount": 1000,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 600,
+     "financed": true,
+     "includedInCob": true
+    },
+    {
+     "name": "Cash1",
+     "amount": 400,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 600.0,
+   "macro_non_fin_fee": 400.0,
+   "macro_sum": 1000.0,
+   "list_order_sum": 1000.0,
+   "accept": false,
+   "macro_message": "Total Fees must be less than the Loan Amount",
+   "accepted_before_b2": true,
+   "red_before_b2": true,
+   "note": "financed + cash == loan"
+  },
+  {
+   "id": "M3_mixed_below",
+   "loanAmount": 1000,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 600,
+     "financed": true,
+     "includedInCob": true
+    },
+    {
+     "name": "Cash1",
+     "amount": 399.99,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 600.0,
+   "macro_non_fin_fee": 399.99,
+   "macro_sum": 999.99,
+   "list_order_sum": 999.99,
+   "accept": true,
+   "macro_message": null,
+   "accepted_before_b2": true,
+   "red_before_b2": false,
+   "note": "financed + cash, 1 cent under"
+  },
+  {
+   "id": "M4_big_cash_small_fin",
+   "loanAmount": 1000,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 999.99,
+     "financed": true,
+     "includedInCob": true
+    },
+    {
+     "name": "Cash1",
+     "amount": 5000,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 999.99,
+   "macro_non_fin_fee": 5000.0,
+   "macro_sum": 5999.99,
+   "list_order_sum": 5999.99,
+   "accept": false,
+   "macro_message": "Total Fees must be less than the Loan Amount",
+   "accepted_before_b2": true,
+   "red_before_b2": true,
+   "note": "validate.test.ts:186 input"
+  },
+  {
+   "id": "U1_subcent_equal",
+   "loanAmount": 1000,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 999.996,
+     "financed": true,
+     "includedInCob": true
+    },
+    {
+     "name": "Cash1",
+     "amount": 0.004,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 999.996,
+   "macro_non_fin_fee": 0.004,
+   "macro_sum": 1000.0,
+   "list_order_sum": 1000.0,
+   "accept": false,
+   "macro_message": "Total Fees must be less than the Loan Amount",
+   "accepted_before_b2": true,
+   "red_before_b2": true,
+   "note": "999.996 + 0.004 == 1000.0 exactly -> reject"
+  },
+  {
+   "id": "U2_subcent_below",
+   "loanAmount": 1000,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 999.995,
+     "financed": true,
+     "includedInCob": true
+    },
+    {
+     "name": "Cash1",
+     "amount": 0.004,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 999.995,
+   "macro_non_fin_fee": 0.004,
+   "macro_sum": 999.999,
+   "list_order_sum": 999.999,
+   "accept": true,
+   "macro_message": null,
+   "accepted_before_b2": true,
+   "red_before_b2": false,
+   "note": "unrounded 999.999 < 1000 -> accept (a round2 sum would give 1000.00 and reject)"
+  },
+  {
+   "id": "U3_cash_subcent_equal",
+   "loanAmount": 1000.004,
+   "fees": [
+    {
+     "name": "Cash0",
+     "amount": 1000.004,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 0.0,
+   "macro_non_fin_fee": 1000.004,
+   "macro_sum": 1000.004,
+   "list_order_sum": 1000.004,
+   "accept": false,
+   "macro_message": "Total Fees must be less than the Loan Amount",
+   "accepted_before_b2": true,
+   "red_before_b2": true,
+   "note": "cash only == sub-cent loan"
+  },
+  {
+   "id": "U4_cash_subcent_below",
+   "loanAmount": 1000.004,
+   "fees": [
+    {
+     "name": "Cash0",
+     "amount": 1000.003,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 0.0,
+   "macro_non_fin_fee": 1000.003,
+   "macro_sum": 1000.003,
+   "list_order_sum": 1000.003,
+   "accept": true,
+   "macro_message": null,
+   "accepted_before_b2": true,
+   "red_before_b2": false,
+   "note": "cash only 0.001 below a sub-cent loan"
+  },
+  {
+   "id": "U5_float_sum_over",
+   "loanAmount": 1000.3,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 1000.1,
+     "financed": true,
+     "includedInCob": true
+    },
+    {
+     "name": "Cash1",
+     "amount": 0.2,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 1000.1,
+   "macro_non_fin_fee": 0.2,
+   "macro_sum": 1000.3000000000001,
+   "list_order_sum": 1000.3000000000001,
+   "accept": false,
+   "macro_message": "Total Fees must be less than the Loan Amount",
+   "accepted_before_b2": true,
+   "red_before_b2": true,
+   "note": "1000.1 + 0.2 == 1000.3000000000001 > 1000.3 -> reject (float sum, as Excel)"
+  },
+  {
+   "id": "G1_grouping_reject",
+   "loanAmount": 1007.74,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 998.14,
+     "financed": true,
+     "includedInCob": true
+    },
+    {
+     "name": "Cash1",
+     "amount": 8.613,
+     "financed": false,
+     "includedInCob": true
+    },
+    {
+     "name": "Fin2",
+     "amount": 0.987,
+     "financed": true,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 999.127,
+   "macro_non_fin_fee": 8.613,
+   "macro_sum": 1007.74,
+   "list_order_sum": 1007.7399999999999,
+   "accept": false,
+   "macro_message": "Total Fees must be less than the Loan Amount",
+   "accepted_before_b2": true,
+   "red_before_b2": true,
+   "note": "(998.14+0.987)+8.613 == 1007.74 -> reject; list order gives 1007.7399999999999 (< loan)"
+  },
+  {
+   "id": "G2_grouping_accept",
+   "loanAmount": 1007.62,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 998.27,
+     "financed": true,
+     "includedInCob": true
+    },
+    {
+     "name": "Cash1",
+     "amount": 8.488,
+     "financed": false,
+     "includedInCob": true
+    },
+    {
+     "name": "Fin2",
+     "amount": 0.862,
+     "financed": true,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 999.132,
+   "macro_non_fin_fee": 8.488,
+   "macro_sum": 1007.6199999999999,
+   "list_order_sum": 1007.62,
+   "accept": true,
+   "macro_message": null,
+   "accepted_before_b2": true,
+   "red_before_b2": false,
+   "note": "(998.27+0.862)+8.488 == 1007.6199999999999 -> accept; list order gives 1007.62 (== loan)"
+  },
+  {
+   "id": "V1_none",
+   "loanAmount": 250000,
+   "fees": [],
+   "macro_fin_fee": 0.0,
+   "macro_non_fin_fee": 0.0,
+   "macro_sum": 0.0,
+   "list_order_sum": 0.0,
+   "accept": true,
+   "macro_message": null,
+   "accepted_before_b2": true,
+   "red_before_b2": false,
+   "note": "golden fee set none"
+  },
+  {
+   "id": "V2_fin2000",
+   "loanAmount": 250000,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 2000,
+     "financed": true,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 2000.0,
+   "macro_non_fin_fee": 0.0,
+   "macro_sum": 2000.0,
+   "list_order_sum": 2000.0,
+   "accept": true,
+   "macro_message": null,
+   "accepted_before_b2": true,
+   "red_before_b2": false,
+   "note": "golden fee set fin2000"
+  },
+  {
+   "id": "V3_fin2000_cash400",
+   "loanAmount": 250000,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 2000,
+     "financed": true,
+     "includedInCob": true
+    },
+    {
+     "name": "Cash1",
+     "amount": 400,
+     "financed": false,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 2000.0,
+   "macro_non_fin_fee": 400.0,
+   "macro_sum": 2400.0,
+   "list_order_sum": 2400.0,
+   "accept": true,
+   "macro_message": null,
+   "accepted_before_b2": true,
+   "red_before_b2": false,
+   "note": "golden fee set fin2000cash400"
+  },
+  {
+   "id": "V4_fin_just_below",
+   "loanAmount": 1000,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 999.99,
+     "financed": true,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 999.99,
+   "macro_non_fin_fee": 0.0,
+   "macro_sum": 999.99,
+   "list_order_sum": 999.99,
+   "accept": true,
+   "macro_message": null,
+   "accepted_before_b2": true,
+   "red_before_b2": false,
+   "note": "financed only, 1 cent under"
+  },
+  {
+   "id": "V5_financed_equal",
+   "loanAmount": 1000,
+   "fees": [
+    {
+     "name": "Fin0",
+     "amount": 1000,
+     "financed": true,
+     "includedInCob": true
+    }
+   ],
+   "macro_fin_fee": 1000.0,
+   "macro_non_fin_fee": 0.0,
+   "macro_sum": 1000.0,
+   "list_order_sum": 1000.0,
+   "accept": false,
+   "macro_message": "Total Fees must be less than the Loan Amount",
+   "accepted_before_b2": false,
+   "red_before_b2": false,
+   "note": "financed only == loan: rejected before and after"
+  }
+ ]
+}

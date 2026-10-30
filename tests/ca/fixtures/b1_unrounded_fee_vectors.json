@@ -1,0 +1,1077 @@
+{
+ "source": "generate_t5_engine_rules.calculate_all (VBA CalculateAll transliteration), non_fin_fee = 0 (OQ-S); NOT a live macro run, NOT the engine",
+ "trust_check": [
+  "S0_007",
+  "S3_leap_weekly",
+  "S6_underpay",
+  "S7_biweekly",
+  "D02_scenarioA_underpay",
+  "D03_monthly_rowcount_2028-02-29",
+  "REF-01 (real Excel)"
+ ],
+ "generated_by": "cd COB-ts/tests/ca/fixtures && python3 generate_b1_unrounded_fee_vectors.py",
+ "tolerance_rel": 1e-12,
+ "fee_limit": {
+  "rule": "BRD sec 6 / OQ-M / validate.ts (B2-R1): unrounded financed total + unrounded non-financed total must be < loanAmount; these cases have financed fees only",
+  "cases": [
+   {
+    "id": "L1_equal_subcent",
+    "loanAmount": 1000.004,
+    "financed": [
+     1000.004
+    ],
+    "sum": 1000.004,
+    "accept": false,
+    "note": "round2 -> 1000 < 1000.004 is accepted today; unrounded sum == loan -> reject"
+   },
+   {
+    "id": "L2_just_below_subcent",
+    "loanAmount": 1000.004,
+    "financed": [
+     1000.003
+    ],
+    "sum": 1000.003,
+    "accept": true,
+    "note": "unrounded 1000.003 < 1000.004"
+   },
+   {
+    "id": "L3_three_fees_to_loan",
+    "loanAmount": 1000,
+    "financed": [
+     999.998,
+     0.001,
+     0.001
+    ],
+    "sum": 1000.0,
+    "accept": false,
+    "note": "three sub-cent fees whose float sum is the loan boundary"
+   },
+   {
+    "id": "L4_three_fees_below",
+    "loanAmount": 1000,
+    "financed": [
+     999.997,
+     0.001,
+     0.001
+    ],
+    "sum": 999.9989999999999,
+    "accept": true,
+    "note": "round2 -> 1000 rejects today; unrounded 999.999 < 1000 -> accept"
+   }
+  ]
+ },
+ "vectors": [
+  {
+   "id": "B1-V1_financed_1234.565",
+   "what": "one financed fee 1234.565 (round2 -> 1234.57); larger than one payment, so the sub-cent fee balance is recovered over rows 1-3",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "personalLoan",
+    "rateType": "fixed",
+    "loanAmount": 10000,
+    "contractRatePercent": 6.0,
+    "paymentAmount": 500,
+    "paymentFrequency": "monthly",
+    "disbursalDate": "2026-01-01",
+    "firstPaymentDate": "2026-02-01",
+    "endDate": "2026-12-01",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": [
+      {
+       "name": "Fin0",
+       "amount": 1234.565,
+       "financed": true,
+       "includedInCob": true
+      }
+     ]
+    }
+   },
+   "fee_totals": {
+    "financed": 1234.565,
+    "cash": 0,
+    "all": 1234.565,
+    "rounded_today_financed": 1234.57,
+    "rounded_today_cash": 0.0
+   },
+   "totals": {
+    "n": 11,
+    "term_days": 334,
+    "total_payment": 5500,
+    "total_interest": 423.1053593591169,
+    "principal_payment": 3842.3296406408826,
+    "fees_recovered": 1234.565,
+    "disbursal_amount": 8765.435,
+    "ending_balance": 4923.105359359118,
+    "cob_amount": 1657.670359359117,
+    "avg_opening_balance_engine_p": 7714.494165652636,
+    "cob_rate_pct_engine_p": 23.482109813248524,
+    "cob_rate_pct_workbook_p": 24.1507927881059
+   },
+   "rows": [
+    {
+     "n": 1,
+     "date": "2026-02-01",
+     "open_loan": 10000,
+     "open_fees": 1234.565,
+     "new_int": 50.958904109589035,
+     "payment": 500,
+     "interest_paid": 50.958904109589035,
+     "fees_paid": 449.041095890411,
+     "principal_paid": 0,
+     "close_fees": 785.523904109589,
+     "close_loan": 9550.958904109588
+    },
+    {
+     "n": 2,
+     "date": "2026-03-01",
+     "open_loan": 9550.958904109588,
+     "open_fees": 785.523904109589,
+     "new_int": 43.960577969600294,
+     "payment": 500,
+     "interest_paid": 43.96057796960029,
+     "fees_paid": 456.0394220303997,
+     "principal_paid": 0,
+     "close_fees": 329.4844820791893,
+     "close_loan": 9094.919482079189
+    },
+    {
+     "n": 3,
+     "date": "2026-04-01",
+     "open_loan": 9094.919482079189,
+     "open_fees": 329.4844820791893,
+     "new_int": 46.34671297717066,
+     "payment": 500,
+     "interest_paid": 46.346712977170654,
+     "fees_paid": 329.4844820791893,
+     "principal_paid": 124.16880494364,
+     "close_fees": 0.0,
+     "close_loan": 8641.26619505636
+    },
+    {
+     "n": 4,
+     "date": "2026-05-01",
+     "open_loan": 8641.26619505636,
+     "open_fees": 0.0,
+     "new_int": 42.6144634276752,
+     "payment": 500,
+     "interest_paid": 42.61446342767519,
+     "fees_paid": 0.0,
+     "principal_paid": 457.3855365723248,
+     "close_fees": 0.0,
+     "close_loan": 8183.880658484035
+    },
+    {
+     "n": 5,
+     "date": "2026-06-01",
+     "open_loan": 8183.880658484035,
+     "open_fees": 0.0,
+     "new_int": 41.70415897200083,
+     "payment": 500,
+     "interest_paid": 41.70415897200084,
+     "fees_paid": 0.0,
+     "principal_paid": 458.29584102799913,
+     "close_fees": 0.0,
+     "close_loan": 7725.584817456036
+    },
+    {
+     "n": 6,
+     "date": "2026-07-01",
+     "open_loan": 7725.584817456036,
+     "open_fees": 0.0,
+     "new_int": 38.098774442248946,
+     "payment": 500,
+     "interest_paid": 38.098774442248924,
+     "fees_paid": 0.0,
+     "principal_paid": 461.9012255577511,
+     "close_fees": 0.0,
+     "close_loan": 7263.683591898285
+    },
+    {
+     "n": 7,
+     "date": "2026-08-01",
+     "open_loan": 7263.683591898285,
+     "open_fees": 0.0,
+     "new_int": 37.014935564194,
+     "payment": 500,
+     "interest_paid": 37.01493556419399,
+     "fees_paid": 0.0,
+     "principal_paid": 462.985064435806,
+     "close_fees": 0.0,
+     "close_loan": 6800.698527462479
+    },
+    {
+     "n": 8,
+     "date": "2026-09-01",
+     "open_loan": 6800.698527462479,
+     "open_fees": 0.0,
+     "new_int": 34.655614413918386,
+     "payment": 500,
+     "interest_paid": 34.655614413918386,
+     "fees_paid": 0.0,
+     "principal_paid": 465.3443855860816,
+     "close_fees": 0.0,
+     "close_loan": 6335.354141876398
+    },
+    {
+     "n": 9,
+     "date": "2026-10-01",
+     "open_loan": 6335.354141876398,
+     "open_fees": 0.0,
+     "new_int": 31.242842343500044,
+     "payment": 500,
+     "interest_paid": 31.242842343500058,
+     "fees_paid": 0.0,
+     "principal_paid": 468.75715765649994,
+     "close_fees": 0.0,
+     "close_loan": 5866.596984219898
+    },
+    {
+     "n": 10,
+     "date": "2026-11-01",
+     "open_loan": 5866.596984219898,
+     "open_fees": 0.0,
+     "new_int": 29.8955353168466,
+     "payment": 500,
+     "interest_paid": 29.895535316846576,
+     "fees_paid": 0.0,
+     "principal_paid": 470.1044646831534,
+     "close_fees": 0.0,
+     "close_loan": 5396.492519536745
+    },
+    {
+     "n": 11,
+     "date": "2026-12-01",
+     "open_loan": 5396.492519536745,
+     "open_fees": 0.0,
+     "new_int": 26.612839822372987,
+     "payment": 500,
+     "interest_paid": 26.612839822372962,
+     "fees_paid": 0.0,
+     "principal_paid": 473.38716017762704,
+     "close_fees": 0.0,
+     "close_loan": 4923.105359359118
+    }
+   ]
+  },
+  {
+   "id": "B1-V2_cash_0.005",
+   "what": "one cash fee 0.005 (round2 -> 0.01): C and APR only (OQ-S)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "personalLoan",
+    "rateType": "fixed",
+    "loanAmount": 10000,
+    "contractRatePercent": 6.0,
+    "paymentAmount": 500,
+    "paymentFrequency": "monthly",
+    "disbursalDate": "2026-01-01",
+    "firstPaymentDate": "2026-02-01",
+    "endDate": "2026-12-01",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": [
+      {
+       "name": "Cash0",
+       "amount": 0.005,
+       "financed": false,
+       "includedInCob": true
+      }
+     ]
+    }
+   },
+   "fee_totals": {
+    "financed": 0,
+    "cash": 0.005,
+    "all": 0.005,
+    "rounded_today_financed": 0.0,
+    "rounded_today_cash": 0.01
+   },
+   "totals": {
+    "n": 11,
+    "term_days": 334,
+    "total_payment": 5500,
+    "total_interest": 423.10535935911696,
+    "principal_payment": 5076.894640640883,
+    "fees_recovered": 0,
+    "disbursal_amount": 10000,
+    "ending_balance": 4923.105359359118,
+    "cob_amount": 423.11035935911696,
+    "avg_opening_balance_engine_p": 7714.494165652636,
+    "cob_rate_pct_engine_p": 5.993666874417101,
+    "cob_rate_pct_workbook_p": 5.993666874417101
+   },
+   "rows": [
+    {
+     "n": 1,
+     "date": "2026-02-01",
+     "open_loan": 10000,
+     "open_fees": 0,
+     "new_int": 50.958904109589035,
+     "payment": 500,
+     "interest_paid": 50.958904109589035,
+     "fees_paid": 0,
+     "principal_paid": 449.041095890411,
+     "close_fees": 0,
+     "close_loan": 9550.95890410959
+    },
+    {
+     "n": 2,
+     "date": "2026-03-01",
+     "open_loan": 9550.95890410959,
+     "open_fees": 0,
+     "new_int": 43.9605779696003,
+     "payment": 500,
+     "interest_paid": 43.9605779696003,
+     "fees_paid": 0,
+     "principal_paid": 456.0394220303997,
+     "close_fees": 0,
+     "close_loan": 9094.919482079189
+    },
+    {
+     "n": 3,
+     "date": "2026-04-01",
+     "open_loan": 9094.919482079189,
+     "open_fees": 0,
+     "new_int": 46.34671297717066,
+     "payment": 500,
+     "interest_paid": 46.34671297717067,
+     "fees_paid": 0,
+     "principal_paid": 453.6532870228293,
+     "close_fees": 0,
+     "close_loan": 8641.26619505636
+    },
+    {
+     "n": 4,
+     "date": "2026-05-01",
+     "open_loan": 8641.26619505636,
+     "open_fees": 0,
+     "new_int": 42.6144634276752,
+     "payment": 500,
+     "interest_paid": 42.61446342767519,
+     "fees_paid": 0,
+     "principal_paid": 457.3855365723248,
+     "close_fees": 0,
+     "close_loan": 8183.880658484035
+    },
+    {
+     "n": 5,
+     "date": "2026-06-01",
+     "open_loan": 8183.880658484035,
+     "open_fees": 0,
+     "new_int": 41.70415897200083,
+     "payment": 500,
+     "interest_paid": 41.70415897200084,
+     "fees_paid": 0,
+     "principal_paid": 458.29584102799913,
+     "close_fees": 0,
+     "close_loan": 7725.584817456036
+    },
+    {
+     "n": 6,
+     "date": "2026-07-01",
+     "open_loan": 7725.584817456036,
+     "open_fees": 0,
+     "new_int": 38.098774442248946,
+     "payment": 500,
+     "interest_paid": 38.09877444224895,
+     "fees_paid": 0,
+     "principal_paid": 461.90122555775105,
+     "close_fees": 0,
+     "close_loan": 7263.683591898285
+    },
+    {
+     "n": 7,
+     "date": "2026-08-01",
+     "open_loan": 7263.683591898285,
+     "open_fees": 0,
+     "new_int": 37.014935564194,
+     "payment": 500,
+     "interest_paid": 37.01493556419399,
+     "fees_paid": 0,
+     "principal_paid": 462.985064435806,
+     "close_fees": 0,
+     "close_loan": 6800.69852746248
+    },
+    {
+     "n": 8,
+     "date": "2026-09-01",
+     "open_loan": 6800.69852746248,
+     "open_fees": 0,
+     "new_int": 34.65561441391839,
+     "payment": 500,
+     "interest_paid": 34.655614413918386,
+     "fees_paid": 0,
+     "principal_paid": 465.3443855860816,
+     "close_fees": 0,
+     "close_loan": 6335.354141876398
+    },
+    {
+     "n": 9,
+     "date": "2026-10-01",
+     "open_loan": 6335.354141876398,
+     "open_fees": 0,
+     "new_int": 31.242842343500044,
+     "payment": 500,
+     "interest_paid": 31.242842343500058,
+     "fees_paid": 0,
+     "principal_paid": 468.75715765649994,
+     "close_fees": 0,
+     "close_loan": 5866.596984219898
+    },
+    {
+     "n": 10,
+     "date": "2026-11-01",
+     "open_loan": 5866.596984219898,
+     "open_fees": 0,
+     "new_int": 29.8955353168466,
+     "payment": 500,
+     "interest_paid": 29.895535316846576,
+     "fees_paid": 0,
+     "principal_paid": 470.1044646831534,
+     "close_fees": 0,
+     "close_loan": 5396.492519536745
+    },
+    {
+     "n": 11,
+     "date": "2026-12-01",
+     "open_loan": 5396.492519536745,
+     "open_fees": 0,
+     "new_int": 26.612839822372987,
+     "payment": 500,
+     "interest_paid": 26.612839822372962,
+     "fees_paid": 0,
+     "principal_paid": 473.38716017762704,
+     "close_fees": 0,
+     "close_loan": 4923.105359359118
+    }
+   ]
+  },
+  {
+   "id": "B1-V3_cash_0.004",
+   "what": "one cash fee 0.004: round2 -> 0 takes the fees==0 APR short-circuit; unrounded 0.004 != 0 takes the general branch (macro: If finFee + nonFinFee = 0)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "personalLoan",
+    "rateType": "fixed",
+    "loanAmount": 10000,
+    "contractRatePercent": 6.0,
+    "paymentAmount": 500,
+    "paymentFrequency": "monthly",
+    "disbursalDate": "2026-01-01",
+    "firstPaymentDate": "2026-02-01",
+    "endDate": "2026-12-01",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": [
+      {
+       "name": "Cash0",
+       "amount": 0.004,
+       "financed": false,
+       "includedInCob": true
+      }
+     ]
+    }
+   },
+   "fee_totals": {
+    "financed": 0,
+    "cash": 0.004,
+    "all": 0.004,
+    "rounded_today_financed": 0.0,
+    "rounded_today_cash": 0.0
+   },
+   "totals": {
+    "n": 11,
+    "term_days": 334,
+    "total_payment": 5500,
+    "total_interest": 423.10535935911696,
+    "principal_payment": 5076.894640640883,
+    "fees_recovered": 0,
+    "disbursal_amount": 10000,
+    "ending_balance": 4923.105359359118,
+    "cob_amount": 423.109359359117,
+    "avg_opening_balance_engine_p": 7714.494165652636,
+    "cob_rate_pct_engine_p": 5.99365270868766,
+    "cob_rate_pct_workbook_p": 5.99365270868766
+   },
+   "rows": [
+    {
+     "n": 1,
+     "date": "2026-02-01",
+     "open_loan": 10000,
+     "open_fees": 0,
+     "new_int": 50.958904109589035,
+     "payment": 500,
+     "interest_paid": 50.958904109589035,
+     "fees_paid": 0,
+     "principal_paid": 449.041095890411,
+     "close_fees": 0,
+     "close_loan": 9550.95890410959
+    },
+    {
+     "n": 2,
+     "date": "2026-03-01",
+     "open_loan": 9550.95890410959,
+     "open_fees": 0,
+     "new_int": 43.9605779696003,
+     "payment": 500,
+     "interest_paid": 43.9605779696003,
+     "fees_paid": 0,
+     "principal_paid": 456.0394220303997,
+     "close_fees": 0,
+     "close_loan": 9094.919482079189
+    },
+    {
+     "n": 3,
+     "date": "2026-04-01",
+     "open_loan": 9094.919482079189,
+     "open_fees": 0,
+     "new_int": 46.34671297717066,
+     "payment": 500,
+     "interest_paid": 46.34671297717067,
+     "fees_paid": 0,
+     "principal_paid": 453.6532870228293,
+     "close_fees": 0,
+     "close_loan": 8641.26619505636
+    },
+    {
+     "n": 4,
+     "date": "2026-05-01",
+     "open_loan": 8641.26619505636,
+     "open_fees": 0,
+     "new_int": 42.6144634276752,
+     "payment": 500,
+     "interest_paid": 42.61446342767519,
+     "fees_paid": 0,
+     "principal_paid": 457.3855365723248,
+     "close_fees": 0,
+     "close_loan": 8183.880658484035
+    },
+    {
+     "n": 5,
+     "date": "2026-06-01",
+     "open_loan": 8183.880658484035,
+     "open_fees": 0,
+     "new_int": 41.70415897200083,
+     "payment": 500,
+     "interest_paid": 41.70415897200084,
+     "fees_paid": 0,
+     "principal_paid": 458.29584102799913,
+     "close_fees": 0,
+     "close_loan": 7725.584817456036
+    },
+    {
+     "n": 6,
+     "date": "2026-07-01",
+     "open_loan": 7725.584817456036,
+     "open_fees": 0,
+     "new_int": 38.098774442248946,
+     "payment": 500,
+     "interest_paid": 38.09877444224895,
+     "fees_paid": 0,
+     "principal_paid": 461.90122555775105,
+     "close_fees": 0,
+     "close_loan": 7263.683591898285
+    },
+    {
+     "n": 7,
+     "date": "2026-08-01",
+     "open_loan": 7263.683591898285,
+     "open_fees": 0,
+     "new_int": 37.014935564194,
+     "payment": 500,
+     "interest_paid": 37.01493556419399,
+     "fees_paid": 0,
+     "principal_paid": 462.985064435806,
+     "close_fees": 0,
+     "close_loan": 6800.69852746248
+    },
+    {
+     "n": 8,
+     "date": "2026-09-01",
+     "open_loan": 6800.69852746248,
+     "open_fees": 0,
+     "new_int": 34.65561441391839,
+     "payment": 500,
+     "interest_paid": 34.655614413918386,
+     "fees_paid": 0,
+     "principal_paid": 465.3443855860816,
+     "close_fees": 0,
+     "close_loan": 6335.354141876398
+    },
+    {
+     "n": 9,
+     "date": "2026-10-01",
+     "open_loan": 6335.354141876398,
+     "open_fees": 0,
+     "new_int": 31.242842343500044,
+     "payment": 500,
+     "interest_paid": 31.242842343500058,
+     "fees_paid": 0,
+     "principal_paid": 468.75715765649994,
+     "close_fees": 0,
+     "close_loan": 5866.596984219898
+    },
+    {
+     "n": 10,
+     "date": "2026-11-01",
+     "open_loan": 5866.596984219898,
+     "open_fees": 0,
+     "new_int": 29.8955353168466,
+     "payment": 500,
+     "interest_paid": 29.895535316846576,
+     "fees_paid": 0,
+     "principal_paid": 470.1044646831534,
+     "close_fees": 0,
+     "close_loan": 5396.492519536745
+    },
+    {
+     "n": 11,
+     "date": "2026-12-01",
+     "open_loan": 5396.492519536745,
+     "open_fees": 0,
+     "new_int": 26.612839822372987,
+     "payment": 500,
+     "interest_paid": 26.612839822372962,
+     "fees_paid": 0,
+     "principal_paid": 473.38716017762704,
+     "close_fees": 0,
+     "close_loan": 4923.105359359118
+    }
+   ]
+  },
+  {
+   "id": "B1-V4_financed_3x0.001",
+   "what": "three financed fees 0.001 each: sum 0.003 (round2 -> 0). Unrounded, the 0.003 is recovered on row 1, disbursal is loan - 0.003, APR takes the general branch",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "personalLoan",
+    "rateType": "fixed",
+    "loanAmount": 10000,
+    "contractRatePercent": 6.0,
+    "paymentAmount": 500,
+    "paymentFrequency": "monthly",
+    "disbursalDate": "2026-01-01",
+    "firstPaymentDate": "2026-02-01",
+    "endDate": "2026-12-01",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": [
+      {
+       "name": "Fin0",
+       "amount": 0.001,
+       "financed": true,
+       "includedInCob": true
+      },
+      {
+       "name": "Fin1",
+       "amount": 0.001,
+       "financed": true,
+       "includedInCob": true
+      },
+      {
+       "name": "Fin2",
+       "amount": 0.001,
+       "financed": true,
+       "includedInCob": true
+      }
+     ]
+    }
+   },
+   "fee_totals": {
+    "financed": 0.003,
+    "cash": 0,
+    "all": 0.003,
+    "rounded_today_financed": 0.0,
+    "rounded_today_cash": 0.0
+   },
+   "totals": {
+    "n": 11,
+    "term_days": 334,
+    "total_payment": 5500,
+    "total_interest": 423.1053593591169,
+    "principal_payment": 5076.891640640883,
+    "fees_recovered": 0.003,
+    "disbursal_amount": 9999.997,
+    "ending_balance": 4923.105359359118,
+    "cob_amount": 423.1083593591169,
+    "avg_opening_balance_engine_p": 7714.494165652636,
+    "cob_rate_pct_engine_p": 5.993638542958218,
+    "cob_rate_pct_workbook_p": 5.993638754848812
+   },
+   "rows": [
+    {
+     "n": 1,
+     "date": "2026-02-01",
+     "open_loan": 10000,
+     "open_fees": 0.003,
+     "new_int": 50.958904109589035,
+     "payment": 500,
+     "interest_paid": 50.958904109589035,
+     "fees_paid": 0.003,
+     "principal_paid": 449.038095890411,
+     "close_fees": 0.0,
+     "close_loan": 9550.958904109588
+    },
+    {
+     "n": 2,
+     "date": "2026-03-01",
+     "open_loan": 9550.958904109588,
+     "open_fees": 0.0,
+     "new_int": 43.960577969600294,
+     "payment": 500,
+     "interest_paid": 43.96057796960029,
+     "fees_paid": 0.0,
+     "principal_paid": 456.0394220303997,
+     "close_fees": 0.0,
+     "close_loan": 9094.919482079189
+    },
+    {
+     "n": 3,
+     "date": "2026-04-01",
+     "open_loan": 9094.919482079189,
+     "open_fees": 0.0,
+     "new_int": 46.34671297717066,
+     "payment": 500,
+     "interest_paid": 46.346712977170654,
+     "fees_paid": 0.0,
+     "principal_paid": 453.6532870228293,
+     "close_fees": 0.0,
+     "close_loan": 8641.26619505636
+    },
+    {
+     "n": 4,
+     "date": "2026-05-01",
+     "open_loan": 8641.26619505636,
+     "open_fees": 0.0,
+     "new_int": 42.6144634276752,
+     "payment": 500,
+     "interest_paid": 42.61446342767519,
+     "fees_paid": 0.0,
+     "principal_paid": 457.3855365723248,
+     "close_fees": 0.0,
+     "close_loan": 8183.880658484035
+    },
+    {
+     "n": 5,
+     "date": "2026-06-01",
+     "open_loan": 8183.880658484035,
+     "open_fees": 0.0,
+     "new_int": 41.70415897200083,
+     "payment": 500,
+     "interest_paid": 41.70415897200084,
+     "fees_paid": 0.0,
+     "principal_paid": 458.29584102799913,
+     "close_fees": 0.0,
+     "close_loan": 7725.584817456036
+    },
+    {
+     "n": 6,
+     "date": "2026-07-01",
+     "open_loan": 7725.584817456036,
+     "open_fees": 0.0,
+     "new_int": 38.098774442248946,
+     "payment": 500,
+     "interest_paid": 38.098774442248924,
+     "fees_paid": 0.0,
+     "principal_paid": 461.9012255577511,
+     "close_fees": 0.0,
+     "close_loan": 7263.683591898285
+    },
+    {
+     "n": 7,
+     "date": "2026-08-01",
+     "open_loan": 7263.683591898285,
+     "open_fees": 0.0,
+     "new_int": 37.014935564194,
+     "payment": 500,
+     "interest_paid": 37.01493556419399,
+     "fees_paid": 0.0,
+     "principal_paid": 462.985064435806,
+     "close_fees": 0.0,
+     "close_loan": 6800.698527462479
+    },
+    {
+     "n": 8,
+     "date": "2026-09-01",
+     "open_loan": 6800.698527462479,
+     "open_fees": 0.0,
+     "new_int": 34.655614413918386,
+     "payment": 500,
+     "interest_paid": 34.655614413918386,
+     "fees_paid": 0.0,
+     "principal_paid": 465.3443855860816,
+     "close_fees": 0.0,
+     "close_loan": 6335.354141876398
+    },
+    {
+     "n": 9,
+     "date": "2026-10-01",
+     "open_loan": 6335.354141876398,
+     "open_fees": 0.0,
+     "new_int": 31.242842343500044,
+     "payment": 500,
+     "interest_paid": 31.242842343500058,
+     "fees_paid": 0.0,
+     "principal_paid": 468.75715765649994,
+     "close_fees": 0.0,
+     "close_loan": 5866.596984219898
+    },
+    {
+     "n": 10,
+     "date": "2026-11-01",
+     "open_loan": 5866.596984219898,
+     "open_fees": 0.0,
+     "new_int": 29.8955353168466,
+     "payment": 500,
+     "interest_paid": 29.895535316846576,
+     "fees_paid": 0.0,
+     "principal_paid": 470.1044646831534,
+     "close_fees": 0.0,
+     "close_loan": 5396.492519536745
+    },
+    {
+     "n": 11,
+     "date": "2026-12-01",
+     "open_loan": 5396.492519536745,
+     "open_fees": 0.0,
+     "new_int": 26.612839822372987,
+     "payment": 500,
+     "interest_paid": 26.612839822372962,
+     "fees_paid": 0.0,
+     "principal_paid": 473.38716017762704,
+     "close_fees": 0.0,
+     "close_loan": 4923.105359359118
+    }
+   ]
+  },
+  {
+   "id": "B1-V5_mixed_three_plus_three",
+   "what": "financed 100.004 + 200.003 + 300.002 = 600.009 (round2 -> 600.01); cash 0.004 + 0.003 + 0.002 = 0.009000000000000001 (round2 -> 0.01)",
+   "request": {
+    "flow": "newMortgageOrLoan",
+    "productType": "personalLoan",
+    "rateType": "fixed",
+    "loanAmount": 10000,
+    "contractRatePercent": 6.0,
+    "paymentAmount": 500,
+    "paymentFrequency": "monthly",
+    "disbursalDate": "2026-01-01",
+    "firstPaymentDate": "2026-02-01",
+    "endDate": "2026-12-01",
+    "termYears": 1,
+    "termMonths": 0,
+    "fees": {
+     "fees": [
+      {
+       "name": "Fin0",
+       "amount": 100.004,
+       "financed": true,
+       "includedInCob": true
+      },
+      {
+       "name": "Fin1",
+       "amount": 200.003,
+       "financed": true,
+       "includedInCob": true
+      },
+      {
+       "name": "Fin2",
+       "amount": 300.002,
+       "financed": true,
+       "includedInCob": true
+      },
+      {
+       "name": "Cash0",
+       "amount": 0.004,
+       "financed": false,
+       "includedInCob": true
+      },
+      {
+       "name": "Cash1",
+       "amount": 0.003,
+       "financed": false,
+       "includedInCob": true
+      },
+      {
+       "name": "Cash2",
+       "amount": 0.002,
+       "financed": false,
+       "includedInCob": true
+      }
+     ]
+    }
+   },
+   "fee_totals": {
+    "financed": 600.009,
+    "cash": 0.009000000000000001,
+    "all": 600.018,
+    "rounded_today_financed": 600.01,
+    "rounded_today_cash": 0.01
+   },
+   "totals": {
+    "n": 11,
+    "term_days": 334,
+    "total_payment": 5500,
+    "total_interest": 423.10535935911696,
+    "principal_payment": 4476.885640640883,
+    "fees_recovered": 600.009,
+    "disbursal_amount": 9399.991,
+    "ending_balance": 4923.105359359118,
+    "cob_amount": 1023.123359359117,
+    "avg_opening_balance_engine_p": 7714.494165652636,
+    "cob_rate_pct_engine_p": 14.493288693572962,
+    "cob_rate_pct_workbook_p": 14.622694525203622
+   },
+   "rows": [
+    {
+     "n": 1,
+     "date": "2026-02-01",
+     "open_loan": 10000,
+     "open_fees": 600.009,
+     "new_int": 50.958904109589035,
+     "payment": 500,
+     "interest_paid": 50.958904109589035,
+     "fees_paid": 449.041095890411,
+     "principal_paid": 0,
+     "close_fees": 150.96790410958903,
+     "close_loan": 9550.95890410959
+    },
+    {
+     "n": 2,
+     "date": "2026-03-01",
+     "open_loan": 9550.95890410959,
+     "open_fees": 150.96790410958903,
+     "new_int": 43.9605779696003,
+     "payment": 500,
+     "interest_paid": 43.9605779696003,
+     "fees_paid": 150.96790410958903,
+     "principal_paid": 305.07151792081066,
+     "close_fees": 0.0,
+     "close_loan": 9094.919482079189
+    },
+    {
+     "n": 3,
+     "date": "2026-04-01",
+     "open_loan": 9094.919482079189,
+     "open_fees": 0.0,
+     "new_int": 46.34671297717066,
+     "payment": 500,
+     "interest_paid": 46.34671297717067,
+     "fees_paid": 0.0,
+     "principal_paid": 453.6532870228293,
+     "close_fees": 0.0,
+     "close_loan": 8641.26619505636
+    },
+    {
+     "n": 4,
+     "date": "2026-05-01",
+     "open_loan": 8641.26619505636,
+     "open_fees": 0.0,
+     "new_int": 42.6144634276752,
+     "payment": 500,
+     "interest_paid": 42.61446342767519,
+     "fees_paid": 0.0,
+     "principal_paid": 457.3855365723248,
+     "close_fees": 0.0,
+     "close_loan": 8183.880658484035
+    },
+    {
+     "n": 5,
+     "date": "2026-06-01",
+     "open_loan": 8183.880658484035,
+     "open_fees": 0.0,
+     "new_int": 41.70415897200083,
+     "payment": 500,
+     "interest_paid": 41.70415897200084,
+     "fees_paid": 0.0,
+     "principal_paid": 458.29584102799913,
+     "close_fees": 0.0,
+     "close_loan": 7725.584817456036
+    },
+    {
+     "n": 6,
+     "date": "2026-07-01",
+     "open_loan": 7725.584817456036,
+     "open_fees": 0.0,
+     "new_int": 38.098774442248946,
+     "payment": 500,
+     "interest_paid": 38.09877444224895,
+     "fees_paid": 0.0,
+     "principal_paid": 461.90122555775105,
+     "close_fees": 0.0,
+     "close_loan": 7263.683591898285
+    },
+    {
+     "n": 7,
+     "date": "2026-08-01",
+     "open_loan": 7263.683591898285,
+     "open_fees": 0.0,
+     "new_int": 37.014935564194,
+     "payment": 500,
+     "interest_paid": 37.01493556419399,
+     "fees_paid": 0.0,
+     "principal_paid": 462.985064435806,
+     "close_fees": 0.0,
+     "close_loan": 6800.69852746248
+    },
+    {
+     "n": 8,
+     "date": "2026-09-01",
+     "open_loan": 6800.69852746248,
+     "open_fees": 0.0,
+     "new_int": 34.65561441391839,
+     "payment": 500,
+     "interest_paid": 34.655614413918386,
+     "fees_paid": 0.0,
+     "principal_paid": 465.3443855860816,
+     "close_fees": 0.0,
+     "close_loan": 6335.354141876398
+    },
+    {
+     "n": 9,
+     "date": "2026-10-01",
+     "open_loan": 6335.354141876398,
+     "open_fees": 0.0,
+     "new_int": 31.242842343500044,
+     "payment": 500,
+     "interest_paid": 31.242842343500058,
+     "fees_paid": 0.0,
+     "principal_paid": 468.75715765649994,
+     "close_fees": 0.0,
+     "close_loan": 5866.596984219898
+    },
+    {
+     "n": 10,
+     "date": "2026-11-01",
+     "open_loan": 5866.596984219898,
+     "open_fees": 0.0,
+     "new_int": 29.8955353168466,
+     "payment": 500,
+     "interest_paid": 29.895535316846576,
+     "fees_paid": 0.0,
+     "principal_paid": 470.1044646831534,
+     "close_fees": 0.0,
+     "close_loan": 5396.492519536745
+    },
+    {
+     "n": 11,
+     "date": "2026-12-01",
+     "open_loan": 5396.492519536745,
+     "open_fees": 0.0,
+     "new_int": 26.612839822372987,
+     "payment": 500,
+     "interest_paid": 26.612839822372962,
+     "fees_paid": 0.0,
+     "principal_paid": 473.38716017762704,
+     "close_fees": 0.0,
+     "close_loan": 4923.105359359118
+    }
+   ]
+  }
+ ]
+}

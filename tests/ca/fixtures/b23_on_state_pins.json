@@ -1,0 +1,202 @@
+{
+ "provenance": {
+  "source": "tests/ca/fixtures/a10_ui_capture_v1.json (sha256 c7b98da5147e1a071b5da2218604e3ff8df0b590eed730b810313714cd8c8190, post-B22, financed-on page)",
+  "purpose": "B23-T6 on-state pins: the ca-view outputs with ctx.switches.financedOption = true must still hash to these (user declined the 1.4 MB byte copy, Q-B23-FIX 2026-09-30). Never regenerated.",
+  "hash": "sha256 of the UTF-8 string (figures: of JSON.stringify(list); csv: of the decoded CSV text)"
+ },
+ "scenarios": [
+  {
+   "id": "REF-01",
+   "raw": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "contractDate": "2026-03-10",
+    "loanAmount": "227,829.65",
+    "contractRatePercent": "3.74",
+    "paymentAmount": "465.46",
+    "paymentFrequency": "weekly",
+    "termYears": "3",
+    "termMonths": "0",
+    "firstPaymentDate": "2026-03-23",
+    "endDate": "2029-03-17",
+    "disbursalDate": "2026-03-17",
+    "renewalDate": "2026-01-01",
+    "accruedInterest": "",
+    "semiAnnualCompoundingDate": "2026-03-17",
+    "fees": []
+   },
+   "modes": {
+    "all": {
+     "printFees": "279701d8ae048f6e2655b150db161c245558890959f237854d6910ab895c3bde",
+     "printFigures": "d608dd0ddf042d384e2c7d9f1b055fdcf2aff22104852c6765755e2afb352a5b",
+     "moreFigures": "7106a2ca604baf9e0a0c18a96f677cc75fbc50149f57fa0a104701cc44e21dbe",
+     "printScheduleTable": "ab9c6b6d8493a7fe3e4d57999f55b0ff60618d9e8ba96c267ceb2320383c5eba",
+     "scheduleTable": "a6bacced1e94ab28b26c6e8f77bd8f491de245419e0c4b71e2467b78a796336b",
+     "figures": "e2bec22601ba98cbdac92c68a103cec99cd5493a12a860ffaa0314bdbca3a99c",
+     "csv": "c0b5fc94bd6cd8d5be122aeab51cf60e34bac257e97e45a9e6f44f3c340862a4",
+     "csvFileName": "cost-of-borrowing-schedule-2026-03-23.csv"
+    },
+    "compact": {
+     "printFees": "279701d8ae048f6e2655b150db161c245558890959f237854d6910ab895c3bde",
+     "printFigures": "d608dd0ddf042d384e2c7d9f1b055fdcf2aff22104852c6765755e2afb352a5b",
+     "moreFigures": "7106a2ca604baf9e0a0c18a96f677cc75fbc50149f57fa0a104701cc44e21dbe",
+     "printScheduleTable": "af1aaa69662a47df568bff36b9f711464259896361add335cb489705bc3557dd",
+     "scheduleTable": "9b099f8221ae59194ccfd43c4597d63c1cbfe3414c8b1a22dfbe5337cd85e13e",
+     "figures": "e2bec22601ba98cbdac92c68a103cec99cd5493a12a860ffaa0314bdbca3a99c",
+     "csv": "3439c488ce3c54222bf72f8342b4a5a50d87da2b80161de5d08985c881050a04",
+     "csvFileName": "cost-of-borrowing-schedule-2026-03-23.csv"
+    }
+   }
+  },
+  {
+   "id": "S1_fees",
+   "raw": {
+    "flow": "newMortgageOrLoan",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "contractDate": "2026-03-10",
+    "loanAmount": "227,829.65",
+    "contractRatePercent": "3.74",
+    "paymentAmount": "465.46",
+    "paymentFrequency": "weekly",
+    "termYears": "1",
+    "termMonths": "0",
+    "firstPaymentDate": "2026-03-23",
+    "endDate": "2029-03-17",
+    "disbursalDate": "2026-03-17",
+    "renewalDate": "2026-01-01",
+    "accruedInterest": "",
+    "semiAnnualCompoundingDate": "2026-03-17",
+    "fees": [
+     {
+      "name": "Financed fees",
+      "amount": "2,000.00",
+      "financed": true
+     },
+     {
+      "name": "Non-financed fees",
+      "amount": "500",
+      "financed": false
+     }
+    ]
+   },
+   "modes": {
+    "all": {
+     "printFees": "9f165bf933700bd52ed5ab1fe959b11bd7563543564824b9ffbc569b535d7be7",
+     "printFigures": "1116b215c23ec2174a3a2c8f97e7f4210e6276d04197dc49b153018bf9be718c",
+     "moreFigures": "81a2a8c7d565ce76c8b450988081abddf3f1e207c5a6a53b80cdb61abeae23fd",
+     "printScheduleTable": "4da595161166b79071029de80dba2f8ff8bd7adc1d5bdd7bbfcf51ca7ec6bafb",
+     "scheduleTable": "0f4391ced5c459726d23a17b0d84b25408715310198d56bd901fba936ed9047b",
+     "figures": "02ef1448a97d0fabb5c2ade1fb0dcbfcc467fef28eb29a4e0a3d45360fc3cfc7",
+     "csv": "396e0e510679f0b2cc4bc5a6d272c27d50ea2a24d682dac944ca18476242233c",
+     "csvFileName": "cost-of-borrowing-schedule-2026-03-23.csv"
+    },
+    "compact": {
+     "printFees": "9f165bf933700bd52ed5ab1fe959b11bd7563543564824b9ffbc569b535d7be7",
+     "printFigures": "1116b215c23ec2174a3a2c8f97e7f4210e6276d04197dc49b153018bf9be718c",
+     "moreFigures": "81a2a8c7d565ce76c8b450988081abddf3f1e207c5a6a53b80cdb61abeae23fd",
+     "printScheduleTable": "995742ad8c04a4941f464b5383376667205bc86c008e81e636ca66fca337d4ef",
+     "scheduleTable": "fcc839cfabde55f697d194d936fa725b3746147ee3756fdaf3a58f7858d43ddb",
+     "figures": "02ef1448a97d0fabb5c2ade1fb0dcbfcc467fef28eb29a4e0a3d45360fc3cfc7",
+     "csv": "e79aa89dc5262cb2d1a1395899dbfa9e2619e008313c64873a87949cf4ec35aa",
+     "csvFileName": "cost-of-borrowing-schedule-2026-03-23.csv"
+    }
+   }
+  },
+  {
+   "id": "RENEWAL",
+   "raw": {
+    "flow": "renewal",
+    "productType": "mortgage",
+    "rateType": "fixed",
+    "contractDate": "2026-03-10",
+    "loanAmount": "150,000.00",
+    "contractRatePercent": "4.19",
+    "paymentAmount": "900.00",
+    "paymentFrequency": "monthly",
+    "termYears": "2",
+    "termMonths": "6",
+    "firstPaymentDate": "2026-05-01",
+    "endDate": "2028-10-01",
+    "disbursalDate": "2026-03-17",
+    "renewalDate": "2026-04-01",
+    "accruedInterest": "125.50",
+    "semiAnnualCompoundingDate": "2026-04-01",
+    "fees": [
+     {
+      "name": "Renewal & admin <fee>",
+      "amount": "250",
+      "financed": false
+     }
+    ]
+   },
+   "modes": {
+    "all": {
+     "printFees": "0939677e28e1779909882677693ca22a2ba67fb39aaed7d6210c96edfd8323c5",
+     "printFigures": "921f68575a91488c92f7b54186a607943d74f3ae3780a8c6637491946d870e81",
+     "moreFigures": "3975c609f84fac159fbd1b5f732de274f3a1e6a5ca875d96ad0cd4fdabcff140",
+     "printScheduleTable": "8213d1d5c95ea87b96af0da75e6428796354186530ccdf7d8667f9e4ba0fa24b",
+     "scheduleTable": "959154d5e3bb6b71fd4388dcbf13de7c74e33cc927fd201ffdb30d74adabc3d3",
+     "figures": "692c3f66dcbca1adcaefb1e6fd3602b78fc372a0d0795d8eba9f812c2a2cf511",
+     "csv": "d07e9c0801fc7715a81f6e0bdd9a9b3185e2e821ea9f423106bbc17cdcfabbd3",
+     "csvFileName": "cost-of-borrowing-schedule-2026-05-01.csv"
+    },
+    "compact": {
+     "printFees": "0939677e28e1779909882677693ca22a2ba67fb39aaed7d6210c96edfd8323c5",
+     "printFigures": "921f68575a91488c92f7b54186a607943d74f3ae3780a8c6637491946d870e81",
+     "moreFigures": "3975c609f84fac159fbd1b5f732de274f3a1e6a5ca875d96ad0cd4fdabcff140",
+     "printScheduleTable": "be91283783a9c1209e2ce596e9f7cb8de4ed4dc162fcd1d0572b87eb0e0ee964",
+     "scheduleTable": "c87bae97d1d2ccb31ccd55dd0bbcfc88fc3e5e21d02dc1003791f94707c64c65",
+     "figures": "692c3f66dcbca1adcaefb1e6fd3602b78fc372a0d0795d8eba9f812c2a2cf511",
+     "csv": "038f0af72d62ade586b23f946e7ac84741d71feeede5100c485f5a43b4cf575d",
+     "csvFileName": "cost-of-borrowing-schedule-2026-05-01.csv"
+    }
+   }
+  },
+  {
+   "id": "VRPC_zero_accrued",
+   "raw": {
+    "flow": "variableRatePaymentChange",
+    "productType": "mortgage",
+    "rateType": "variable",
+    "contractDate": "2026-03-10",
+    "loanAmount": "300,000.00",
+    "contractRatePercent": "5.2",
+    "paymentAmount": "850.00",
+    "paymentFrequency": "biweekly",
+    "termYears": "5",
+    "termMonths": "0",
+    "firstPaymentDate": "2026-06-26",
+    "endDate": "2031-06-15",
+    "disbursalDate": "2026-03-17",
+    "renewalDate": "2026-06-15",
+    "accruedInterest": "0.00",
+    "semiAnnualCompoundingDate": "2025-12-15",
+    "fees": []
+   },
+   "modes": {
+    "all": {
+     "printFees": "279701d8ae048f6e2655b150db161c245558890959f237854d6910ab895c3bde",
+     "printFigures": "4f89dc8cb989b0ab3e09ea0d65e4a09debbb1b18beceea44ed4ee40f4df93355",
+     "moreFigures": "6f768223945180eac9cb3ce017901d401fdc5a205a387c10c4498f0027ee0640",
+     "printScheduleTable": "1cc604beb99d4a15bad2a072a838ff9f975fc1d8e11791938bee80fc3ab7a4aa",
+     "scheduleTable": "0c79aa9729a327918b7c8dd1ee7ce965a44d516717d3ec41a7991df08290f6fe",
+     "figures": "0da17ff2bcf46fd9c8877ebe60ea252d877aadbdb11a7723495689c7e484fea2",
+     "csv": "a4c3d888b6d40f246775ac04559cd0ebaff7f73b275121fed42f7ef39d0c9f95",
+     "csvFileName": "cost-of-borrowing-schedule-2026-06-26.csv"
+    },
+    "compact": {
+     "printFees": "279701d8ae048f6e2655b150db161c245558890959f237854d6910ab895c3bde",
+     "printFigures": "4f89dc8cb989b0ab3e09ea0d65e4a09debbb1b18beceea44ed4ee40f4df93355",
+     "moreFigures": "6f768223945180eac9cb3ce017901d401fdc5a205a387c10c4498f0027ee0640",
+     "printScheduleTable": "6ee1c6b4e21401ad318b72c148ce091bdfc5c4398e4aa335bac3edc62b5c63a4",
+     "scheduleTable": "600aeac1dc1c03d1e960daed0735185946570c42856e7b2b75e395949a6df600",
+     "figures": "0da17ff2bcf46fd9c8877ebe60ea252d877aadbdb11a7723495689c7e484fea2",
+     "csv": "8cb068ad50be210c63b0709aae87509b66739adc3c2f66598e68ca0271395a56",
+     "csvFileName": "cost-of-borrowing-schedule-2026-06-26.csv"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,1468 @@
+{
+ "provenance": {
+  "task": "B32 QA red step, pre-change pins",
+  "date": "2026-10-05",
+  "tree": "pre-B32 (contractTerm(result); flowLabels four keys)",
+  "contractDateOnRaw": "capture raw + contractDate 2026-03-10",
+  "switchesOtherwise": "financedOption false, acceleratedFrequencies false"
+ },
+ "flowLabels": {
+  "newMortgageOrLoan": {
+   "legend": "New mortgage or loan",
+   "startDate": "Disbursal date",
+   "firstPaymentDate": "First payment date",
+   "accruedHint": null
+  },
+  "renewal": {
+   "legend": "Renewal",
+   "startDate": "Renewal date",
+   "firstPaymentDate": "First payment date",
+   "accruedHint": "Interest accrued since the last payment date."
+  },
+  "paymentChange": {
+   "legend": "Payment change",
+   "startDate": "Date of change",
+   "firstPaymentDate": "Next payment date",
+   "accruedHint": "Interest accrued since the last payment date."
+  },
+  "variableRatePaymentChange": {
+   "legend": "Variable rate payment change",
+   "startDate": "Date of change",
+   "firstPaymentDate": "Next payment date",
+   "accruedHint": "Only interest due at earlier payments and not yet paid (arrears), usually $0.00. Interest since the last payment date is already charged."
+  }
+ },
+ "printRows": [
+  {
+   "id": "REF-01",
+   "state": "contractDateField on",
+   "moveNote": "",
+   "rows": [
+    [
+     "Contract date",
+     "Mar 10, 2026"
+    ],
+    [
+     "Use case",
+     "New mortgage or loan"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Fixed"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$227,829.65"
+    ],
+    [
+     "Interest rate",
+     "3.74%"
+    ],
+    [
+     "Payment amount *",
+     "$465.46"
+    ],
+    [
+     "Payment frequency",
+     "Weekly"
+    ],
+    [
+     "First payment date",
+     "Mar 23, 2026"
+    ],
+    [
+     "End date",
+     "Mar 17, 2029"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Disbursal date",
+     "Mar 17, 2026"
+    ]
+   ]
+  },
+  {
+   "id": "REF-01",
+   "state": "contractDateField on",
+   "moveNote": "M",
+   "rows": [
+    [
+     "Contract date",
+     "Mar 10, 2026"
+    ],
+    [
+     "Use case",
+     "New mortgage or loan"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Fixed"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$227,829.65"
+    ],
+    [
+     "Interest rate",
+     "3.74%"
+    ],
+    [
+     "Payment amount *",
+     "$465.46"
+    ],
+    [
+     "Payment frequency",
+     "Weekly"
+    ],
+    [
+     "First payment date",
+     "Mar 23, 2026"
+    ],
+    [
+     "Moved first date",
+     "M"
+    ],
+    [
+     "End date",
+     "Mar 17, 2029"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Disbursal date",
+     "Mar 17, 2026"
+    ]
+   ]
+  },
+  {
+   "id": "REF-01",
+   "state": "contractDateField off",
+   "moveNote": "",
+   "rows": [
+    [
+     "Use case",
+     "New mortgage or loan"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Fixed"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$227,829.65"
+    ],
+    [
+     "Interest rate",
+     "3.74%"
+    ],
+    [
+     "Payment amount *",
+     "$465.46"
+    ],
+    [
+     "Payment frequency",
+     "Weekly"
+    ],
+    [
+     "First payment date",
+     "Mar 23, 2026"
+    ],
+    [
+     "End date",
+     "Mar 17, 2029"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Disbursal date",
+     "Mar 17, 2026"
+    ]
+   ]
+  },
+  {
+   "id": "REF-01",
+   "state": "contractDateField off",
+   "moveNote": "M",
+   "rows": [
+    [
+     "Use case",
+     "New mortgage or loan"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Fixed"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$227,829.65"
+    ],
+    [
+     "Interest rate",
+     "3.74%"
+    ],
+    [
+     "Payment amount *",
+     "$465.46"
+    ],
+    [
+     "Payment frequency",
+     "Weekly"
+    ],
+    [
+     "First payment date",
+     "Mar 23, 2026"
+    ],
+    [
+     "Moved first date",
+     "M"
+    ],
+    [
+     "End date",
+     "Mar 17, 2029"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Disbursal date",
+     "Mar 17, 2026"
+    ]
+   ]
+  },
+  {
+   "id": "S1_fees",
+   "state": "contractDateField on",
+   "moveNote": "",
+   "rows": [
+    [
+     "Contract date",
+     "Mar 10, 2026"
+    ],
+    [
+     "Use case",
+     "New mortgage or loan"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Fixed"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$227,829.65"
+    ],
+    [
+     "Interest rate",
+     "3.74%"
+    ],
+    [
+     "Payment amount *",
+     "$465.46"
+    ],
+    [
+     "Payment frequency",
+     "Weekly"
+    ],
+    [
+     "First payment date",
+     "Mar 23, 2026"
+    ],
+    [
+     "End date",
+     "Mar 17, 2029"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Disbursal date",
+     "Mar 17, 2026"
+    ]
+   ]
+  },
+  {
+   "id": "S1_fees",
+   "state": "contractDateField on",
+   "moveNote": "M",
+   "rows": [
+    [
+     "Contract date",
+     "Mar 10, 2026"
+    ],
+    [
+     "Use case",
+     "New mortgage or loan"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Fixed"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$227,829.65"
+    ],
+    [
+     "Interest rate",
+     "3.74%"
+    ],
+    [
+     "Payment amount *",
+     "$465.46"
+    ],
+    [
+     "Payment frequency",
+     "Weekly"
+    ],
+    [
+     "First payment date",
+     "Mar 23, 2026"
+    ],
+    [
+     "Moved first date",
+     "M"
+    ],
+    [
+     "End date",
+     "Mar 17, 2029"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Disbursal date",
+     "Mar 17, 2026"
+    ]
+   ]
+  },
+  {
+   "id": "S1_fees",
+   "state": "contractDateField off",
+   "moveNote": "",
+   "rows": [
+    [
+     "Use case",
+     "New mortgage or loan"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Fixed"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$227,829.65"
+    ],
+    [
+     "Interest rate",
+     "3.74%"
+    ],
+    [
+     "Payment amount *",
+     "$465.46"
+    ],
+    [
+     "Payment frequency",
+     "Weekly"
+    ],
+    [
+     "First payment date",
+     "Mar 23, 2026"
+    ],
+    [
+     "End date",
+     "Mar 17, 2029"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Disbursal date",
+     "Mar 17, 2026"
+    ]
+   ]
+  },
+  {
+   "id": "S1_fees",
+   "state": "contractDateField off",
+   "moveNote": "M",
+   "rows": [
+    [
+     "Use case",
+     "New mortgage or loan"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Fixed"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$227,829.65"
+    ],
+    [
+     "Interest rate",
+     "3.74%"
+    ],
+    [
+     "Payment amount *",
+     "$465.46"
+    ],
+    [
+     "Payment frequency",
+     "Weekly"
+    ],
+    [
+     "First payment date",
+     "Mar 23, 2026"
+    ],
+    [
+     "Moved first date",
+     "M"
+    ],
+    [
+     "End date",
+     "Mar 17, 2029"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Disbursal date",
+     "Mar 17, 2026"
+    ]
+   ]
+  },
+  {
+   "id": "RENEWAL",
+   "state": "contractDateField on",
+   "moveNote": "",
+   "rows": [
+    [
+     "Contract date",
+     "Mar 10, 2026"
+    ],
+    [
+     "Use case",
+     "Renewal"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Fixed"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$150,000.00"
+    ],
+    [
+     "Interest rate",
+     "4.19%"
+    ],
+    [
+     "Payment amount *",
+     "$900.00"
+    ],
+    [
+     "Payment frequency",
+     "Monthly"
+    ],
+    [
+     "First payment date",
+     "May 1, 2026"
+    ],
+    [
+     "End date",
+     "Oct 1, 2028"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Renewal date",
+     "Apr 1, 2026"
+    ],
+    [
+     "Accrued interest",
+     "$125.50"
+    ]
+   ]
+  },
+  {
+   "id": "RENEWAL",
+   "state": "contractDateField on",
+   "moveNote": "M",
+   "rows": [
+    [
+     "Contract date",
+     "Mar 10, 2026"
+    ],
+    [
+     "Use case",
+     "Renewal"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Fixed"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$150,000.00"
+    ],
+    [
+     "Interest rate",
+     "4.19%"
+    ],
+    [
+     "Payment amount *",
+     "$900.00"
+    ],
+    [
+     "Payment frequency",
+     "Monthly"
+    ],
+    [
+     "First payment date",
+     "May 1, 2026"
+    ],
+    [
+     "Moved first date",
+     "M"
+    ],
+    [
+     "End date",
+     "Oct 1, 2028"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Renewal date",
+     "Apr 1, 2026"
+    ],
+    [
+     "Accrued interest",
+     "$125.50"
+    ]
+   ]
+  },
+  {
+   "id": "RENEWAL",
+   "state": "contractDateField off",
+   "moveNote": "",
+   "rows": [
+    [
+     "Use case",
+     "Renewal"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Fixed"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$150,000.00"
+    ],
+    [
+     "Interest rate",
+     "4.19%"
+    ],
+    [
+     "Payment amount *",
+     "$900.00"
+    ],
+    [
+     "Payment frequency",
+     "Monthly"
+    ],
+    [
+     "First payment date",
+     "May 1, 2026"
+    ],
+    [
+     "End date",
+     "Oct 1, 2028"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Renewal date",
+     "Apr 1, 2026"
+    ],
+    [
+     "Accrued interest",
+     "$125.50"
+    ]
+   ]
+  },
+  {
+   "id": "RENEWAL",
+   "state": "contractDateField off",
+   "moveNote": "M",
+   "rows": [
+    [
+     "Use case",
+     "Renewal"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Fixed"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$150,000.00"
+    ],
+    [
+     "Interest rate",
+     "4.19%"
+    ],
+    [
+     "Payment amount *",
+     "$900.00"
+    ],
+    [
+     "Payment frequency",
+     "Monthly"
+    ],
+    [
+     "First payment date",
+     "May 1, 2026"
+    ],
+    [
+     "Moved first date",
+     "M"
+    ],
+    [
+     "End date",
+     "Oct 1, 2028"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Renewal date",
+     "Apr 1, 2026"
+    ],
+    [
+     "Accrued interest",
+     "$125.50"
+    ]
+   ]
+  },
+  {
+   "id": "VRPC_blank_accrued",
+   "state": "contractDateField on",
+   "moveNote": "",
+   "rows": [
+    [
+     "Contract date",
+     "Mar 10, 2026"
+    ],
+    [
+     "Use case",
+     "Variable rate payment change"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Variable"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$300,000.00"
+    ],
+    [
+     "Interest rate",
+     "5.2%"
+    ],
+    [
+     "Payment amount *",
+     "$850.00"
+    ],
+    [
+     "Payment frequency",
+     "Bi-weekly"
+    ],
+    [
+     "Next payment date",
+     "Jun 26, 2026"
+    ],
+    [
+     "End date",
+     "Jun 15, 2031"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Date of change",
+     "Jun 15, 2026"
+    ],
+    [
+     "Accrued interest",
+     "$"
+    ]
+   ]
+  },
+  {
+   "id": "VRPC_blank_accrued",
+   "state": "contractDateField on",
+   "moveNote": "M",
+   "rows": [
+    [
+     "Contract date",
+     "Mar 10, 2026"
+    ],
+    [
+     "Use case",
+     "Variable rate payment change"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Variable"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$300,000.00"
+    ],
+    [
+     "Interest rate",
+     "5.2%"
+    ],
+    [
+     "Payment amount *",
+     "$850.00"
+    ],
+    [
+     "Payment frequency",
+     "Bi-weekly"
+    ],
+    [
+     "Next payment date",
+     "Jun 26, 2026"
+    ],
+    [
+     "Moved first date",
+     "M"
+    ],
+    [
+     "End date",
+     "Jun 15, 2031"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Date of change",
+     "Jun 15, 2026"
+    ],
+    [
+     "Accrued interest",
+     "$"
+    ]
+   ]
+  },
+  {
+   "id": "VRPC_blank_accrued",
+   "state": "contractDateField off",
+   "moveNote": "",
+   "rows": [
+    [
+     "Use case",
+     "Variable rate payment change"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Variable"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$300,000.00"
+    ],
+    [
+     "Interest rate",
+     "5.2%"
+    ],
+    [
+     "Payment amount *",
+     "$850.00"
+    ],
+    [
+     "Payment frequency",
+     "Bi-weekly"
+    ],
+    [
+     "Next payment date",
+     "Jun 26, 2026"
+    ],
+    [
+     "End date",
+     "Jun 15, 2031"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Date of change",
+     "Jun 15, 2026"
+    ],
+    [
+     "Accrued interest",
+     "$"
+    ]
+   ]
+  },
+  {
+   "id": "VRPC_blank_accrued",
+   "state": "contractDateField off",
+   "moveNote": "M",
+   "rows": [
+    [
+     "Use case",
+     "Variable rate payment change"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Variable"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$300,000.00"
+    ],
+    [
+     "Interest rate",
+     "5.2%"
+    ],
+    [
+     "Payment amount *",
+     "$850.00"
+    ],
+    [
+     "Payment frequency",
+     "Bi-weekly"
+    ],
+    [
+     "Next payment date",
+     "Jun 26, 2026"
+    ],
+    [
+     "Moved first date",
+     "M"
+    ],
+    [
+     "End date",
+     "Jun 15, 2031"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Date of change",
+     "Jun 15, 2026"
+    ],
+    [
+     "Accrued interest",
+     "$"
+    ]
+   ]
+  },
+  {
+   "id": "VRPC_zero_accrued",
+   "state": "contractDateField on",
+   "moveNote": "",
+   "rows": [
+    [
+     "Contract date",
+     "Mar 10, 2026"
+    ],
+    [
+     "Use case",
+     "Variable rate payment change"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Variable"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$300,000.00"
+    ],
+    [
+     "Interest rate",
+     "5.2%"
+    ],
+    [
+     "Payment amount *",
+     "$850.00"
+    ],
+    [
+     "Payment frequency",
+     "Bi-weekly"
+    ],
+    [
+     "Next payment date",
+     "Jun 26, 2026"
+    ],
+    [
+     "End date",
+     "Jun 15, 2031"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Date of change",
+     "Jun 15, 2026"
+    ],
+    [
+     "Accrued interest",
+     "$0.00"
+    ]
+   ]
+  },
+  {
+   "id": "VRPC_zero_accrued",
+   "state": "contractDateField on",
+   "moveNote": "M",
+   "rows": [
+    [
+     "Contract date",
+     "Mar 10, 2026"
+    ],
+    [
+     "Use case",
+     "Variable rate payment change"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Variable"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$300,000.00"
+    ],
+    [
+     "Interest rate",
+     "5.2%"
+    ],
+    [
+     "Payment amount *",
+     "$850.00"
+    ],
+    [
+     "Payment frequency",
+     "Bi-weekly"
+    ],
+    [
+     "Next payment date",
+     "Jun 26, 2026"
+    ],
+    [
+     "Moved first date",
+     "M"
+    ],
+    [
+     "End date",
+     "Jun 15, 2031"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Date of change",
+     "Jun 15, 2026"
+    ],
+    [
+     "Accrued interest",
+     "$0.00"
+    ]
+   ]
+  },
+  {
+   "id": "VRPC_zero_accrued",
+   "state": "contractDateField off",
+   "moveNote": "",
+   "rows": [
+    [
+     "Use case",
+     "Variable rate payment change"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Variable"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$300,000.00"
+    ],
+    [
+     "Interest rate",
+     "5.2%"
+    ],
+    [
+     "Payment amount *",
+     "$850.00"
+    ],
+    [
+     "Payment frequency",
+     "Bi-weekly"
+    ],
+    [
+     "Next payment date",
+     "Jun 26, 2026"
+    ],
+    [
+     "End date",
+     "Jun 15, 2031"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Date of change",
+     "Jun 15, 2026"
+    ],
+    [
+     "Accrued interest",
+     "$0.00"
+    ]
+   ]
+  },
+  {
+   "id": "VRPC_zero_accrued",
+   "state": "contractDateField off",
+   "moveNote": "M",
+   "rows": [
+    [
+     "Use case",
+     "Variable rate payment change"
+    ],
+    [
+     "Product type",
+     "Mortgage"
+    ],
+    [
+     "Rate type",
+     "Variable"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$300,000.00"
+    ],
+    [
+     "Interest rate",
+     "5.2%"
+    ],
+    [
+     "Payment amount *",
+     "$850.00"
+    ],
+    [
+     "Payment frequency",
+     "Bi-weekly"
+    ],
+    [
+     "Next payment date",
+     "Jun 26, 2026"
+    ],
+    [
+     "Moved first date",
+     "M"
+    ],
+    [
+     "End date",
+     "Jun 15, 2031"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Date of change",
+     "Jun 15, 2026"
+    ],
+    [
+     "Accrued interest",
+     "$0.00"
+    ]
+   ]
+  },
+  {
+   "id": "ERR_blank_rate",
+   "state": "contractDateField on",
+   "moveNote": "",
+   "rows": [
+    [
+     "Contract date",
+     "Mar 10, 2026"
+    ],
+    [
+     "Use case",
+     "New mortgage or loan"
+    ],
+    [
+     "Product type",
+     "Personal loan"
+    ],
+    [
+     "Rate type",
+     "Variable"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$10,000.00"
+    ],
+    [
+     "Interest rate",
+     "%"
+    ],
+    [
+     "Payment amount *",
+     "$300.00"
+    ],
+    [
+     "Payment frequency",
+     "Monthly"
+    ],
+    [
+     "First payment date",
+     "Apr 17, 2026"
+    ],
+    [
+     "End date",
+     "Mar 17, 2029"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Disbursal date",
+     "Mar 17, 2026"
+    ]
+   ]
+  },
+  {
+   "id": "ERR_blank_rate",
+   "state": "contractDateField on",
+   "moveNote": "M",
+   "rows": [
+    [
+     "Contract date",
+     "Mar 10, 2026"
+    ],
+    [
+     "Use case",
+     "New mortgage or loan"
+    ],
+    [
+     "Product type",
+     "Personal loan"
+    ],
+    [
+     "Rate type",
+     "Variable"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$10,000.00"
+    ],
+    [
+     "Interest rate",
+     "%"
+    ],
+    [
+     "Payment amount *",
+     "$300.00"
+    ],
+    [
+     "Payment frequency",
+     "Monthly"
+    ],
+    [
+     "First payment date",
+     "Apr 17, 2026"
+    ],
+    [
+     "Moved first date",
+     "M"
+    ],
+    [
+     "End date",
+     "Mar 17, 2029"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Disbursal date",
+     "Mar 17, 2026"
+    ]
+   ]
+  },
+  {
+   "id": "ERR_blank_rate",
+   "state": "contractDateField off",
+   "moveNote": "",
+   "rows": [
+    [
+     "Use case",
+     "New mortgage or loan"
+    ],
+    [
+     "Product type",
+     "Personal loan"
+    ],
+    [
+     "Rate type",
+     "Variable"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$10,000.00"
+    ],
+    [
+     "Interest rate",
+     "%"
+    ],
+    [
+     "Payment amount *",
+     "$300.00"
+    ],
+    [
+     "Payment frequency",
+     "Monthly"
+    ],
+    [
+     "First payment date",
+     "Apr 17, 2026"
+    ],
+    [
+     "End date",
+     "Mar 17, 2029"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Disbursal date",
+     "Mar 17, 2026"
+    ]
+   ]
+  },
+  {
+   "id": "ERR_blank_rate",
+   "state": "contractDateField off",
+   "moveNote": "M",
+   "rows": [
+    [
+     "Use case",
+     "New mortgage or loan"
+    ],
+    [
+     "Product type",
+     "Personal loan"
+    ],
+    [
+     "Rate type",
+     "Variable"
+    ],
+    [
+     "Mortgage or loan amount",
+     "$10,000.00"
+    ],
+    [
+     "Interest rate",
+     "%"
+    ],
+    [
+     "Payment amount *",
+     "$300.00"
+    ],
+    [
+     "Payment frequency",
+     "Monthly"
+    ],
+    [
+     "First payment date",
+     "Apr 17, 2026"
+    ],
+    [
+     "Moved first date",
+     "M"
+    ],
+    [
+     "End date",
+     "Mar 17, 2029"
+    ],
+    [
+     "Contract term",
+     "X"
+    ],
+    [
+     "Disbursal date",
+     "Mar 17, 2026"
+    ]
+   ]
+  }
+ ],
+ "exports": {
+  "caBarrel": [
+   "FLOWS",
+   "PAYMENTS_PER_YEAR",
+   "allowedPaymentFrequencies",
+   "calculateCobCanada",
+   "collectInputIssues",
+   "contractTerm",
+   "requiresSemiAnnualDate"
+  ],
+  "rootBarrel": [
+   "FLOWS",
+   "PAYMENTS_PER_YEAR",
+   "allowedPaymentFrequencies",
+   "calculateCobCanada",
+   "collectInputIssues",
+   "contractTerm",
+   "requiresSemiAnnualDate"
+  ],
+  "view": [
+   "COLUMNS",
+   "COMPACT_KEYS",
+   "CSV_COLUMNS",
+   "FEE_KEYS",
+   "FREQUENCY_LOCK_HINT",
+   "LABELS",
+   "UI_SWITCHES",
+   "contractTermHint",
+   "contractTermParts",
+   "contractTermText",
+   "csvFileName",
+   "figureNodes",
+   "firstDateMoveNote",
+   "flowLabels",
+   "formatAmount",
+   "formatCurrency",
+   "formatInputDate",
+   "formatIsoDate",
+   "formatRate",
+   "frequencyLock",
+   "h",
+   "headlineFigures",
+   "html",
+   "isoDay",
+   "label",
+   "mainFigures",
+   "moreFigures",
+   "numOrUndefined",
+   "parseAmount",
+   "parseDateInput",
+   "parseMoney",
+   "paymentsText",
+   "printFeesNodes",
+   "printFigures",
+   "printInputNodes",
+   "printInputRows",
+   "scheduleCsv",
+   "scheduleTableNodes",
+   "switchedOut",
+   "toInput",
+   "typedMoney"
+  ]
+ }
+}

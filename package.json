@@ -1,0 +1,30 @@
+{
+  "name": "cob-calculator",
+  "version": "0.1.0",
+  "description": "Cost of Borrowing (COB) calculator engine (Canada)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=26.13.0"
+  },
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.test.json",
+    "test:tz": "TZ=America/Toronto vitest run tests/ca/golden tests/architecture tests/ca/calendar-a4.test.ts tests/ca/b3b-date-validation.test.ts tests/ca/monthlyDates-t3.test.ts tests/ca/monthlyMonthEnd-oqx.test.ts tests/ca/semiMonthlyDates-t4.test.ts tests/ca/b15-semimonthly-time-of-day.test.ts tests/ca/b8-accelerated-frequencies.test.ts tests/ca/b24-term-rule.test.ts tests/ca/b25-semimonthly-move.test.ts tests/ca/b32-term-start.test.ts tests/ca/b33-personal-loan-frequencies.test.ts tests/ca/b34-term-options.test.ts tests/ca/b37-leap-aware-n.test.ts tests/ca/b39-monthly-conversion.test.ts && TZ=Pacific/Kiritimati vitest run tests/ca/golden tests/architecture tests/ca/calendar-a4.test.ts tests/ca/b3b-date-validation.test.ts tests/ca/monthlyDates-t3.test.ts tests/ca/monthlyMonthEnd-oqx.test.ts tests/ca/semiMonthlyDates-t4.test.ts tests/ca/b15-semimonthly-time-of-day.test.ts tests/ca/b8-accelerated-frequencies.test.ts tests/ca/b24-term-rule.test.ts tests/ca/b25-semimonthly-move.test.ts tests/ca/b32-term-start.test.ts tests/ca/b33-personal-loan-frequencies.test.ts tests/ca/b34-term-options.test.ts tests/ca/b37-leap-aware-n.test.ts tests/ca/b39-monthly-conversion.test.ts",
+    "ui": "npm run build && node ui/serve.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "~26.6.6",
+    "typescript": "^5.9.0",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  },
+  "allowScripts": {
+    "fsevents": false
+  }
+}

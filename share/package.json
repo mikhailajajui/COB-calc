@@ -1,0 +1,10 @@
+{
+  "name": "cob-share",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Builds the single-file COB.html from the calculator sources (no dependencies)",
+  "scripts": {
+    "build": "npm run build --prefix .. && node build-share.mjs"
+  }
+}
